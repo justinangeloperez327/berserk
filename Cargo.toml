@@ -1,0 +1,30 @@
+[workspace]
+resolver = "2"
+exclude = ["examples/minimal-api"]
+members = ["crates/core", "crates/validation", "crates/database", "crates/auth", "crates/openapi", "crates/cache", "crates/storage", "crates/events", "crates/jobs", "crates/client", "crates/notifications", "crates/cli", "crates/testing", "crates/framework", "examples/foundation", "benchmarks"]
+
+[workspace.package]
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.88"
+publish = false
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.dependencies]
+framework-core = { path = "crates/core" }
+framework-database = { path = "crates/database" }
+framework-auth = { path = "crates/auth" }
+framework-openapi = { path = "crates/openapi" }
+framework-cache = { path = "crates/cache" }
+framework-storage = { path = "crates/storage" }
+framework-events = { path = "crates/events" }
+framework-jobs = { path = "crates/jobs" }
+framework-client = { path = "crates/client" }
+framework-notifications = { path = "crates/notifications" }
+framework-cli = { path = "crates/cli" }
+framework-testing = { path = "crates/testing" }
+framework = { path = "crates/framework" }
+
+

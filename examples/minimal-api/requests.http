@@ -1,0 +1,23 @@
+### Greeting
+GET http://127.0.0.1:3000/
+
+### Health
+GET http://127.0.0.1:3000/health
+
+### Parameter
+GET http://127.0.0.1:3000/users/42
+
+### Echo text
+POST http://127.0.0.1:3000/text
+Content-Type: text/plain
+
+Hello
+
+### No content
+DELETE http://127.0.0.1:3000/items/1
+
+### HEAD
+HEAD http://127.0.0.1:3000/health
+
+### Method mismatch
+POST http://127.0.0.1:3000/health

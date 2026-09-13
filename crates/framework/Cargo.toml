@@ -1,0 +1,37 @@
+[package]
+name = "framework"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+database = ["dep:framework-database"]
+postgres = ["database", "framework-database/postgres"]
+mysql = ["database", "framework-database/mysql"]
+sqlite = ["database", "framework-database/sqlite"]
+auth = ["dep:framework-auth"]
+openapi = ["dep:framework-openapi"]
+cache = ["dep:framework-cache"]
+storage = ["dep:framework-storage"]
+events = ["dep:framework-events"]
+jobs = ["dep:framework-jobs"]
+client = ["dep:framework-client"]
+notifications = ["client", "dep:framework-notifications"]
+cli = ["dep:framework-cli"]
+
+[dependencies]
+framework-core.workspace = true
+framework-validation = { path = "../validation" }
+framework-database = { workspace = true, optional = true }
+framework-auth = { workspace = true, optional = true }
+framework-openapi = { workspace = true, optional = true }
+rand_core = { version = "0.6", features = ["getrandom"] }
+framework-cache = { workspace = true, optional = true }
+framework-storage = { workspace = true, optional = true }
+framework-events = { workspace = true, optional = true }
+framework-jobs = { workspace = true, optional = true }
+framework-client = { workspace = true, optional = true }
+framework-notifications = { workspace = true, optional = true }
+framework-cli = { workspace = true, optional = true }

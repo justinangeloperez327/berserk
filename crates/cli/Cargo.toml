@@ -1,0 +1,11 @@
+[package]
+name = "framework-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "framework"
+path = "src/main.rs"
+doc = false

@@ -1,0 +1,12 @@
+[package]
+name = "minimal-api"
+version = "0.0.0"
+edition = "2021"
+rust-version = "1.82"
+publish = false
+
+# Independent consumer workspace: no inherited package/dependency settings.
+[workspace]
+
+[dependencies]
+framework = { path = "../../crates/framework" }
