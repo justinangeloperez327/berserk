@@ -1,14 +1,14 @@
-# Framework
+# Berserk
 
 A modern Rust framework for building secure, maintainable, and production-ready applications.
 
 ## Installation
 
-Add the framework to your project’s `Cargo.toml`:
+Add Berserk to your project's `Cargo.toml`:
 
 ```toml
 [dependencies]
-framework = "0.1.0"
+berserk = "0.1.0"
 ```
 
 Then build your application:
@@ -19,7 +19,7 @@ cargo build
 
 ## Requirements
 
-- Rust 1.82 or later
+- Rust 1.88 or later
 - Cargo
 - A supported database when using database features
 
@@ -29,10 +29,10 @@ Enable only the integrations your application needs:
 
 ```toml
 [dependencies]
-framework = { version = "0.1.0", features = ["postgres"] }
+berserk = { version = "0.1.0", features = ["postgres"] }
 ```
 
-Available features depend on the adapters provided by the framework.
+Available features depend on the adapters provided by Berserk.
 
 ## Documentation
 
@@ -48,4 +48,4 @@ Contributions are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before subm
 
 ## License
 
-This project is distributed under the license specified in [`LICENSE`](LICENSE).
+Berserk is distributed under the license specified in [`LICENSE`](LICENSE).
