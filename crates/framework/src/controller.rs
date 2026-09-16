@@ -337,8 +337,7 @@ where
             Err(response) => return Ok(response),
         };
         let input = request.validated::<I>()?;
-        self(first, second, Validated::new(input), request)
-            .into_response()
+        self(first, second, Validated::new(input), request).into_response()
     }
 }
 
