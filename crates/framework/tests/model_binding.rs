@@ -98,9 +98,7 @@ fn controller_can_receive_a_bound_claw_model() {
     {
         let mut route = app.route();
         route.get("/users/{user}", show).unwrap();
-        route
-            .get("/accounts/{user}", show_with_request)
-            .unwrap();
+        route.get("/accounts/{user}", show_with_request).unwrap();
     }
 
     assert_eq!(app.handle(request("/users/7")).unwrap().body(), b"7:Ada");
@@ -114,10 +112,7 @@ fn controller_can_receive_a_bound_claw_model() {
             .status_code(),
         400
     );
-    assert_eq!(
-        app.handle(request("/users/99")).unwrap().status_code(),
-        404
-    );
+    assert_eq!(app.handle(request("/users/99")).unwrap().status_code(), 404);
 }
 
 #[test]
