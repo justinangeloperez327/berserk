@@ -63,11 +63,7 @@ pub(super) fn serve(
         if shutdown.is_requested() && index > 0 {
             break;
         }
-        let started = if index == 0 {
-            accepted
-        } else {
-            Instant::now()
-        };
+        let started = if index == 0 { accepted } else { Instant::now() };
         let mut keep = false;
         let parsed = read_request(
             &mut Transport {
@@ -83,14 +79,11 @@ pub(super) fn serve(
                 keep = config.keep_alive
                     && index + 1 < config.max_requests_per_connection
                     && !shutdown.is_requested()
-                    && !request
-                        .headers()
-                        .get_all("connection")
-                        .any(|value| {
-                            value
-                                .split(',')
-                                .any(|token| token.trim().eq_ignore_ascii_case("close"))
-                        });
+                    && !request.headers().get_all("connection").any(|value| {
+                        value
+                            .split(',')
+                            .any(|token| token.trim().eq_ignore_ascii_case("close"))
+                    });
                 let method = request.method().clone();
                 let response = match catch_unwind(AssertUnwindSafe(|| app.handle(request))) {
                     Ok(Ok(response)) => response,
