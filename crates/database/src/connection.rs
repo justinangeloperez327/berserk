@@ -2,7 +2,7 @@ use crate::{
     Capabilities, Driver, Execution, Result, Row, Statement, Transaction, TransactionOptions,
 };
 
-pub trait Connection: Send {
+pub trait Connection {
     fn driver(&self) -> Driver;
     fn capabilities(&self) -> Capabilities;
     fn execute(&mut self, statement: &Statement) -> Result<Execution>;
