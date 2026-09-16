@@ -2,13 +2,13 @@
 
 use framework::{
     database::{
-        Capabilities, Connection, Database, Driver, ErrorKind, Execution, Query, Row, Statement,
-        Transaction, TransactionOptions, Value,
+        Capabilities, Connection, Database, DatabaseError, Driver, ErrorKind, Execution, Query,
+        Row, Statement, Transaction, TransactionOptions, Value,
     },
     App, ConfigError, Error, Headers, Method, Request, Response, Result,
 };
 use std::sync::{
-    atomic::{AtomicUsize, Ordering},
+    atomic::{AtomicBool, AtomicUsize, Ordering},
     Arc, Mutex,
 };
 
@@ -16,6 +16,8 @@ use std::sync::{
 struct TransactionState {
     commits: AtomicUsize,
     rollbacks: AtomicUsize,
+    fail_commit: AtomicBool,
+    fail_rollback: AtomicBool,
     executed: Mutex<Vec<Statement>>,
     options: Mutex<Vec<TransactionOptions>>,
 }
@@ -74,11 +76,23 @@ impl Transaction for FakeTransaction {
     }
 
     fn commit(self: Box<Self>) -> framework::database::Result<()> {
+        if self.state.fail_commit.load(Ordering::SeqCst) {
+            return Err(DatabaseError::new(
+                ErrorKind::Transaction,
+                "forced commit failure",
+            ));
+        }
         self.state.commits.fetch_add(1, Ordering::SeqCst);
         Ok(())
     }
 
     fn rollback(self: Box<Self>) -> framework::database::Result<()> {
+        if self.state.fail_rollback.load(Ordering::SeqCst) {
+            return Err(DatabaseError::new(
+                ErrorKind::Transaction,
+                "forced rollback failure",
+            ));
+        }
         self.state.rollbacks.fetch_add(1, Ordering::SeqCst);
         Ok(())
     }
@@ -129,6 +143,18 @@ fn nested_begin_handler(request: Request) -> Result<Response> {
     Ok(Response::text("nested rejected"))
 }
 
+fn app_with_state(state: &Arc<TransactionState>) -> App {
+    let factory_state = Arc::clone(state);
+    let mut app = App::new();
+    app.database(Database::new(move || {
+        Ok(FakeConnection {
+            state: Arc::clone(&factory_state),
+        })
+    }))
+    .unwrap();
+    app
+}
+
 #[test]
 fn request_transaction_commits_bound_sql_on_success() {
     let state = Arc::new(TransactionState::default());
@@ -166,14 +192,7 @@ fn request_transaction_commits_bound_sql_on_success() {
 #[test]
 fn request_transaction_rolls_back_and_preserves_application_error() {
     let state = Arc::new(TransactionState::default());
-    let factory_state = Arc::clone(&state);
-    let mut app = App::new();
-    app.database(Database::new(move || {
-        Ok(FakeConnection {
-            state: Arc::clone(&factory_state),
-        })
-    }))
-    .unwrap();
+    let mut app = app_with_state(&state);
     app.route().post("/rollback", rollback_handler).unwrap();
 
     let error = app.handle(request("/rollback")).unwrap_err();
@@ -183,16 +202,41 @@ fn request_transaction_rolls_back_and_preserves_application_error() {
 }
 
 #[test]
+fn request_transaction_surfaces_commit_failure() {
+    let state = Arc::new(TransactionState::default());
+    state.fail_commit.store(true, Ordering::SeqCst);
+    let mut app = app_with_state(&state);
+    app.route().post("/commit", commit_handler).unwrap();
+
+    let error = app.handle(request("/commit")).unwrap_err();
+    match error {
+        Error::Database(error) => assert!(matches!(error.kind(), ErrorKind::Transaction)),
+        other => panic!("expected database transaction error, got {other}"),
+    }
+    assert_eq!(state.commits.load(Ordering::SeqCst), 0);
+    assert_eq!(state.rollbacks.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn request_transaction_surfaces_rollback_failure() {
+    let state = Arc::new(TransactionState::default());
+    state.fail_rollback.store(true, Ordering::SeqCst);
+    let mut app = app_with_state(&state);
+    app.route().post("/rollback", rollback_handler).unwrap();
+
+    let error = app.handle(request("/rollback")).unwrap_err();
+    match error {
+        Error::Database(error) => assert!(matches!(error.kind(), ErrorKind::Transaction)),
+        other => panic!("expected rollback database error, got {other}"),
+    }
+    assert_eq!(state.commits.load(Ordering::SeqCst), 0);
+    assert_eq!(state.rollbacks.load(Ordering::SeqCst), 0);
+}
+
+#[test]
 fn request_transaction_forwards_options_and_rejects_nested_begin() {
     let state = Arc::new(TransactionState::default());
-    let factory_state = Arc::clone(&state);
-    let mut app = App::new();
-    app.database(Database::new(move || {
-        Ok(FakeConnection {
-            state: Arc::clone(&factory_state),
-        })
-    }))
-    .unwrap();
+    let mut app = app_with_state(&state);
     {
         let mut route = app.route();
         route.post("/read-only", read_only_handler).unwrap();
