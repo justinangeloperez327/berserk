@@ -1,14 +1,16 @@
 //! Deterministic synchronous routing without network I/O.
 mod error;
+mod facade;
 mod route;
 
 use crate::{controller::Handler, Method, Request, Response, Result};
 pub use error::RouteError;
+pub use facade::Route;
 use route::Pattern;
 use std::{collections::BTreeSet, fmt};
 
 type BoxedHandler = Box<dyn Fn(Request) -> Result<Response> + Send + Sync + 'static>;
-struct Route {
+struct RegisteredRoute {
     method: Method,
     pattern: Pattern,
     handler: BoxedHandler,
@@ -16,7 +18,7 @@ struct Route {
 
 #[derive(Default)]
 pub(crate) struct Router {
-    routes: Vec<Route>,
+    routes: Vec<RegisteredRoute>,
 }
 impl fmt::Debug for Router {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -41,11 +43,11 @@ impl Router {
         if self
             .routes
             .iter()
-            .any(|r| r.method == method && r.pattern.equivalent(&pattern))
+            .any(|route| route.method == method && route.pattern.equivalent(&pattern))
         {
             return Err(RouteError::DuplicateRoute.into());
         }
-        self.routes.push(Route {
+        self.routes.push(RegisteredRoute {
             method,
             pattern,
             handler: Box::new(move |request| handler.call(request)),
@@ -64,18 +66,18 @@ impl Router {
             let candidates: Vec<_> = self
                 .routes
                 .iter()
-                .filter(|r| r.pattern.equivalent(&best.pattern))
+                .filter(|route| route.pattern.equivalent(&best.pattern))
                 .collect();
             let selected = candidates
                 .iter()
                 .copied()
-                .find(|r| &r.method == request.method())
+                .find(|route| &route.method == request.method())
                 .or_else(|| {
                     if head {
                         candidates
                             .iter()
                             .copied()
-                            .find(|r| r.method.as_str() == "GET")
+                            .find(|route| route.method.as_str() == "GET")
                     } else {
                         None
                     }
@@ -88,8 +90,10 @@ impl Router {
                 request.set_params(params);
                 (route.handler)(request)?
             } else {
-                let mut allow: BTreeSet<&str> =
-                    candidates.iter().map(|r| r.method.as_str()).collect();
+                let mut allow: BTreeSet<&str> = candidates
+                    .iter()
+                    .map(|route| route.method.as_str())
+                    .collect();
                 if allow.contains("GET") {
                     allow.insert("HEAD");
                 }
@@ -117,19 +121,17 @@ impl Router {
         let mut pending = Vec::new();
         for route in other.routes {
             let pattern = route.pattern.prefixed(prefix)?;
-            if self
-                .routes
-                .iter()
-                .any(|r| r.method == route.method && r.pattern.equivalent(&pattern))
-            {
+            if self.routes.iter().any(|existing| {
+                existing.method == route.method && existing.pattern.equivalent(&pattern)
+            }) {
                 return Err(RouteError::DuplicateRoute.into());
             }
             let layers = layers.clone();
             let handler = route.handler;
-            pending.push(Route {
+            pending.push(RegisteredRoute {
                 method: route.method,
                 pattern,
-                handler: Box::new(move |req| layers.run(req, handler.as_ref())),
+                handler: Box::new(move |request| layers.run(request, handler.as_ref())),
             });
         }
         self.routes.extend(pending);
