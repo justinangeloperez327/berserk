@@ -74,11 +74,7 @@ impl Connection for FakeConnection {
 #[test]
 fn pagination_executes_count_then_a_bounded_model_query() {
     let count = Row::new(vec![Column::new("aggregate", 3_u64)]).unwrap();
-    let user = Row::new(vec![
-        Column::new("id", 2_u64),
-        Column::new("name", "B"),
-    ])
-    .unwrap();
+    let user = Row::new(vec![Column::new("id", 2_u64), Column::new("name", "B")]).unwrap();
     let mut connection = FakeConnection::with_results(vec![vec![count], vec![user]]);
 
     let page = User::query()
