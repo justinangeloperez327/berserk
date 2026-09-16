@@ -77,6 +77,14 @@ pub trait Model: Sized {
         Self::where_(Self::PRIMARY_KEY, "=", key).first(connection)
     }
 
+    fn find_many<I, V>(connection: &mut dyn Connection, keys: I) -> Result<Vec<Self>>
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<Value>,
+    {
+        Self::where_in(Self::PRIMARY_KEY, keys).get(connection)
+    }
+
     fn create<I, S, V>(connection: &mut dyn Connection, values: I) -> Result<Execution>
     where
         I: IntoIterator<Item = (S, V)>,
