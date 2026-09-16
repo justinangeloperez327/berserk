@@ -10,6 +10,8 @@ pub enum Error {
     Input(crate::input::InputError),
     Server(std::io::Error),
     Routing(crate::RouteError),
+    #[cfg(feature = "database")]
+    Database(framework_database::DatabaseError),
     #[cfg(feature = "auth")]
     Auth(framework_auth::AuthError),
     #[cfg(feature = "openapi")]
@@ -33,6 +35,8 @@ impl fmt::Display for Error {
             Self::Configuration(error) => fmt::Display::fmt(error, f),
             Self::Http(error) => fmt::Display::fmt(error, f),
             Self::Routing(error) => fmt::Display::fmt(error, f),
+            #[cfg(feature = "database")]
+            Self::Database(error) => fmt::Display::fmt(error, f),
             Self::Operational(error) => fmt::Display::fmt(error, f),
             #[cfg(feature = "auth")]
             Self::Auth(error) => fmt::Display::fmt(error, f),
@@ -50,6 +54,8 @@ impl StdError for Error {
             Self::Configuration(error) => Some(error),
             Self::Http(error) => Some(error),
             Self::Routing(error) => Some(error),
+            #[cfg(feature = "database")]
+            Self::Database(error) => Some(error),
             Self::Operational(error) => Some(error),
             #[cfg(feature = "auth")]
             Self::Auth(error) => Some(error),
@@ -80,6 +86,13 @@ impl From<std::io::Error> for Error {
 impl From<crate::input::InputError> for Error {
     fn from(e: crate::input::InputError) -> Self {
         Self::Input(e)
+    }
+}
+
+#[cfg(feature = "database")]
+impl From<framework_database::DatabaseError> for Error {
+    fn from(error: framework_database::DatabaseError) -> Self {
+        Self::Database(error)
     }
 }
 
