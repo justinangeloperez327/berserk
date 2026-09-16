@@ -41,6 +41,14 @@ pub struct RouteParamValidated<T, I>(PhantomData<fn() -> (T, I)>);
 #[doc(hidden)]
 pub struct RouteParamValidatedRequest<T, I>(PhantomData<fn() -> (T, I)>);
 
+#[cfg(feature = "claw")]
+#[doc(hidden)]
+pub struct RouteModel<M>(PhantomData<M>);
+
+#[cfg(feature = "claw")]
+#[doc(hidden)]
+pub struct RouteModelRequest<M>(PhantomData<M>);
+
 #[doc(hidden)]
 pub trait Handler<Args>: Send + Sync + 'static {
     fn expected_route_params() -> Option<usize>;
@@ -51,6 +59,31 @@ fn route_param<T: FromStr>(request: &Request, index: usize) -> std::result::Resu
     match request.param_at_as::<T>(index) {
         Some(Ok(value)) => Ok(value),
         Some(Err(_)) | None => Err(Response::text("Invalid route parameter").status(400)),
+    }
+}
+
+#[cfg(feature = "claw")]
+fn route_model<M: claw_orm::Model>(
+    request: &Request,
+    index: usize,
+) -> Result<std::result::Result<M, Response>> {
+    let raw = match request.param_at(index) {
+        Some(value) => value,
+        None => return Ok(Err(Response::text("Invalid route parameter").status(400))),
+    };
+    let key = match M::parse_route_key(raw) {
+        Some(key) => key,
+        None => return Ok(Err(Response::text("Invalid route parameter").status(400))),
+    };
+    let database = request
+        .state::<framework_database::Database>()
+        .ok_or_else(|| {
+            framework_core::ConfigError::new("database", "database state is not configured")
+        })?;
+    let mut connection = database.acquire()?;
+    match M::find(&mut *connection, key)? {
+        Some(model) => Ok(Ok(model)),
+        None => Ok(Err(Response::text("Not Found").status(404))),
     }
 }
 
@@ -117,6 +150,46 @@ where
             Err(response) => return Ok(response),
         };
         self(value, request).into_response()
+    }
+}
+
+#[cfg(feature = "claw")]
+impl<F, M, R> Handler<RouteModel<M>> for F
+where
+    F: Fn(M) -> R + Send + Sync + 'static,
+    M: claw_orm::Model + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(1)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let model = match route_model::<M>(&request, 0)? {
+            Ok(model) => model,
+            Err(response) => return Ok(response),
+        };
+        self(model).into_response()
+    }
+}
+
+#[cfg(feature = "claw")]
+impl<F, M, R> Handler<RouteModelRequest<M>> for F
+where
+    F: Fn(M, Request) -> R + Send + Sync + 'static,
+    M: claw_orm::Model + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(1)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let model = match route_model::<M>(&request, 0)? {
+            Ok(model) => model,
+            Err(response) => return Ok(response),
+        };
+        self(model, request).into_response()
     }
 }
 
@@ -216,7 +289,8 @@ where
             Err(response) => return Ok(response),
         };
         let input = request.validated::<I>()?;
-        self(first, second, Validated::new(input), request).into_response()
+        self(first, second, Validated::new(input), request)
+            .into_response()
     }
 }
 
@@ -290,6 +364,7 @@ where
             Err(response) => return Ok(response),
         };
         let input = request.validated::<I>()?;
-        self(route_param, Validated::new(input), request).into_response()
+        self(route_param, Validated::new(input), request)
+            .into_response()
     }
 }
