@@ -1,16 +1,12 @@
-//! HTTP server transport and codecs.
+//! HTTP server transport.
 mod error;
 mod hyper_adapter;
 #[cfg(test)]
 mod hyper_adapter_tests;
 mod hyper_connection;
-mod parser;
 mod timeout_io;
 mod validation;
-mod writer;
 pub use error::ProtocolError;
-pub use parser::read_request;
-pub use writer::{write_response, write_response_connection};
 
 mod listener;
 pub use listener::Server;
