@@ -129,6 +129,15 @@ impl<M: Model> ModelQuery<M> {
         self.builder.count(connection)
     }
 
+    pub fn exists(&self, connection: &mut dyn Connection) -> Result<bool> {
+        Ok(!self
+            .builder
+            .clone()
+            .limit(1)
+            .get(connection)?
+            .is_empty())
+    }
+
     pub fn update<I, S, V>(self, connection: &mut dyn Connection, values: I) -> Result<Execution>
     where
         I: IntoIterator<Item = (S, V)>,
