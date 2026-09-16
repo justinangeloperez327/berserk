@@ -8,12 +8,14 @@
 mod decode;
 mod model;
 mod pagination;
+mod persistence;
 mod query;
 mod relationship;
 
 pub use decode::{field, FromValue};
 pub use model::Model;
 pub use pagination::Page;
+pub use persistence::PersistableModel;
 pub use query::ModelQuery;
 pub use relationship::{BelongsTo, HasMany, HasOne, RelatedSet};
 
@@ -23,6 +25,7 @@ pub use framework_database::{
 
 pub mod prelude {
     pub use crate::{
-        field, BelongsTo, FromValue, HasMany, HasOne, Model, ModelQuery, Page, RelatedSet,
+        field, BelongsTo, FromValue, HasMany, HasOne, Model, ModelQuery, Page, PersistableModel,
+        RelatedSet,
     };
 }
