@@ -1,6 +1,8 @@
 //! HTTP server transport and codecs.
 mod error;
 mod hyper_adapter;
+#[cfg(test)]
+mod hyper_adapter_tests;
 mod parser;
 mod validation;
 mod writer;
