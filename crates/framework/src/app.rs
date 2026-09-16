@@ -1,6 +1,6 @@
 use crate::{Result, ServerConfig, Validate};
 
-/// Validated application configuration. Supports in-memory routing and synchronous TCP serving.
+/// Validated application configuration for in-memory routing and Tokio/Hyper HTTP serving.
 #[derive(Debug)]
 pub struct App {
     config: ServerConfig,

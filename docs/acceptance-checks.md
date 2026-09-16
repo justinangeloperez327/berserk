@@ -1,6 +1,6 @@
 # Implementation acceptance checks
 
-These checks are planned; none are marked passed.
+These checks define the release target. Automated stable/MSRV compilation, formatting, Clippy, tests, documentation, the independent consumer, dependency policy, and advisory audit currently pass. Items requiring live services, fuzzing, measured performance, independent review, or owner release authorization remain pending.
 
 ## Public API
 
@@ -209,7 +209,7 @@ These checks are planned; none are marked passed.
 
 ## Hardening and maintenance
 
-- Every crate forbids unsafe code and the workspace declares Rust 1.82 as its MSRV.
+- Every crate forbids unsafe code and the workspace declares Rust 1.88 as its MSRV.
 - Default diagnostics do not expose HTTP header values, query strings, path parameters, bodies, SQL, database bindings, cache keys, or cached values.
 - Stable and MSRV CI definitions cover formatting, compilation, Clippy, tests, documentation, all features, and the independent consumer.
 - Dependency advisory, license, duplicate-version, and source policies are automated and every exception requires review.

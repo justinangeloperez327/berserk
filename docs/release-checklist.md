@@ -12,11 +12,11 @@ Publishing is always a manual owner decision. This checklist intentionally conta
 
 ## Verification
 
-- [ ] Pass formatting, compile, Clippy, tests, docs, and independent consumer checks on stable Rust.
-- [ ] Pass the same compile matrix on MSRV Rust 1.82.
+- [x] Pass formatting, compile, Clippy, tests, docs, and independent consumer checks on stable Rust.
+- [x] Pass the compile matrix on MSRV Rust 1.88.
 - [ ] Test no-default-features, every optional feature alone, expected combinations, and all-features.
 - [ ] Pass PostgreSQL, MySQL, and SQLite contract and migration tests against real databases.
-- [ ] Run dependency advisory, license, duplicate-version, and source-policy checks.
+- [x] Run dependency advisory, license, duplicate-version, and source-policy checks.
 - [ ] Fuzz all untrusted parsers and run server load, overload, shutdown, and soak tests.
 - [ ] Record reproducible latency, throughput, memory, and environment data.
 - [ ] Complete an independent security and API review; resolve or document every finding.

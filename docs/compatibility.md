@@ -2,7 +2,7 @@
 
 ## Current status
 
-The workspace is version `0.0.0`, unpublished, and not API-stable. Rust 1.82 is the declared MSRV because the implementation uses standard-library APIs stabilized in that release.
+The workspace is version `0.0.0`, unpublished, and not API-stable. Rust 1.88 is the declared MSRV. CI checks the complete workspace with all targets and all features on Rust 1.88 and on the latest stable Rust release.
 
 ## Proposed policy
 
