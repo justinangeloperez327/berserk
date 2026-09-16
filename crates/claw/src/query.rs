@@ -125,6 +125,10 @@ impl<M: Model> ModelQuery<M> {
             .transpose()
     }
 
+    pub fn count(&self, connection: &mut dyn Connection) -> Result<u64> {
+        self.builder.count(connection)
+    }
+
     pub fn update<I, S, V>(self, connection: &mut dyn Connection, values: I) -> Result<Execution>
     where
         I: IntoIterator<Item = (S, V)>,
