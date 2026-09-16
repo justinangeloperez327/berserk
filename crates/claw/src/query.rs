@@ -131,9 +131,9 @@ impl<M: Model> ModelQuery<M> {
         per_page: u64,
     ) -> Result<Page<M>> {
         Page::<M>::validate(page, per_page)?;
-        let offset = (page - 1).checked_mul(per_page).ok_or_else(|| {
-            DatabaseError::new(ErrorKind::Query, "pagination offset overflow")
-        })?;
+        let offset = (page - 1)
+            .checked_mul(per_page)
+            .ok_or_else(|| DatabaseError::new(ErrorKind::Query, "pagination offset overflow"))?;
         let total = self.builder.count(connection)?;
         let items = Self {
             builder: self.builder.limit(per_page).offset(offset),
