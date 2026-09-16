@@ -21,8 +21,7 @@ impl UserController {
 #[test]
 fn controller_action_can_receive_typed_route_parameter() {
     let mut app = App::new();
-    app.get_param("/users/{id}", "id", UserController::show)
-        .unwrap();
+    app.get("/users/{id}", UserController::show).unwrap();
 
     assert_eq!(app.handle(request("/users/42")).unwrap().body(), b"42");
     assert_eq!(
@@ -36,7 +35,7 @@ fn controller_action_can_receive_typed_route_parameter() {
 #[test]
 fn request_can_parse_route_parameters_explicitly() {
     let mut app = App::new();
-    app.get("/users/{id}", |request| {
+    app.get("/users/{id}", |request: Request| {
         let id = request.param_as::<u64>("id").unwrap().unwrap();
         Response::text(id.to_string())
     })
