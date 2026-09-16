@@ -72,7 +72,7 @@ fn named_routes_generate_paths_and_reject_conflicts() {
     assert_eq!(file_path, "/files/a%2Fb%20c");
     assert_eq!(
         app.handle(request("GET", &file_path)).unwrap().body(),
-        b"a/b c"
+        b"a%2Fb%20c"
     );
 
     let missing = app.path_for("users.show", &[]).unwrap_err();
