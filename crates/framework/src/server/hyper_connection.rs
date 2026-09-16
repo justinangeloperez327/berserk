@@ -26,12 +26,17 @@ pub(super) async fn serve(stream: tokio::net::TcpStream, app: Arc<App>) -> bool 
             async move {
                 let current = request_count.fetch_add(1, Ordering::Relaxed) + 1;
                 let mut response = hyper_adapter::dispatch(app, request).await;
-                if !config.keep_alive || current >= config.max_requests_per_connection {
-                    response.headers_mut().insert(
-                        http::header::CONNECTION,
-                        http::HeaderValue::from_static("close"),
-                    );
-                }
+                let connection = if config.keep_alive
+                    && current < config.max_requests_per_connection
+                {
+                    "keep-alive"
+                } else {
+                    "close"
+                };
+                response.headers_mut().insert(
+                    http::header::CONNECTION,
+                    http::HeaderValue::from_static(connection),
+                );
                 Ok::<_, Infallible>(response)
             }
         }
