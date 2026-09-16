@@ -1,4 +1,4 @@
-use framework::{App, FromJson, Json, Response, Result, ValidateInput, ValidationErrors};
+use framework::{App, FromJson, Json, Request, Response, Result, ValidateInput, ValidationErrors};
 struct CreateUser {
     name: String,
 }
@@ -24,7 +24,7 @@ impl ValidateInput for CreateUser {
 }
 fn main() -> Result<()> {
     let mut app = App::new();
-    app.post("/users", |req| -> Result<Response> {
+    app.post("/users", |req: Request| -> Result<Response> {
         let input: CreateUser = req.validated()?;
         Response::json(&Json::Object(
             [("name".into(), Json::String(input.name))]
