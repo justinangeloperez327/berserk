@@ -1,5 +1,5 @@
 use crate::{
-    field, Connection, DatabaseError, Direction, Driver, ErrorKind, Query, Result, Statement, Value,
+    Connection, DatabaseError, Direction, Driver, ErrorKind, Query, Result, Row, Statement, Value,
 };
 
 const TABLE: &str = "__framework_migrations";
@@ -58,12 +58,7 @@ impl<'a> MigrationRunner<'a> {
             .order_by("name", Direction::Asc)
             .get(connection)?
             .iter()
-            .map(|row| {
-                Ok(AppliedMigration {
-                    name: field(row, "name")?,
-                    batch: field(row, "batch")?,
-                })
-            })
+            .map(decode_applied)
             .collect()
     }
 
@@ -143,6 +138,22 @@ impl<'a> MigrationRunner<'a> {
     }
 }
 
+fn decode_applied(row: &Row) -> Result<AppliedMigration> {
+    let name = match row.get("name") {
+        Some(Value::Text(value)) => value.clone(),
+        Some(_) => return Err(decode_error("migration `name` column must be text")),
+        None => return Err(decode_error("migration row is missing the `name` column")),
+    };
+    let batch = match row.get("batch") {
+        Some(Value::U64(value)) => *value,
+        Some(Value::I64(value)) => u64::try_from(*value)
+            .map_err(|_| decode_error("migration `batch` column cannot be negative"))?,
+        Some(_) => return Err(decode_error("migration `batch` column must be an integer")),
+        None => return Err(decode_error("migration row is missing the `batch` column")),
+    };
+    Ok(AppliedMigration { name, batch })
+}
+
 fn execute_steps(connection: &mut dyn Connection, steps: Vec<Statement>) -> Result<()> {
     if steps.is_empty() {
         return Err(error(
@@ -157,4 +168,8 @@ fn execute_steps(connection: &mut dyn Connection, steps: Vec<Statement>) -> Resu
 
 fn error(message: impl Into<String>) -> DatabaseError {
     DatabaseError::new(ErrorKind::Query, message)
+}
+
+fn decode_error(message: impl Into<String>) -> DatabaseError {
+    DatabaseError::new(ErrorKind::Decode, message)
 }
