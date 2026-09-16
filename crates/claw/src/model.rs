@@ -98,6 +98,24 @@ pub trait Model: Sized {
         Self::where_in(Self::PRIMARY_KEY, keys).get(connection)
     }
 
+    /// Fetch a new instance of this model's current database row.
+    fn fresh(&self, connection: &mut dyn Connection) -> Result<Option<Self>> {
+        Self::find(connection, self.key())
+    }
+
+    /// Replace this model with its current database row.
+    ///
+    /// Returns `false` when the row no longer exists.
+    fn refresh(&mut self, connection: &mut dyn Connection) -> Result<bool> {
+        match self.fresh(connection)? {
+            Some(fresh) => {
+                *self = fresh;
+                Ok(true)
+            }
+            None => Ok(false),
+        }
+    }
+
     fn create<I, S, V>(connection: &mut dyn Connection, values: I) -> Result<Execution>
     where
         I: IntoIterator<Item = (S, V)>,
