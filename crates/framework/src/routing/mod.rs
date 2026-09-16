@@ -143,10 +143,7 @@ impl Router {
             Pattern::parse(prefix)?;
         }
 
-        let Router {
-            routes,
-            fallback,
-        } = other;
+        let Router { routes, fallback } = other;
 
         if fallback.is_some() && !prefix.is_empty() {
             return Err(RouteError::ScopedFallback.into());
