@@ -57,7 +57,7 @@ fn keep_alive_is_bounded() {
         ..ServerConfig::default()
     })
     .unwrap();
-    app.get("/", |_| Response::text("ok")).unwrap();
+    app.get("/", || Response::text("ok")).unwrap();
     let server = app.bind("127.0.0.1:0").unwrap();
     let addr = server.local_addr().unwrap();
     struct Stop(framework::ShutdownHandle);

@@ -81,10 +81,12 @@ fn convert_value(value: mysql::Value, ty: ColumnType, flags: ColumnFlags) -> Res
                 "MySQL decimal values require a precision-preserving framework type",
             ))
         }
-        mysql::Value::Bytes(_value) if ty == ColumnType::MYSQL_TYPE_JSON => Err(DatabaseError::new(
-            ErrorKind::Decode,
-            "MySQL JSON values require an explicit framework type",
-        )),
+        mysql::Value::Bytes(_value) if ty == ColumnType::MYSQL_TYPE_JSON => {
+            Err(DatabaseError::new(
+                ErrorKind::Decode,
+                "MySQL JSON values require an explicit framework type",
+            ))
+        }
         mysql::Value::Bytes(value) if flags.contains(ColumnFlags::BINARY_FLAG) => {
             Ok(Value::Bytes(value))
         }

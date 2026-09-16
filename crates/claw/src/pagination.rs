@@ -1,4 +1,4 @@
-use crate::{DatabaseError, ErrorKind, Result};
+use framework_database::{DatabaseError, ErrorKind, Result};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Page<T> {
@@ -42,24 +42,31 @@ impl<T> Page<T> {
     pub fn items(&self) -> &[T] {
         &self.items
     }
+
     pub fn into_items(self) -> Vec<T> {
         self.items
     }
+
     pub const fn page(&self) -> u64 {
         self.page
     }
+
     pub const fn per_page(&self) -> u64 {
         self.per_page
     }
+
     pub const fn total(&self) -> u64 {
         self.total
     }
+
     pub const fn last_page(&self) -> u64 {
         self.last_page
     }
+
     pub const fn has_previous(&self) -> bool {
         self.page > 1
     }
+
     pub const fn has_next(&self) -> bool {
         self.page < self.last_page
     }

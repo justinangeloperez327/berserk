@@ -1,4 +1,4 @@
-use crate::{DatabaseError, ErrorKind, Result, Row, Value};
+use framework_database::{DatabaseError, ErrorKind, Result, Row, Value};
 
 /// Strictly converts one database value into an application field type.
 pub trait FromValue: Sized {
@@ -47,7 +47,9 @@ macro_rules! signed_integer {
         $(impl FromValue for $type {
             fn from_value(value: &Value) -> Result<Self> {
                 let value = i64::from_value(value)?;
-                <$type>::try_from(value).map_err(|_| decode_error(concat!("integer does not fit in ", stringify!($type))))
+                <$type>::try_from(value).map_err(|_| {
+                    decode_error(concat!("integer does not fit in ", stringify!($type)))
+                })
             }
         })+
     };
@@ -71,7 +73,9 @@ macro_rules! unsigned_integer {
         $(impl FromValue for $type {
             fn from_value(value: &Value) -> Result<Self> {
                 let value = u64::from_value(value)?;
-                <$type>::try_from(value).map_err(|_| decode_error(concat!("integer does not fit in ", stringify!($type))))
+                <$type>::try_from(value).map_err(|_| {
+                    decode_error(concat!("integer does not fit in ", stringify!($type)))
+                })
             }
         })+
     };

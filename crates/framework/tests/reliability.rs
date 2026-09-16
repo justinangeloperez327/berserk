@@ -59,7 +59,7 @@ fn idle_connection_expires_and_worker_remains_available() {
         ..ServerConfig::default()
     })
     .unwrap();
-    app.get("/", |_| Response::text("alive")).unwrap();
+    app.get("/", || Response::text("alive")).unwrap();
     let server = Running::new(app);
     let _idle = server.connect();
     wait_for(|| server.stats.snapshot().failed >= 1);
@@ -90,7 +90,7 @@ fn full_queue_rejects_and_shutdown_drains_accepted_work() {
         ..ServerConfig::default()
     })
     .unwrap();
-    app.get("/", move |_| {
+    app.get("/", move || {
         let _ = entered.send(());
         let lock = gate.0.lock().unwrap();
         let (_lock, _) = gate
@@ -137,7 +137,7 @@ fn full_queue_rejects_and_shutdown_drains_accepted_work() {
 #[test]
 fn truncated_client_does_not_consume_worker_permanently() {
     let mut app = App::new();
-    app.get("/", |_| Response::empty()).unwrap();
+    app.get("/", Response::empty).unwrap();
     let server = Running::new(app);
     let mut stream = server.connect();
     stream

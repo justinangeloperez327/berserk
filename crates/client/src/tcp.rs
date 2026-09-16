@@ -33,6 +33,7 @@ impl Default for TcpClientConfig {
     }
 }
 
+#[derive(Default)]
 pub struct TcpHttpClient {
     config: TcpClientConfig,
 }
@@ -54,13 +55,6 @@ impl TcpHttpClient {
             ));
         }
         Ok(Self { config })
-    }
-}
-impl Default for TcpHttpClient {
-    fn default() -> Self {
-        Self {
-            config: TcpClientConfig::default(),
-        }
     }
 }
 
@@ -199,9 +193,7 @@ fn read_response(stream: TcpStream, method: Method, config: TcpClientConfig) -> 
     let mut reader = BufReader::new(stream);
     let mut used = 0_usize;
     let status_line = read_line(&mut reader, &mut used, config.max_response_header_bytes)?;
-    let mut parts = status_line
-        .trim_end_matches(|character| character == '\r' || character == '\n')
-        .splitn(3, ' ');
+    let mut parts = status_line.trim_end_matches(['\r', '\n']).splitn(3, ' ');
     let version = parts.next().unwrap_or("");
     if version != "HTTP/1.1" && version != "HTTP/1.0" {
         return Err(ClientError::new(
@@ -242,7 +234,7 @@ fn read_response(stream: TcpStream, method: Method, config: TcpClientConfig) -> 
                 "response has too many headers",
             ));
         }
-        let line = line.trim_end_matches(|character| character == '\r' || character == '\n');
+        let line = line.trim_end_matches(['\r', '\n']);
         if line.starts_with(' ') || line.starts_with('\t') {
             return Err(ClientError::new(
                 ErrorKind::MalformedResponse,
@@ -397,7 +389,7 @@ fn read_chunked(reader: &mut impl BufRead, config: TcpClientConfig) -> Result<Ve
     loop {
         let line = read_line(reader, &mut trailer_bytes, config.max_response_header_bytes)?;
         let size_text = line
-            .trim_end_matches(|character| character == '\r' || character == '\n')
+            .trim_end_matches(['\r', '\n'])
             .split(';')
             .next()
             .unwrap_or("");

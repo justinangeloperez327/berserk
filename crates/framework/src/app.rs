@@ -11,7 +11,6 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
-        // Defaults are framework-owned constants, verified by a contract test.
         Self {
             config: ServerConfig::default(),
             router: Default::default(),
@@ -39,17 +38,16 @@ impl App {
 #[cfg(feature = "openapi")]
 impl App {
     /// Registers the runtime route and its OpenAPI operation as one setup action.
-    pub fn documented_route<F, R>(
+    pub fn documented_route<H, A>(
         &mut self,
         document: &mut framework_openapi::OpenApi,
         method: framework_openapi::HttpMethod,
         path: &str,
         operation: framework_openapi::Operation,
-        handler: F,
+        handler: H,
     ) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
         let mut staged = document.clone();
         staged.operation(method, path, operation)?;
@@ -62,7 +60,7 @@ impl App {
             framework_openapi::HttpMethod::Head => "HEAD",
             framework_openapi::HttpMethod::Options => "OPTIONS",
         };
-        self.route(crate::Method::new(runtime_method)?, path, handler)?;
+        self.register_route(crate::Method::new(runtime_method)?, path, handler)?;
         *document = staged;
         Ok(())
     }
@@ -75,12 +73,16 @@ impl Default for App {
 }
 
 impl App {
-    pub fn route<F, R>(&mut self, method: crate::Method, path: &str, handler: F) -> Result<()>
+    fn register_route<H, A>(&mut self, method: crate::Method, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
         self.router.add(method, path, handler)
+    }
+
+    /// Returns an instance route registrar borrowing this application.
+    pub fn route(&mut self) -> crate::routing::Route<'_> {
+        crate::routing::Route::new(&mut self.router)
     }
 
     /// Dispatch without network I/O. Handler errors propagate; panics are not caught here.
@@ -96,54 +98,45 @@ impl App {
         }
         Ok(response)
     }
-    pub fn get<F, R>(&mut self, path: &str, handler: F) -> Result<()>
+
+    /// Compatibility shortcut. Prefer `app.route().get(...)` for route registration.
+    pub fn get<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
-        self.route(crate::Method::new("GET")?, path, handler)
+        self.register_route(crate::Method::new("GET")?, path, handler)
     }
-    pub fn post<F, R>(&mut self, path: &str, handler: F) -> Result<()>
+
+    /// Compatibility shortcut. Prefer `app.route().post(...)` for route registration.
+    pub fn post<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
-        self.route(crate::Method::new("POST")?, path, handler)
+        self.register_route(crate::Method::new("POST")?, path, handler)
     }
-    pub fn put<F, R>(&mut self, path: &str, handler: F) -> Result<()>
+
+    /// Compatibility shortcut. Prefer `app.route().put(...)` for route registration.
+    pub fn put<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
-        self.route(crate::Method::new("PUT")?, path, handler)
+        self.register_route(crate::Method::new("PUT")?, path, handler)
     }
-    pub fn patch<F, R>(&mut self, path: &str, handler: F) -> Result<()>
+
+    /// Compatibility shortcut. Prefer `app.route().patch(...)` for route registration.
+    pub fn patch<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
-        self.route(crate::Method::new("PATCH")?, path, handler)
+        self.register_route(crate::Method::new("PATCH")?, path, handler)
     }
-    pub fn delete<F, R>(&mut self, path: &str, handler: F) -> Result<()>
+
+    /// Compatibility shortcut. Prefer `app.route().delete(...)` for route registration.
+    pub fn delete<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
-        self.route(crate::Method::new("DELETE")?, path, handler)
-    }
-    pub fn head<F, R>(&mut self, path: &str, handler: F) -> Result<()>
-    where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
-    {
-        self.route(crate::Method::new("HEAD")?, path, handler)
-    }
-    pub fn options<F, R>(&mut self, path: &str, handler: F) -> Result<()>
-    where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
-    {
-        self.route(crate::Method::new("OPTIONS")?, path, handler)
+        self.register_route(crate::Method::new("DELETE")?, path, handler)
     }
 }
 
@@ -151,6 +144,7 @@ impl App {
     pub fn bind(self, address: impl std::net::ToSocketAddrs) -> Result<crate::server::Server> {
         Ok(crate::server::Server::bind(self, address)?)
     }
+
     pub fn listen(self, address: impl std::net::ToSocketAddrs) -> Result<()> {
         self.bind(address)?.run()?;
         Ok(())
@@ -161,6 +155,7 @@ impl App {
     pub fn middleware(&mut self, layer: impl crate::Middleware) {
         self.layers.0.push(std::sync::Arc::new(layer));
     }
+
     /// One value per type. Newtype wrappers distinguish values of the same underlying type.
     pub fn state<T: Send + Sync + 'static>(&mut self, value: T) -> Result<()> {
         if !self.state.insert(value) {
@@ -168,6 +163,7 @@ impl App {
         }
         Ok(())
     }
+
     /// Build routes transactionally. The child application's config and state are not inherited.
     pub fn group(
         &mut self,

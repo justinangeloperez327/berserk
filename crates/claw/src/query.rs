@@ -1,5 +1,8 @@
-use super::Model;
-use crate::{Connection, Direction, Driver, Page, Query, Result, Statement, Value};
+use crate::{Model, Page};
+use framework_database::{
+    Connection, DatabaseError, Direction, Driver, ErrorKind, Execution, Query, Result, Statement,
+    Value,
+};
 use std::marker::PhantomData;
 
 /// A query builder whose returned rows are decoded as `M`.
@@ -83,12 +86,12 @@ impl<M: Model> ModelQuery<M> {
         self.builder = self.builder.limit(limit);
         self
     }
+
     pub fn offset(mut self, offset: u64) -> Self {
         self.builder = self.builder.offset(offset);
         self
     }
 
-    /// Applies a reusable named scope or an inline closure without executing it.
     pub fn scope(mut self, scope: impl FnOnce(Query) -> Query) -> Self {
         self.builder = scope(self.builder);
         self
@@ -97,9 +100,11 @@ impl<M: Model> ModelQuery<M> {
     pub fn builder(&self) -> &Query {
         &self.builder
     }
+
     pub fn into_builder(self) -> Query {
         self.builder
     }
+
     pub fn to_statement(&self, driver: Driver) -> Result<Statement> {
         self.builder.to_statement(driver)
     }
@@ -120,7 +125,27 @@ impl<M: Model> ModelQuery<M> {
             .transpose()
     }
 
-    /// Executes a count query and one bounded data query.
+    pub fn count(&self, connection: &mut dyn Connection) -> Result<u64> {
+        self.builder.count(connection)
+    }
+
+    pub fn exists(&self, connection: &mut dyn Connection) -> Result<bool> {
+        Ok(!self.builder.clone().limit(1).get(connection)?.is_empty())
+    }
+
+    pub fn update<I, S, V>(self, connection: &mut dyn Connection, values: I) -> Result<Execution>
+    where
+        I: IntoIterator<Item = (S, V)>,
+        S: Into<String>,
+        V: Into<Value>,
+    {
+        self.builder.update(values).execute(connection)
+    }
+
+    pub fn delete(self, connection: &mut dyn Connection) -> Result<Execution> {
+        self.builder.delete().execute(connection)
+    }
+
     pub fn paginate(
         self,
         connection: &mut dyn Connection,
@@ -128,9 +153,9 @@ impl<M: Model> ModelQuery<M> {
         per_page: u64,
     ) -> Result<Page<M>> {
         Page::<M>::validate(page, per_page)?;
-        let offset = (page - 1).checked_mul(per_page).ok_or_else(|| {
-            crate::DatabaseError::new(crate::ErrorKind::Query, "pagination offset overflow")
-        })?;
+        let offset = (page - 1)
+            .checked_mul(per_page)
+            .ok_or_else(|| DatabaseError::new(ErrorKind::Query, "pagination offset overflow"))?;
         let total = self.builder.count(connection)?;
         let items = Self {
             builder: self.builder.limit(per_page).offset(offset),

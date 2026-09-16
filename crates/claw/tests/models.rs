@@ -1,7 +1,9 @@
+use claw_orm::{
+    field, BelongsTo, Direction, HasMany, HasOne, Model, Result, Row, Statement, Value,
+};
 use framework_database::{
-    field, BelongsTo, Capabilities, Connection, DatabaseError, Direction, Driver, ErrorKind,
-    Execution, HasMany, HasOne, Model, Result, Row, Statement, Transaction, TransactionOptions,
-    Value,
+    Capabilities, Column, Connection, DatabaseError, Driver, ErrorKind, Execution, Transaction,
+    TransactionOptions,
 };
 
 #[derive(Debug, PartialEq)]
@@ -52,18 +54,18 @@ impl Model for Post {
 
 fn user_row(id: u64, name: &str) -> Row {
     Row::new(vec![
-        framework_database::Column::new("id", id),
-        framework_database::Column::new("name", name),
-        framework_database::Column::new("active", true),
+        Column::new("id", id),
+        Column::new("name", name),
+        Column::new("active", true),
     ])
     .unwrap()
 }
 
 fn post_row(id: u64, user_id: u64, title: &str) -> Row {
     Row::new(vec![
-        framework_database::Column::new("id", id),
-        framework_database::Column::new("user_id", user_id),
-        framework_database::Column::new("title", title),
+        Column::new("id", id),
+        Column::new("user_id", user_id),
+        Column::new("title", title),
     ])
     .unwrap()
 }
@@ -72,13 +74,14 @@ fn post_row(id: u64, user_id: u64, title: &str) -> Row {
 struct FakeConnection {
     rows: Vec<Row>,
     statements: Vec<Statement>,
+    executed: Vec<Statement>,
 }
 
 impl FakeConnection {
     fn with_rows(rows: Vec<Row>) -> Self {
         Self {
             rows,
-            statements: Vec::new(),
+            ..Self::default()
         }
     }
 }
@@ -87,22 +90,32 @@ impl Connection for FakeConnection {
     fn driver(&self) -> Driver {
         Driver::Sqlite
     }
+
     fn capabilities(&self) -> Capabilities {
         Capabilities::new()
     }
-    fn execute(&mut self, _statement: &Statement) -> Result<Execution> {
-        Ok(Execution::default())
+
+    fn execute(&mut self, statement: &Statement) -> Result<Execution> {
+        let last_insert_id = statement.sql().starts_with("INSERT ").then_some(42);
+        self.executed.push(statement.clone());
+        Ok(Execution {
+            affected_rows: 1,
+            last_insert_id,
+        })
     }
+
     fn query(&mut self, statement: &Statement) -> Result<Vec<Row>> {
         self.statements.push(statement.clone());
         Ok(std::mem::take(&mut self.rows))
     }
+
     fn begin(&mut self, _options: TransactionOptions) -> Result<Box<dyn Transaction + '_>> {
         Err(DatabaseError::new(
             ErrorKind::Transaction,
             "not supported by fake",
         ))
     }
+
     fn ping(&mut self) -> Result<()> {
         Ok(())
     }
@@ -128,10 +141,91 @@ fn model_queries_decode_rows_and_keep_execution_explicit() {
         vec![User {
             id: 7,
             name: "Ada".into(),
-            active: true
+            active: true,
         }]
     );
     assert_eq!(connection.statements.len(), 1);
+}
+
+#[test]
+fn model_static_query_entry_points_are_laravel_style() {
+    let query = User::where_("active", "=", true)
+        .where_not_null("name")
+        .order_by("name", Direction::Desc)
+        .limit(10);
+    let statement = query.to_statement(Driver::Postgres).unwrap();
+
+    assert_eq!(
+        statement.sql(),
+        "SELECT * FROM \"users\" WHERE \"active\" = $1 AND \"name\" IS NOT NULL ORDER BY \"name\" DESC LIMIT 10"
+    );
+    assert_eq!(statement.bindings(), &[Value::Bool(true)]);
+}
+
+#[test]
+fn create_uses_the_model_table_and_keeps_values_bound() {
+    let mut connection = FakeConnection::default();
+    let execution = User::create(
+        &mut connection,
+        [("name", Value::from("Ada")), ("active", Value::from(true))],
+    )
+    .unwrap();
+
+    assert_eq!(execution.affected_rows, 1);
+    assert_eq!(execution.last_insert_id, Some(42));
+    assert_eq!(connection.executed.len(), 1);
+    assert_eq!(
+        connection.executed[0].sql(),
+        "INSERT INTO \"users\" (\"name\", \"active\") VALUES (?, ?)"
+    );
+    assert_eq!(
+        connection.executed[0].bindings(),
+        &[Value::Text("Ada".into()), Value::Bool(true)]
+    );
+}
+
+#[test]
+fn filtered_update_and_delete_use_bound_model_queries() {
+    let mut connection = FakeConnection::default();
+
+    let updated = User::where_("id", "=", 7_u64)
+        .update(&mut connection, [("name", Value::from("Grace"))])
+        .unwrap();
+    assert_eq!(updated.affected_rows, 1);
+    assert_eq!(updated.last_insert_id, None);
+    assert_eq!(
+        connection.executed[0].sql(),
+        "UPDATE \"users\" SET \"name\" = ? WHERE \"id\" = ?"
+    );
+    assert_eq!(
+        connection.executed[0].bindings(),
+        &[Value::Text("Grace".into()), Value::U64(7)]
+    );
+
+    let deleted = User::where_("id", "=", 7_u64)
+        .delete(&mut connection)
+        .unwrap();
+    assert_eq!(deleted.affected_rows, 1);
+    assert_eq!(deleted.last_insert_id, None);
+    assert_eq!(
+        connection.executed[1].sql(),
+        "DELETE FROM \"users\" WHERE \"id\" = ?"
+    );
+    assert_eq!(connection.executed[1].bindings(), &[Value::U64(7)]);
+}
+
+#[test]
+fn unfiltered_model_mutations_are_rejected_before_execution() {
+    let mut connection = FakeConnection::default();
+
+    let update_error = User::query()
+        .update(&mut connection, [("active", Value::from(false))])
+        .unwrap_err();
+    assert!(matches!(update_error.kind(), ErrorKind::Query));
+
+    let delete_error = User::query().delete(&mut connection).unwrap_err();
+    assert!(matches!(delete_error.kind(), ErrorKind::Query));
+    assert!(connection.executed.is_empty());
 }
 
 #[test]
@@ -143,8 +237,23 @@ fn find_uses_the_declared_primary_key() {
 }
 
 #[test]
+fn destroy_filters_by_the_declared_primary_key() {
+    let mut connection = FakeConnection::default();
+    let execution = User::destroy(&mut connection, 9_u64).unwrap();
+
+    assert_eq!(execution.affected_rows, 1);
+    assert_eq!(execution.last_insert_id, None);
+    assert_eq!(connection.executed.len(), 1);
+    assert_eq!(
+        connection.executed[0].sql(),
+        "DELETE FROM \"users\" WHERE \"id\" = ?"
+    );
+    assert_eq!(connection.executed[0].bindings(), &[Value::U64(9)]);
+}
+
+#[test]
 fn field_casting_is_strict_and_nullable_fields_are_explicit() {
-    let row = Row::new(vec![framework_database::Column::new("name", Value::Null)]).unwrap();
+    let row = Row::new(vec![Column::new("name", Value::Null)]).unwrap();
     assert_eq!(field::<Option<String>>(&row, "name").unwrap(), None);
     assert!(matches!(
         field::<String>(&row, "name").unwrap_err().kind(),

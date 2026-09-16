@@ -8,6 +8,14 @@ impl<T: Send + Sync + 'static> State<T> {
     pub fn new(value: T) -> Self {
         Self(Arc::new(value))
     }
+
+    pub fn get_ref(&self) -> &T {
+        self.0.as_ref()
+    }
+
+    pub fn into_arc(self) -> Arc<T> {
+        self.0
+    }
 }
 
 // Manual implementation avoids requiring T: Clone.
@@ -17,9 +25,22 @@ impl<T: Send + Sync + 'static> Clone for State<T> {
     }
 }
 
+impl<T: Send + Sync + 'static> From<T> for State<T> {
+    fn from(value: T) -> Self {
+        Self::new(value)
+    }
+}
+
+impl<T: Send + Sync + 'static> AsRef<T> for State<T> {
+    fn as_ref(&self) -> &T {
+        self.get_ref()
+    }
+}
+
 impl<T: Send + Sync + 'static> Deref for State<T> {
     type Target = T;
+
     fn deref(&self) -> &T {
-        self.0.as_ref()
+        self.get_ref()
     }
 }

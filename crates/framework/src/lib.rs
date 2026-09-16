@@ -3,15 +3,19 @@
 
 mod app;
 mod config;
+pub mod controller;
 mod error;
 pub mod http;
 pub mod prelude;
 
 pub use app::App;
 pub use config::ServerConfig;
+pub use controller::ActionResult;
 pub use error::{Error, Result};
 pub use framework_core::{ConfigError, ShutdownHandle, State, Validate};
 
+#[cfg(feature = "claw")]
+pub use claw_orm as claw;
 #[cfg(feature = "auth")]
 pub use framework_auth as auth;
 #[cfg(feature = "cache")]
@@ -36,10 +40,9 @@ pub use framework_storage as storage;
 pub use http::{Headers, HttpError, IntoResponse, Method, Request, Response, StatusCode};
 
 pub mod routing;
-pub use routing::RouteError;
+pub use routing::{Route, RouteError};
 
 pub mod server;
-
 pub use server::Server;
 
 pub mod middleware;
@@ -50,7 +53,7 @@ pub use middleware::{Middleware, Next, RequestId};
 
 pub mod input;
 pub mod json;
-pub use input::{FromJson, ValidateInput, ValidationErrors};
+pub use input::{FromJson, ValidateInput, Validated, ValidationErrors};
 pub use json::Json;
 
 pub mod multipart;

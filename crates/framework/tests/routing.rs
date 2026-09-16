@@ -1,27 +1,38 @@
 use framework::{App, Error, Headers, HttpError, Method, Request, Response, Result, RouteError};
 
 fn request(method: &str, path: &str) -> Request {
-    Request::new(
-        Method::new(method).unwrap(),
-        path,
-        Headers::new(),
-        Vec::new(),
-    )
-    .unwrap()
+    request_with_body(method, path, Vec::new())
 }
+
+fn request_with_body(method: &str, path: &str, body: impl Into<Vec<u8>>) -> Request {
+    Request::new(Method::new(method).unwrap(), path, Headers::new(), body).unwrap()
+}
+
 fn named(req: Request) -> Response {
     Response::text(req.param("id").unwrap_or("missing"))
+}
+
+fn typed_show(id: u64) -> Response {
+    Response::text(id.to_string())
+}
+
+fn typed_store(req: Request) -> Response {
+    Response::text(req.text().unwrap_or(""))
+}
+
+fn typed_update(id: u64, req: Request) -> Response {
+    Response::text(format!("{id}:{}", req.text().unwrap_or("")))
 }
 
 #[test]
 fn named_inline_and_fallible_handlers_work() {
     let mut app = App::new();
     app.get("/users/{id}", named).unwrap();
-    app.post("/users/{key}", |req| {
+    app.post("/users/{key}", |req: Request| {
         Response::text(req.param("key").unwrap())
     })
     .unwrap();
-    app.get("/fail", |_| -> Result<Response> {
+    app.get("/fail", || -> Result<Response> {
         Err(HttpError::InvalidTarget.into())
     })
     .unwrap();
@@ -42,17 +53,65 @@ fn named_inline_and_fallible_handlers_work() {
 }
 
 #[test]
+fn standard_verbs_infer_controller_arguments() {
+    let mut app = App::new();
+    app.get("/users/{id}", typed_show).unwrap();
+    app.post("/users", typed_store).unwrap();
+    app.put("/users/{id}", typed_update).unwrap();
+    app.patch("/users/{id}", typed_update).unwrap();
+    app.delete("/users/{id}", typed_show).unwrap();
+
+    assert_eq!(
+        app.handle(request("GET", "/users/42")).unwrap().body(),
+        b"42"
+    );
+    assert_eq!(
+        app.handle(request_with_body("POST", "/users", "created"))
+            .unwrap()
+            .body(),
+        b"created"
+    );
+    assert_eq!(
+        app.handle(request_with_body("PUT", "/users/7", "full"))
+            .unwrap()
+            .body(),
+        b"7:full"
+    );
+    assert_eq!(
+        app.handle(request_with_body("PATCH", "/users/7", "partial"))
+            .unwrap()
+            .body(),
+        b"7:partial"
+    );
+    assert_eq!(
+        app.handle(request("DELETE", "/users/9")).unwrap().body(),
+        b"9"
+    );
+    assert_eq!(
+        app.handle(request("GET", "/users/not-a-number"))
+            .unwrap()
+            .status_code(),
+        400
+    );
+    assert!(matches!(
+        app.get("/users/{user}/posts/{post}", typed_show),
+        Err(Error::Routing(RouteError::ParameterCountMismatch {
+            expected: 1,
+            actual: 2
+        }))
+    ));
+}
+
+#[test]
 fn precedence_is_independent_of_order_and_precedes_method_selection() {
     for reversed in [false, true] {
         let mut app = App::new();
         if reversed {
-            app.post("/users/new", |_| Response::text("static"))
-                .unwrap();
+            app.post("/users/new", || Response::text("static")).unwrap();
         }
         app.get("/users/{id}", named).unwrap();
         if !reversed {
-            app.post("/users/new", |_| Response::text("static"))
-                .unwrap();
+            app.post("/users/new", || Response::text("static")).unwrap();
         }
         let response = app.handle(request("GET", "/users/new")).unwrap();
         assert_eq!(response.status_code(), 405);
@@ -63,10 +122,12 @@ fn precedence_is_independent_of_order_and_precedes_method_selection() {
         );
     }
     let mut app = App::new();
-    app.get("/{x}/fixed", |_| Response::text("later static"))
+    app.get("/{x}/fixed", |_req: Request| Response::text("later static"))
         .unwrap();
-    app.get("/fixed/{x}", |_| Response::text("earlier static"))
-        .unwrap();
+    app.get("/fixed/{x}", |_req: Request| {
+        Response::text("earlier static")
+    })
+    .unwrap();
     assert_eq!(
         app.handle(request("GET", "/fixed/fixed")).unwrap().body(),
         b"earlier static"
@@ -102,10 +163,10 @@ fn invalid_registration_is_atomic() {
 #[test]
 fn missing_methods_and_trailing_slashes_are_distinct() {
     let mut app = App::new();
-    app.get("/", |_| Response::text("root")).unwrap();
-    app.get("/x", |_| Response::text("plain")).unwrap();
-    app.get("/x/", |_| Response::text("slash")).unwrap();
-    app.put("/x", |_| Response::empty()).unwrap();
+    app.get("/", || Response::text("root")).unwrap();
+    app.get("/x", || Response::text("plain")).unwrap();
+    app.get("/x/", || Response::text("slash")).unwrap();
+    app.put("/x", Response::empty).unwrap();
     assert_eq!(app.handle(request("GET", "/x/")).unwrap().body(), b"slash");
     assert_eq!(
         app.handle(request("GET", "/missing"))
@@ -116,25 +177,15 @@ fn missing_methods_and_trailing_slashes_are_distinct() {
     let response = app.handle(request("OPTIONS", "/x")).unwrap();
     assert_eq!(response.status_code(), 405);
     assert_eq!(response.headers().get("allow"), Some("GET, HEAD, PUT"));
-    app.options("/x", |_| Response::empty().status(204))
-        .unwrap();
-    assert_eq!(
-        app.handle(request("OPTIONS", "/x")).unwrap().status_code(),
-        204
-    );
 }
 
 #[test]
-fn head_suppresses_all_successfully_dispatched_bodies() {
+fn head_uses_get_and_suppresses_bodies() {
     let mut app = App::new();
-    app.get("/x", |_| Response::text("hé")).unwrap();
+    app.get("/x", || Response::text("hé")).unwrap();
     let response = app.handle(request("HEAD", "/x")).unwrap();
     assert!(response.body().is_empty());
     assert_eq!(response.representation_length(), 3);
-    app.head("/x", |_| Response::text("explicit")).unwrap();
-    let response = app.handle(request("HEAD", "/x")).unwrap();
-    assert!(response.body().is_empty());
-    assert_eq!(response.representation_length(), 8);
     assert_eq!(
         app.handle(request("GET", "/x")).unwrap().body(),
         "hé".as_bytes()
@@ -144,7 +195,7 @@ fn head_suppresses_all_successfully_dispatched_bodies() {
         .unwrap()
         .body()
         .is_empty());
-    app.post("/post", |_| Response::empty()).unwrap();
+    app.post("/post", Response::empty).unwrap();
     let response = app.handle(request("HEAD", "/post")).unwrap();
     assert_eq!(response.status_code(), 405);
     assert!(response.body().is_empty());
@@ -154,7 +205,7 @@ fn head_suppresses_all_successfully_dispatched_bodies() {
 fn parameters_require_nonempty_segments_and_invalid_responses_propagate() {
     let mut app = App::new();
     app.get("/p/{id}", named).unwrap();
-    app.get("/bad", |_| Response::text("invalid").status(204))
+    app.get("/bad", || Response::text("invalid").status(204))
         .unwrap();
     assert_eq!(
         app.handle(request("GET", "/p/")).unwrap().status_code(),
@@ -172,7 +223,7 @@ fn app_accepts_thread_safe_captures_and_concurrent_dispatch() {
     let counter = framework::State::new(std::sync::atomic::AtomicUsize::new(0));
     let captured = counter.clone();
     let mut app = App::new();
-    app.get("/", move |_| {
+    app.get("/", move || {
         captured.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Response::empty()
     })

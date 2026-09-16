@@ -95,9 +95,7 @@ impl Url {
                 "URL fragments are not sent in HTTP requests",
             ));
         }
-        let split = remainder
-            .find(|character| character == '/' || character == '?')
-            .unwrap_or(remainder.len());
+        let split = remainder.find(['/', '?']).unwrap_or(remainder.len());
         let authority = &remainder[..split];
         let suffix = &remainder[split..];
         if authority.is_empty()

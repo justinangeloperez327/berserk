@@ -33,7 +33,7 @@ fn valid_host(value: &str) -> bool {
         (host, port)
     };
     !host.is_empty()
-        && port.map_or(true, |p| {
+        && port.is_none_or(|p| {
             !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()) && p.parse::<u16>().is_ok()
         })
 }

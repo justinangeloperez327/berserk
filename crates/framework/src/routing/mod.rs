@@ -1,50 +1,79 @@
 //! Deterministic synchronous routing without network I/O.
 mod error;
+mod facade;
 mod route;
 
-use crate::{IntoResponse, Method, Request, Response, Result};
+use crate::{controller::Handler, Method, Request, Response, Result};
 pub use error::RouteError;
+pub use facade::Route;
 use route::Pattern;
 use std::{collections::BTreeSet, fmt};
 
-type Handler = Box<dyn Fn(Request) -> Result<Response> + Send + Sync + 'static>;
-struct Route {
+type BoxedHandler = Box<dyn Fn(Request) -> Result<Response> + Send + Sync + 'static>;
+struct RegisteredRoute {
     method: Method,
     pattern: Pattern,
-    handler: Handler,
+    handler: BoxedHandler,
 }
 
 #[derive(Default)]
 pub(crate) struct Router {
-    routes: Vec<Route>,
+    routes: Vec<RegisteredRoute>,
+    fallback: Option<BoxedHandler>,
 }
 impl fmt::Debug for Router {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Router")
             .field("route_count", &self.routes.len())
+            .field("has_fallback", &self.fallback.is_some())
             .finish()
     }
 }
 
 impl Router {
-    pub(crate) fn add<F, R>(&mut self, method: Method, path: &str, handler: F) -> Result<()>
+    pub(crate) fn add<H, A>(&mut self, method: Method, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(Request) -> R + Send + Sync + 'static,
-        R: IntoResponse,
+        H: Handler<A>,
     {
         let pattern = Pattern::parse(path)?;
+        if let Some(expected) = H::expected_route_params() {
+            let actual = pattern.parameter_count();
+            if expected != actual {
+                return Err(RouteError::ParameterCountMismatch { expected, actual }.into());
+            }
+        }
         if self
             .routes
             .iter()
-            .any(|r| r.method == method && r.pattern.equivalent(&pattern))
+            .any(|route| route.method == method && route.pattern.equivalent(&pattern))
         {
             return Err(RouteError::DuplicateRoute.into());
         }
-        self.routes.push(Route {
+        self.routes.push(RegisteredRoute {
             method,
             pattern,
-            handler: Box::new(move |request| handler(request).into_response()),
+            handler: Box::new(move |request| handler.call(request)),
         });
+        Ok(())
+    }
+
+    pub(crate) fn set_fallback<H, A>(&mut self, handler: H) -> Result<()>
+    where
+        H: Handler<A>,
+    {
+        if let Some(expected) = H::expected_route_params() {
+            if expected != 0 {
+                return Err(RouteError::ParameterCountMismatch {
+                    expected,
+                    actual: 0,
+                }
+                .into());
+            }
+        }
+        if self.fallback.is_some() {
+            return Err(RouteError::DuplicateFallback.into());
+        }
+        self.fallback = Some(Box::new(move |request| handler.call(request)));
         Ok(())
     }
 
@@ -59,24 +88,23 @@ impl Router {
             let candidates: Vec<_> = self
                 .routes
                 .iter()
-                .filter(|r| r.pattern.equivalent(&best.pattern))
+                .filter(|route| route.pattern.equivalent(&best.pattern))
                 .collect();
             let selected = candidates
                 .iter()
                 .copied()
-                .find(|r| &r.method == request.method())
+                .find(|route| &route.method == request.method())
                 .or_else(|| {
                     if head {
                         candidates
                             .iter()
                             .copied()
-                            .find(|r| r.method.as_str() == "GET")
+                            .find(|route| route.method.as_str() == "GET")
                     } else {
                         None
                     }
                 });
             if let Some(route) = selected {
-                // Capture from the chosen method's pattern; parameter names may differ.
                 let params = route
                     .pattern
                     .captures(request.path())
@@ -84,8 +112,10 @@ impl Router {
                 request.set_params(params);
                 (route.handler)(request)?
             } else {
-                let mut allow: BTreeSet<&str> =
-                    candidates.iter().map(|r| r.method.as_str()).collect();
+                let mut allow: BTreeSet<&str> = candidates
+                    .iter()
+                    .map(|route| route.method.as_str())
+                    .collect();
                 if allow.contains("GET") {
                     allow.insert("HEAD");
                 }
@@ -93,10 +123,12 @@ impl Router {
                     .status(405)
                     .header("allow", &allow.into_iter().collect::<Vec<_>>().join(", "))?
             }
+        } else if let Some(fallback) = &self.fallback {
+            fallback(request)?
         } else {
             Response::text("Not Found").status(404)
         };
-        response.into_response()
+        crate::IntoResponse::into_response(response)
     }
 }
 
@@ -107,29 +139,45 @@ impl Router {
         prefix: &str,
         layers: crate::middleware::Layers,
     ) -> Result<()> {
-        // Validate the prefix even if the child has no routes.
         if !prefix.is_empty() {
             Pattern::parse(prefix)?;
         }
+
+        let Router { routes, fallback } = other;
+
+        if fallback.is_some() && !prefix.is_empty() {
+            return Err(RouteError::ScopedFallback.into());
+        }
+        if fallback.is_some() && self.fallback.is_some() {
+            return Err(RouteError::DuplicateFallback.into());
+        }
+
         let mut pending = Vec::new();
-        for route in other.routes {
+        for route in routes {
             let pattern = route.pattern.prefixed(prefix)?;
-            if self
-                .routes
-                .iter()
-                .any(|r| r.method == route.method && r.pattern.equivalent(&pattern))
-            {
+            if self.routes.iter().any(|existing| {
+                existing.method == route.method && existing.pattern.equivalent(&pattern)
+            }) {
                 return Err(RouteError::DuplicateRoute.into());
             }
             let layers = layers.clone();
             let handler = route.handler;
-            pending.push(Route {
+            pending.push(RegisteredRoute {
                 method: route.method,
                 pattern,
-                handler: Box::new(move |req| layers.run(req, handler.as_ref())),
+                handler: Box::new(move |request| layers.run(request, handler.as_ref())),
             });
         }
+
+        let pending_fallback = fallback.map(|handler| {
+            let layers = layers.clone();
+            Box::new(move |request| layers.run(request, handler.as_ref())) as BoxedHandler
+        });
+
         self.routes.extend(pending);
+        if let Some(fallback) = pending_fallback {
+            self.fallback = Some(fallback);
+        }
         Ok(())
     }
 }

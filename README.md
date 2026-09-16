@@ -47,19 +47,21 @@ berserk = { path = "../berserk/crates/framework" }
 ## Quick start
 
 ```rust
-use berserk::{App, Request, Response, Result};
+use berserk::{App, Response, Result};
 
 fn main() -> Result<()> {
     let mut app = App::new();
 
-    app.get("/", |_| Response::text("Hello from Berserk!"))?;
-    app.get("/users/{id}", show_user)?;
+    {
+        let mut route = app.route();
+        route.get("/", || Response::text("Hello from Berserk!"))?;
+        route.get("/users/{id}", show_user)?;
+    }
 
     app.listen("127.0.0.1:3000")
 }
 
-fn show_user(request: Request) -> Response {
-    let id = request.param("id").unwrap_or("");
+fn show_user(id: u64) -> Response {
     Response::text(format!("User {id}"))
 }
 ```
@@ -68,16 +70,52 @@ No controller, service layer, application folder, or macro is required.
 
 ## Routing
 
-Routes support inline closures and named handlers:
+Routes are registered through an instance registrar borrowed from the application:
 
 ```rust
-app.get("/health", |_| Response::text("OK"))?;
-app.post("/users", users::store)?;
-app.put("/users/{id}", users::update)?;
-app.delete("/users/{id}", users::destroy)?;
+let mut route = app.route();
+
+route.get("/health", health)?;
+route.get("/users/{id}", users::show)?;
+route.post("/users", users::store)?;
+route.put("/users/{id}", users::update)?;
+route.patch("/users/{id}", users::patch)?;
+route.delete("/users/{id}", users::destroy)?;
 ```
 
-The router provides static-route precedence, path parameters, `404`, `405`, explicit `HEAD`, and `GET` fallback behavior.
+Prefixes and middleware are scoped rather than global:
+
+```rust
+route
+    .prefix("/api")
+    .middleware(auth)
+    .group(|route| {
+        route.get("/users", users::index)?;
+        route.get("/users/{id}", users::show)?;
+        Ok(())
+    })?;
+```
+
+Handler signatures declare what Berserk should provide:
+
+```rust
+fn health() -> Response {
+    Response::text("OK")
+}
+
+fn show(id: u64) -> Response {
+    Response::text(format!("User {id}"))
+}
+
+fn update(id: u64, request: Request) -> Result<Response> {
+    // Read the request only when the action needs it.
+    todo!()
+}
+```
+
+A typed route parameter that cannot be parsed returns `400 Bad Request`. A controller expecting one typed route parameter cannot be registered against a route with a different parameter count.
+
+The router provides static-route precedence, path parameters, `404`, `405`, automatic `HEAD` fallback to `GET`, scoped middleware, nested prefixes, and atomic route groups.
 
 ## Fluent database queries
 
@@ -101,6 +139,7 @@ SQL values remain separate from SQL text through bound parameters. Raw SQL remai
 | Feature         | Purpose                                      |
 | --------------- | -------------------------------------------- |
 | `database`      | Driver-neutral database contracts            |
+| `claw`          | Claw ORM model and relationship layer        |
 | `postgres`      | PostgreSQL driver                            |
 | `mysql`         | MySQL driver                                 |
 | `sqlite`        | SQLite driver                                |
@@ -124,7 +163,8 @@ The repository separates runtime responsibilities into focused crates:
 crates/
 ├── framework       # Main Berserk API and HTTP application assembly
 ├── core            # Configuration, state, lifecycle, and shared foundations
-├── database        # Query builder, models, migrations, and SQL drivers
+├── database        # Connections, query builder, migrations, and SQL drivers
+├── claw            # Claw ORM models, typed queries, and relationships
 ├── validation      # Reusable validation contracts
 ├── auth            # Authentication and authorization
 ├── openapi         # API contracts and OpenAPI generation

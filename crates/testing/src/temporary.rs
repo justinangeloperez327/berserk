@@ -14,7 +14,7 @@ impl TemporaryDirectory {
     pub fn new() -> io::Result<Self> {
         let time = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .map_err(|error| io::Error::new(io::ErrorKind::Other, error))?
+            .map_err(io::Error::other)?
             .as_nanos();
         for _ in 0..16 {
             let sequence = NEXT.fetch_add(1, Ordering::Relaxed);

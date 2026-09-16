@@ -28,13 +28,9 @@ pub fn write_response_connection<W: Write>(
                 stream
                     .0
                     .lock()
-                    .map_err(|_| {
-                        std::io::Error::new(std::io::ErrorKind::Other, "stream lock poisoned")
-                    })?
+                    .map_err(|_| std::io::Error::other("stream lock poisoned"))?
                     .take()
-                    .ok_or_else(|| {
-                        std::io::Error::new(std::io::ErrorKind::Other, "stream already consumed")
-                    })?,
+                    .ok_or_else(|| std::io::Error::other("stream already consumed"))?,
             ),
             None => None,
         }

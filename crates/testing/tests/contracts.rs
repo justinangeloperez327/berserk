@@ -13,10 +13,8 @@ use std::{collections::BTreeMap, sync::Arc};
 #[test]
 fn in_memory_requests_support_fluent_assertions() {
     let mut app = App::new();
-    app.get("/hello", |_| {
-        Response::text("hello").header("x-test", "yes")
-    })
-    .unwrap();
+    app.get("/hello", || Response::text("hello").header("x-test", "yes"))
+        .unwrap();
     TestClient::new(&app)
         .get("/hello")
         .unwrap()
@@ -31,7 +29,7 @@ fn json_assertions_compare_structure() {
     let expected = Json::Object(BTreeMap::from([("ok".into(), Json::Bool(true))]));
     let response_value = expected.clone();
     let mut app = App::new();
-    app.get("/json", move |_| Response::json(&response_value))
+    app.get("/json", move || Response::json(&response_value))
         .unwrap();
     TestClient::new(&app)
         .get("/json")

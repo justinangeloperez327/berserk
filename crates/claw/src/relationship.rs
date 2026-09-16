@@ -1,5 +1,5 @@
-use super::Model;
-use crate::{Connection, DatabaseError, ErrorKind, Result, Value};
+use crate::Model;
+use framework_database::{Connection, DatabaseError, ErrorKind, Result, Value};
 use std::marker::PhantomData;
 
 /// Eager-loaded related records grouped by their linking key.
@@ -21,12 +21,15 @@ impl<M> RelatedSet<M> {
             .find(|(candidate, _)| candidate == key)
             .map(|(_, models)| models.as_slice())
     }
+
     pub fn groups(&self) -> &[(Value, Vec<M>)] {
         &self.groups
     }
+
     pub fn len(&self) -> usize {
         self.groups.len()
     }
+
     pub fn is_empty(&self) -> bool {
         self.groups.is_empty()
     }
@@ -63,7 +66,6 @@ impl<P, R: Model> HasMany<P, R> {
         }
     }
 
-    /// Loads the relationship with one query and returns keyed groups.
     pub fn load(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
         let keys = unique_non_null(parents.iter().map(self.parent_key));
         if keys.is_empty() {
@@ -95,7 +97,6 @@ impl<P, R: Model> HasOne<P, R> {
         }
     }
 
-    /// Loads with one query and rejects data that violates the one-record contract.
     pub fn load(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
         let result = self.inner.load(connection, parents)?;
         if result.groups.iter().any(|(_, models)| models.len() > 1) {
@@ -129,7 +130,6 @@ impl<C, R: Model> BelongsTo<C, R> {
         }
     }
 
-    /// Loads all referenced owners in one query. Null foreign keys are skipped.
     pub fn load(&self, connection: &mut dyn Connection, children: &[C]) -> Result<RelatedSet<R>> {
         let keys = unique_non_null(children.iter().filter_map(self.child_key));
         if keys.is_empty() {
