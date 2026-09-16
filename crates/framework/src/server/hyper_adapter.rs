@@ -103,7 +103,7 @@ where
             if error.downcast_ref::<LengthLimitError>().is_some() {
                 ProtocolError::BodyLimit
             } else {
-                ProtocolError::Malformed
+                ProtocolError::Io(io::Error::other(error.to_string()))
             }
         })?;
     if collected.trailers().is_some() {
@@ -222,7 +222,7 @@ fn fallback_wire_response(status: u16) -> http::Response<WireBody> {
 pub(super) async fn dispatch<B>(
     app: Arc<crate::App>,
     request: http::Request<B>,
-) -> http::Response<WireBody>
+) -> Result<http::Response<WireBody>, ProtocolError>
 where
     B: hyper::body::Body<Data = Bytes> + Send + 'static,
     B::Error: Into<BoxError> + 'static,
@@ -230,7 +230,8 @@ where
     let head = request.method() == http::Method::HEAD;
     let request = match into_berserk_request(request, app.config()).await {
         Ok(request) => request,
-        Err(error) => return fallback_wire_response(error.status_code()),
+        Err(error @ ProtocolError::Io(_)) => return Err(error),
+        Err(error) => return Ok(fallback_wire_response(error.status_code())),
     };
 
     let handled =
@@ -243,8 +244,8 @@ where
         Ok(Err(_)) | Err(_) => Response::text("Internal Server Error").status(500),
     };
 
-    match into_wire_response(response, head) {
+    Ok(match into_wire_response(response, head) {
         Ok(response) => response,
         Err(_) => fallback_wire_response(500),
-    }
+    })
 }
