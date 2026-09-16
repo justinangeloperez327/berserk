@@ -2,8 +2,8 @@
 
 use framework::{
     database::{
-        Capabilities, Connection, Database, DatabaseError, Driver, ErrorKind, Execution, Query,
-        Row, Statement, Transaction, TransactionOptions, Value,
+        Capabilities, Connection, Database, Driver, ErrorKind, Execution, Query, Row, Statement,
+        Transaction, TransactionOptions, Value,
     },
     App, ConfigError, Error, Headers, Method, Request, Response, Result,
 };
@@ -119,7 +119,10 @@ fn read_only_handler(request: Request) -> Result<Response> {
 
 fn nested_begin_handler(request: Request) -> Result<Response> {
     request.transaction(TransactionOptions::default(), |connection| {
-        let error = connection.begin(TransactionOptions::default()).unwrap_err();
+        let error = match connection.begin(TransactionOptions::default()) {
+            Ok(_) => panic!("nested transaction unexpectedly succeeded"),
+            Err(error) => error,
+        };
         assert!(matches!(error.kind(), ErrorKind::Transaction));
         Ok(())
     })?;
