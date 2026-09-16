@@ -232,7 +232,6 @@ where
             Err(response) => return Ok(response),
         };
         let input = request.validated::<I>()?;
-        self(route_param, Validated::new(input), request)
-            .into_response()
+        self(route_param, Validated::new(input), request).into_response()
     }
 }
