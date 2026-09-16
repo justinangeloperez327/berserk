@@ -18,6 +18,12 @@ pub struct RouteParam<T>(PhantomData<fn() -> T>);
 pub struct RouteParamRequest<T>(PhantomData<fn() -> T>);
 
 #[doc(hidden)]
+pub struct RouteParams<T, U>(PhantomData<fn() -> (T, U)>);
+
+#[doc(hidden)]
+pub struct RouteParamsRequest<T, U>(PhantomData<fn() -> (T, U)>);
+
+#[doc(hidden)]
 pub struct ValidatedArg<T>(PhantomData<fn() -> T>);
 
 #[doc(hidden)]
@@ -33,6 +39,13 @@ pub struct RouteParamValidatedRequest<T, I>(PhantomData<fn() -> (T, I)>);
 pub trait Handler<Args>: Send + Sync + 'static {
     fn expected_route_params() -> Option<usize>;
     fn call(&self, request: Request) -> Result<Response>;
+}
+
+fn route_param<T: FromStr>(request: &Request, index: usize) -> std::result::Result<T, Response> {
+    match request.param_at_as::<T>(index) {
+        Some(Ok(value)) => Ok(value),
+        Some(Err(_)) | None => Err(Response::text("Invalid route parameter").status(400)),
+    }
 }
 
 impl<F, R> Handler<NoArgs> for F
@@ -74,11 +87,9 @@ where
     }
 
     fn call(&self, request: Request) -> Result<Response> {
-        let value = match request.single_param_as::<T>() {
-            Some(Ok(value)) => value,
-            Some(Err(_)) | None => {
-                return Ok(Response::text("Invalid route parameter").status(400));
-            }
+        let value = match route_param(&request, 0) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
         };
         self(value).into_response()
     }
@@ -95,13 +106,59 @@ where
     }
 
     fn call(&self, request: Request) -> Result<Response> {
-        let value = match request.single_param_as::<T>() {
-            Some(Ok(value)) => value,
-            Some(Err(_)) | None => {
-                return Ok(Response::text("Invalid route parameter").status(400));
-            }
+        let value = match route_param(&request, 0) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
         };
         self(value, request).into_response()
+    }
+}
+
+impl<F, T, U, R> Handler<RouteParams<T, U>> for F
+where
+    F: Fn(T, U) -> R + Send + Sync + 'static,
+    T: FromStr + 'static,
+    U: FromStr + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(2)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let first = match route_param(&request, 0) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        let second = match route_param(&request, 1) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        self(first, second).into_response()
+    }
+}
+
+impl<F, T, U, R> Handler<RouteParamsRequest<T, U>> for F
+where
+    F: Fn(T, U, Request) -> R + Send + Sync + 'static,
+    T: FromStr + 'static,
+    U: FromStr + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(2)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let first = match route_param(&request, 0) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        let second = match route_param(&request, 1) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        self(first, second, request).into_response()
     }
 }
 
@@ -149,11 +206,9 @@ where
     }
 
     fn call(&self, request: Request) -> Result<Response> {
-        let route_param = match request.single_param_as::<T>() {
-            Some(Ok(value)) => value,
-            Some(Err(_)) | None => {
-                return Ok(Response::text("Invalid route parameter").status(400));
-            }
+        let route_param = match route_param(&request, 0) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
         };
         let input = request.validated::<I>()?;
         self(route_param, Validated::new(input)).into_response()
@@ -172,13 +227,12 @@ where
     }
 
     fn call(&self, request: Request) -> Result<Response> {
-        let route_param = match request.single_param_as::<T>() {
-            Some(Ok(value)) => value,
-            Some(Err(_)) | None => {
-                return Ok(Response::text("Invalid route parameter").status(400));
-            }
+        let route_param = match route_param(&request, 0) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
         };
         let input = request.validated::<I>()?;
-        self(route_param, Validated::new(input), request).into_response()
+        self(route_param, Validated::new(input), request)
+            .into_response()
     }
 }
