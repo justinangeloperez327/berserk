@@ -18,6 +18,10 @@ fn runtime() -> tokio::runtime::Runtime {
         .expect("test runtime")
 }
 
+fn empty_request() -> http::request::Builder {
+    http::Request::builder().method("GET").uri("/")
+}
+
 #[test]
 fn converts_bounded_http_request_to_berserk_request() {
     runtime().block_on(async {
@@ -95,17 +99,125 @@ fn rejects_unsafe_or_unsupported_request_forms() {
             hyper_adapter::into_berserk_request(expectation, &ServerConfig::default()).await,
             Err(ProtocolError::UnsupportedExpectation)
         ));
+
+        let mut old_version = empty_request()
+            .header("host", "example.test")
+            .body(Full::new(Bytes::new()))
+            .unwrap();
+        *old_version.version_mut() = http::Version::HTTP_10;
+        assert!(matches!(
+            hyper_adapter::into_berserk_request(old_version, &ServerConfig::default()).await,
+            Err(ProtocolError::UnsupportedVersion)
+        ));
+    });
+}
+
+#[test]
+fn framing_host_and_header_limits_remain_strict() {
+    runtime().block_on(async {
+        for host in ["localhost", "example.com:80", "[::1]", "[::1]:3000"] {
+            let request = empty_request()
+                .header("host", host)
+                .body(Full::new(Bytes::new()))
+                .unwrap();
+            assert!(hyper_adapter::into_berserk_request(request, &ServerConfig::default())
+                .await
+                .is_ok());
+        }
+
+        for host in ["a b", "a:bad", "a:65536", "a@b", "[oops]", "::1", "a/b"] {
+            let request = empty_request()
+                .header("host", host)
+                .body(Full::new(Bytes::new()))
+                .unwrap();
+            assert!(hyper_adapter::into_berserk_request(request, &ServerConfig::default())
+                .await
+                .is_err());
+        }
+
+        let duplicate_length = http::Request::builder()
+            .method("POST")
+            .uri("/")
+            .header("host", "example.test")
+            .header("content-length", "1")
+            .header("content-length", "1")
+            .body(Full::new(Bytes::from_static(b"a")))
+            .unwrap();
+        assert!(matches!(
+            hyper_adapter::into_berserk_request(duplicate_length, &ServerConfig::default()).await,
+            Err(ProtocolError::Malformed)
+        ));
+
+        let conflicting_framing = http::Request::builder()
+            .method("POST")
+            .uri("/")
+            .header("host", "example.test")
+            .header("content-length", "1")
+            .header("transfer-encoding", "chunked")
+            .body(Full::new(Bytes::from_static(b"a")))
+            .unwrap();
+        assert!(matches!(
+            hyper_adapter::into_berserk_request(conflicting_framing, &ServerConfig::default()).await,
+            Err(ProtocolError::Malformed)
+        ));
+
+        let unsupported_encoding = http::Request::builder()
+            .method("POST")
+            .uri("/")
+            .header("host", "example.test")
+            .header("transfer-encoding", "gzip")
+            .body(Full::new(Bytes::new()))
+            .unwrap();
+        assert!(matches!(
+            hyper_adapter::into_berserk_request(unsupported_encoding, &ServerConfig::default()).await,
+            Err(ProtocolError::UnsupportedTransferEncoding)
+        ));
+
+        let too_many_headers = empty_request()
+            .header("host", "example.test")
+            .header("x-extra", "1")
+            .body(Full::new(Bytes::new()))
+            .unwrap();
+        let config = ServerConfig {
+            max_headers: 1,
+            ..ServerConfig::default()
+        };
+        assert!(matches!(
+            hyper_adapter::into_berserk_request(too_many_headers, &config).await,
+            Err(ProtocolError::HeaderLimit)
+        ));
     });
 }
 
 #[test]
 fn converts_buffered_response_with_content_length() {
     runtime().block_on(async {
-        let response = hyper_adapter::into_wire_response(Response::text("hello"), false).unwrap();
+        let response = hyper_adapter::into_wire_response(Response::text("hé"), false).unwrap();
         assert_eq!(response.status(), http::StatusCode::OK);
-        assert_eq!(response.headers()[http::header::CONTENT_LENGTH], "5");
+        assert_eq!(response.headers()[http::header::CONTENT_LENGTH], "3");
         let body = response.into_body().collect().await.unwrap().to_bytes();
-        assert_eq!(body, "hello");
+        assert_eq!(body, "hé");
+    });
+}
+
+#[test]
+fn response_lengths_head_and_bodyless_statuses_are_preserved() {
+    runtime().block_on(async {
+        for status in [204, 304] {
+            let response =
+                hyper_adapter::into_wire_response(Response::empty().status(status), false).unwrap();
+            assert!(response.headers().get(http::header::CONTENT_LENGTH).is_none());
+        }
+
+        let reset =
+            hyper_adapter::into_wire_response(Response::empty().status(205), false).unwrap();
+        assert_eq!(reset.headers()[http::header::CONTENT_LENGTH], "0");
+
+        let head = hyper_adapter::into_wire_response(Response::text("hello"), true).unwrap();
+        assert_eq!(head.headers()[http::header::CONTENT_LENGTH], "5");
+        assert!(head.into_body().collect().await.unwrap().to_bytes().is_empty());
+
+        assert!(hyper_adapter::into_wire_response(Response::text("bad").status(204), false).is_err());
     });
 }
 
