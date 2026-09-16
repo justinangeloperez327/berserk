@@ -2,16 +2,16 @@
 mod error;
 mod route;
 
-use crate::{IntoResponse, Method, Request, Response, Result};
+use crate::{controller::Handler, Method, Request, Response, Result};
 pub use error::RouteError;
 use route::Pattern;
 use std::{collections::BTreeSet, fmt};
 
-type Handler = Box<dyn Fn(Request) -> Result<Response> + Send + Sync + 'static>;
+type BoxedHandler = Box<dyn Fn(Request) -> Result<Response> + Send + Sync + 'static>;
 struct Route {
     method: Method,
     pattern: Pattern,
-    handler: Handler,
+    handler: BoxedHandler,
 }
 
 #[derive(Default)]
@@ -27,12 +27,17 @@ impl fmt::Debug for Router {
 }
 
 impl Router {
-    pub(crate) fn add<F, R>(&mut self, method: Method, path: &str, handler: F) -> Result<()>
+    pub(crate) fn add<H, A>(&mut self, method: Method, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(Request) -> R + Send + Sync + 'static,
-        R: IntoResponse,
+        H: Handler<A>,
     {
         let pattern = Pattern::parse(path)?;
+        if let Some(expected) = H::expected_route_params() {
+            let actual = pattern.parameter_count();
+            if expected != actual {
+                return Err(RouteError::ParameterCountMismatch { expected, actual }.into());
+            }
+        }
         if self
             .routes
             .iter()
@@ -43,7 +48,7 @@ impl Router {
         self.routes.push(Route {
             method,
             pattern,
-            handler: Box::new(move |request| handler(request).into_response()),
+            handler: Box::new(move |request| handler.call(request)),
         });
         Ok(())
     }
@@ -76,7 +81,6 @@ impl Router {
                     }
                 });
             if let Some(route) = selected {
-                // Capture from the chosen method's pattern; parameter names may differ.
                 let params = route
                     .pattern
                     .captures(request.path())
@@ -96,7 +100,7 @@ impl Router {
         } else {
             Response::text("Not Found").status(404)
         };
-        response.into_response()
+        crate::IntoResponse::into_response(response)
     }
 }
 
@@ -107,7 +111,6 @@ impl Router {
         prefix: &str,
         layers: crate::middleware::Layers,
     ) -> Result<()> {
-        // Validate the prefix even if the child has no routes.
         if !prefix.is_empty() {
             Pattern::parse(prefix)?;
         }
