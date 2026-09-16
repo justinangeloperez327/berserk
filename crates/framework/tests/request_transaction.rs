@@ -2,8 +2,8 @@
 
 use framework::{
     database::{
-        Capabilities, Connection, Database, DatabaseError, Driver, ErrorKind, Execution, Query, Row,
-        Statement, Transaction, TransactionOptions, Value,
+        Capabilities, Connection, Database, DatabaseError, Driver, ErrorKind, Execution, Query,
+        Row, Statement, Transaction, TransactionOptions, Value,
     },
     App, ConfigError, Error, Headers, Method, Request, Response, Result,
 };
@@ -196,7 +196,10 @@ fn request_transaction_forwards_options_and_rejects_nested_begin() {
         route.post("/nested", nested_begin_handler).unwrap();
     }
 
-    assert_eq!(app.handle(request("/read-only")).unwrap().body(), b"read only");
+    assert_eq!(
+        app.handle(request("/read-only")).unwrap().body(),
+        b"read only"
+    );
     assert_eq!(
         app.handle(request("/nested")).unwrap().body(),
         b"nested rejected"
