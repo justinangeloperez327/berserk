@@ -6,8 +6,10 @@ use framework::{
         Capabilities, Connection, Database, DatabaseError, Driver, ErrorKind, Execution, Statement,
         Transaction, TransactionOptions,
     },
-    App, Error, Headers, Method, Request, Response,
+    App, Error, FromJson, Headers, Json, Method, Request, Response, ValidateInput, Validated,
+    ValidationErrors,
 };
+use framework_validation::sanitize;
 
 #[derive(Debug)]
 struct User {
@@ -27,6 +29,38 @@ impl Model for User {
 
     fn key(&self) -> Value {
         self.id.into()
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct UserInput {
+    name: String,
+}
+
+impl FromJson for UserInput {
+    fn from_json(value: &Json) -> std::result::Result<Self, ValidationErrors> {
+        let mut errors = ValidationErrors::default();
+        let name = match value.get("name").and_then(Json::as_str) {
+            Some(name) => name.to_owned(),
+            None => {
+                errors.add("name", "required", "The name field is required.");
+                String::new()
+            }
+        };
+        errors.finish()?;
+        Ok(Self { name })
+    }
+}
+
+impl ValidateInput for UserInput {
+    fn sanitize(&mut self) {
+        sanitize::trim(&mut self.name);
+    }
+
+    fn validate(&self) -> std::result::Result<(), ValidationErrors> {
+        let mut errors = ValidationErrors::default();
+        errors.min_length("name", &self.name, 2);
+        errors.finish()
     }
 }
 
@@ -83,12 +117,41 @@ fn request(path: &str) -> Request {
     .unwrap()
 }
 
+fn body_request(method: &str, path: &str, body: &str, content_type: bool) -> Request {
+    let mut headers = Headers::new();
+    if content_type {
+        headers.insert("content-type", "application/json").unwrap();
+    }
+    Request::new(
+        Method::new(method).unwrap(),
+        path,
+        headers,
+        body.as_bytes().to_vec(),
+    )
+    .unwrap()
+}
+
+fn input_status(error: Error) -> u16 {
+    match error {
+        Error::Input(error) => error.response().status_code(),
+        other => panic!("expected input error, got {other}"),
+    }
+}
+
 fn show(user: User) -> Response {
     Response::text(format!("{}:{}", user.id, user.name))
 }
 
 fn show_with_request(user: User, request: Request) -> Response {
     Response::text(format!("{}:{}", user.name, request.path()))
+}
+
+fn update(user: User, input: Validated<UserInput>) -> Response {
+    Response::text(format!("{}:{}", user.id, input.name))
+}
+
+fn update_with_request(user: User, input: Validated<UserInput>, request: Request) -> Response {
+    Response::text(format!("{}:{}:{}", user.id, input.name, request.path()))
 }
 
 #[test]
@@ -113,6 +176,81 @@ fn controller_can_receive_a_bound_claw_model() {
         400
     );
     assert_eq!(app.handle(request("/users/99")).unwrap().status_code(), 404);
+}
+
+#[test]
+fn bound_model_can_precede_validated_input() {
+    let mut app = App::new();
+    app.state(Database::new(|| Ok(FakeConnection))).unwrap();
+    {
+        let mut route = app.route();
+        route.put("/users/{user}", update).unwrap();
+        route
+            .patch("/users/{user}/context", update_with_request)
+            .unwrap();
+    }
+
+    let updated = app
+        .handle(body_request(
+            "PUT",
+            "/users/7",
+            r#"{"name":"  Grace  "}"#,
+            true,
+        ))
+        .unwrap();
+    assert_eq!(updated.body(), b"7:Grace");
+
+    let contextual = app
+        .handle(body_request(
+            "PATCH",
+            "/users/7/context",
+            r#"{"name":"  Linus  "}"#,
+            true,
+        ))
+        .unwrap();
+    assert_eq!(contextual.body(), b"7:Linus:/users/7/context");
+}
+
+#[test]
+fn model_binding_finishes_before_body_validation() {
+    let mut app = App::new();
+    app.state(Database::new(|| Ok(FakeConnection))).unwrap();
+    app.route().put("/users/{user}", update).unwrap();
+
+    let invalid_key = app
+        .handle(body_request(
+            "PUT",
+            "/users/not-a-number",
+            "not-json",
+            false,
+        ))
+        .unwrap();
+    assert_eq!(invalid_key.status_code(), 400);
+
+    let missing_model = app
+        .handle(body_request("PUT", "/users/99", "not-json", false))
+        .unwrap();
+    assert_eq!(missing_model.status_code(), 404);
+
+    let missing_content_type = app
+        .handle(body_request(
+            "PUT",
+            "/users/7",
+            r#"{"name":"Grace"}"#,
+            false,
+        ))
+        .unwrap_err();
+    assert_eq!(input_status(missing_content_type), 415);
+
+    let invalid_input = app
+        .handle(body_request(
+            "PUT",
+            "/users/7",
+            r#"{"name":" A "}"#,
+            true,
+        ))
+        .unwrap_err();
+    assert_eq!(input_status(invalid_input), 422);
 }
 
 #[test]
