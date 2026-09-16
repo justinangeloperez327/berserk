@@ -13,10 +13,8 @@ use std::{collections::BTreeMap, sync::Arc};
 #[test]
 fn in_memory_requests_support_fluent_assertions() {
     let mut app = App::new();
-    app.get("/hello", || {
-        Response::text("hello").header("x-test", "yes")
-    })
-    .unwrap();
+    app.get("/hello", || Response::text("hello").header("x-test", "yes"))
+        .unwrap();
     TestClient::new(&app)
         .get("/hello")
         .unwrap()
