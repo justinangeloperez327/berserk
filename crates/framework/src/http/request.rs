@@ -97,6 +97,18 @@ impl Request {
         self.state.get::<T>()
     }
 
+    #[cfg(feature = "database")]
+    pub fn database(&self) -> crate::Result<&framework_database::Database> {
+        self.state::<framework_database::Database>().ok_or_else(|| {
+            crate::ConfigError::new("database", "database state is not configured").into()
+        })
+    }
+
+    #[cfg(feature = "database")]
+    pub fn connection(&self) -> crate::Result<Box<dyn framework_database::Connection>> {
+        Ok(self.database()?.acquire()?)
+    }
+
     pub fn request_id(&self) -> Option<&str> {
         self.request_id.as_deref()
     }
