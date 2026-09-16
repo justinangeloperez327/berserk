@@ -42,8 +42,10 @@ fn converts_bounded_http_request_to_berserk_request() {
 #[test]
 fn rejects_body_over_configured_limit() {
     runtime().block_on(async {
-        let mut config = ServerConfig::default();
-        config.max_body_bytes = 4;
+        let config = ServerConfig {
+            max_body_bytes: 4,
+            ..ServerConfig::default()
+        };
         let request = http::Request::builder()
             .method("POST")
             .uri("/users")
