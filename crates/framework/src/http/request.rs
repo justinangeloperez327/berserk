@@ -150,13 +150,6 @@ impl Request {
         self.param_values.get(index).map(|value| value.parse())
     }
 
-    pub(crate) fn single_param_as<T: FromStr>(&self) -> Option<Result<T, T::Err>> {
-        if self.param_values.len() != 1 {
-            return None;
-        }
-        self.param_at_as(0)
-    }
-
     pub fn query_string(&self) -> Option<&str> {
         self.target.split_once('?').map(|(_, query)| query)
     }
