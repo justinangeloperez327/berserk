@@ -1,5 +1,40 @@
 use crate::{Json, Request, Response, Result};
+use std::ops::Deref;
+
 pub use framework_validation::{FieldError, ValidateInput, ValidationErrors};
+
+/// A typed request body that has already been decoded, sanitized, and validated.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Validated<T>(T);
+
+impl<T> Validated<T> {
+    pub(crate) fn new(value: T) -> Self {
+        Self(value)
+    }
+
+    pub fn get_ref(&self) -> &T {
+        &self.0
+    }
+
+    pub fn into_inner(self) -> T {
+        self.0
+    }
+}
+
+impl<T> AsRef<T> for Validated<T> {
+    fn as_ref(&self) -> &T {
+        self.get_ref()
+    }
+}
+
+impl<T> Deref for Validated<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        self.get_ref()
+    }
+}
+
 #[derive(Debug)]
 pub enum InputError {
     Json(crate::json::JsonError),
