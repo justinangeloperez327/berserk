@@ -1,6 +1,7 @@
 use crate::{Model, Page};
 use framework_database::{
-    Connection, DatabaseError, Direction, Driver, ErrorKind, Query, Result, Statement, Value,
+    Connection, DatabaseError, Direction, Driver, ErrorKind, Execution, Query, Result, Statement,
+    Value,
 };
 use std::marker::PhantomData;
 
@@ -122,6 +123,23 @@ impl<M: Model> ModelQuery<M> {
             .as_ref()
             .map(M::from_row)
             .transpose()
+    }
+
+    pub fn update<I, S, V>(
+        self,
+        connection: &mut dyn Connection,
+        values: I,
+    ) -> Result<Execution>
+    where
+        I: IntoIterator<Item = (S, V)>,
+        S: Into<String>,
+        V: Into<Value>,
+    {
+        self.builder.update(values).execute(connection)
+    }
+
+    pub fn delete(self, connection: &mut dyn Connection) -> Result<Execution> {
+        self.builder.delete().execute(connection)
     }
 
     pub fn paginate(
