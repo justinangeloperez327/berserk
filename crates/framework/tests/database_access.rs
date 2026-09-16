@@ -52,10 +52,10 @@ impl Connection for FakeConnection {
     }
 }
 
-fn request() -> Request {
+fn request(path: &str) -> Request {
     Request::new(
         Method::new("GET").unwrap(),
-        "/database",
+        path,
         Headers::new(),
         Vec::new(),
     )
@@ -64,13 +64,30 @@ fn request() -> Request {
 
 fn database_handler(request: Request) -> Result<Response> {
     let _database = request.database()?;
-    let mut connection = request.connection()?;
-    connection.ping()?;
+    {
+        let mut connection = request.connection()?;
+        connection.ping()?;
+    }
+    {
+        let mut connection = request.connection()?;
+        connection.ping()?;
+    }
     Ok(Response::text("database ready"))
 }
 
+fn overlapping_borrow_handler(request: Request) -> Result<Response> {
+    let _connection = request.connection()?;
+    match request.connection() {
+        Err(Error::Database(error)) if matches!(error.kind(), ErrorKind::Connection) => {
+            Ok(Response::text("borrow rejected"))
+        }
+        Err(error) => Err(error),
+        Ok(_) => panic!("overlapping request connection borrow unexpectedly succeeded"),
+    }
+}
+
 #[test]
-fn app_and_request_database_helpers_share_the_registered_handle() {
+fn app_and_request_database_helpers_share_one_request_connection() {
     let acquisitions = Arc::new(AtomicUsize::new(0));
     let pings = Arc::new(AtomicUsize::new(0));
     let factory_acquisitions = Arc::clone(&acquisitions);
@@ -86,10 +103,29 @@ fn app_and_request_database_helpers_share_the_registered_handle() {
     .unwrap();
     app.route().get("/database", database_handler).unwrap();
 
-    let response = app.handle(request()).unwrap();
+    let response = app.handle(request("/database")).unwrap();
     assert_eq!(response.body(), b"database ready");
     assert_eq!(acquisitions.load(Ordering::SeqCst), 1);
-    assert_eq!(pings.load(Ordering::SeqCst), 1);
+    assert_eq!(pings.load(Ordering::SeqCst), 2);
+}
+
+#[test]
+fn overlapping_request_connection_borrow_returns_an_error() {
+    let pings = Arc::new(AtomicUsize::new(0));
+    let factory_pings = Arc::clone(&pings);
+    let mut app = App::new();
+    app.database(Database::new(move || {
+        Ok(FakeConnection {
+            pings: Arc::clone(&factory_pings),
+        })
+    }))
+    .unwrap();
+    app.route()
+        .get("/database/borrow", overlapping_borrow_handler)
+        .unwrap();
+
+    let response = app.handle(request("/database/borrow")).unwrap();
+    assert_eq!(response.body(), b"borrow rejected");
 }
 
 #[test]
@@ -97,6 +133,6 @@ fn request_database_helpers_report_missing_configuration() {
     let mut app = App::new();
     app.route().get("/database", database_handler).unwrap();
 
-    let error = app.handle(request()).unwrap_err();
+    let error = app.handle(request("/database")).unwrap_err();
     assert!(matches!(error, Error::Configuration(_)));
 }
