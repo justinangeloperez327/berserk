@@ -2,7 +2,7 @@ use framework::{App, Headers, Json, Method, Request, Response};
 use std::{
     error::Error,
     hint::black_box,
-    io::{Cursor, Read, Write},
+    io::{Read, Write},
     net::TcpStream,
     time::{Duration, Instant},
 };
@@ -63,8 +63,8 @@ fn main() -> Result<()> {
     if n == 0 || n > 10_000_000 || warmup > 1_000_000 {
         return Err("invalid iteration or warmup count".into());
     }
-    if !["routing", "json", "codec", "tcp"].contains(&scenario) {
-        return Err("scenario must be routing, json, codec or tcp".into());
+    if !["routing", "json", "tcp"].contains(&scenario) {
+        return Err("scenario must be routing, json or tcp".into());
     }
     eprintln!("scenario={scenario}; os={}; arch={}; profile={}; samples contain timer/allocation overhead",std::env::consts::OS,std::env::consts::ARCH,if cfg!(debug_assertions){"debug (do not use as baseline)"}else{"release"});
     println!("scenario,iterations,warmup,elapsed_seconds,operations_per_second,p50_ns,p95_ns,p99_ns,max_ns");
@@ -104,29 +104,6 @@ fn main() -> Result<()> {
                     Ok(())
                 },
                 "json_parse_encode",
-                n,
-                warmup,
-            )
-        }
-        "codec" => {
-            let input = b"POST /echo HTTP/1.1\r\nHost: localhost\r\nContent-Length: 5\r\n\r\nHello";
-            let config = framework::ServerConfig::default();
-            measure(
-                || {
-                    let req = framework::server::read_request(
-                        &mut Cursor::new(black_box(input)),
-                        &config,
-                    )?;
-                    let response = Response::bytes(req.body().to_vec());
-                    let mut output = Vec::new();
-                    framework::server::write_response(&mut output, &response, req.method())?;
-                    if !output.ends_with(b"\r\n\r\nHello") {
-                        return Err("incorrect codec result".into());
-                    }
-                    black_box(output);
-                    Ok(())
-                },
-                "codec_buffered",
                 n,
                 warmup,
             )
