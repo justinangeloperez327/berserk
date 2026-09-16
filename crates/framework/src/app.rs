@@ -1,5 +1,4 @@
 use crate::{Result, ServerConfig, Validate};
-use std::str::FromStr;
 
 /// Validated application configuration. Supports in-memory routing and synchronous TCP serving.
 #[derive(Debug)]
@@ -39,17 +38,16 @@ impl App {
 #[cfg(feature = "openapi")]
 impl App {
     /// Registers the runtime route and its OpenAPI operation as one setup action.
-    pub fn documented_route<F, R>(
+    pub fn documented_route<H, A>(
         &mut self,
         document: &mut framework_openapi::OpenApi,
         method: framework_openapi::HttpMethod,
         path: &str,
         operation: framework_openapi::Operation,
-        handler: F,
+        handler: H,
     ) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
         let mut staged = document.clone();
         staged.operation(method, path, operation)?;
@@ -75,35 +73,11 @@ impl Default for App {
 }
 
 impl App {
-    pub fn route<F, R>(&mut self, method: crate::Method, path: &str, handler: F) -> Result<()>
+    fn route<H, A>(&mut self, method: crate::Method, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
         self.router.add(method, path, handler)
-    }
-
-    /// Register a controller action that receives one typed route parameter directly.
-    ///
-    /// This supports actions such as `fn show(id: u64) -> Response` without forcing
-    /// the controller to accept the entire request.
-    pub fn route_param<T, F, R>(
-        &mut self,
-        method: crate::Method,
-        path: &str,
-        parameter: &str,
-        handler: F,
-    ) -> Result<()>
-    where
-        T: FromStr + 'static,
-        F: Fn(T) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
-    {
-        self.route(
-            method,
-            path,
-            crate::controller::with_param::<T, F, R>(parameter.to_owned(), handler),
-        )
     }
 
     /// Dispatch without network I/O. Handler errors propagate; panics are not caught here.
@@ -120,69 +94,39 @@ impl App {
         Ok(response)
     }
 
-    pub fn get<F, R>(&mut self, path: &str, handler: F) -> Result<()>
+    pub fn get<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
         self.route(crate::Method::new("GET")?, path, handler)
     }
 
-    pub fn get_param<T, F, R>(&mut self, path: &str, parameter: &str, handler: F) -> Result<()>
+    pub fn post<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
-        T: FromStr + 'static,
-        F: Fn(T) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
-    {
-        self.route_param(crate::Method::new("GET")?, path, parameter, handler)
-    }
-
-    pub fn post<F, R>(&mut self, path: &str, handler: F) -> Result<()>
-    where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
         self.route(crate::Method::new("POST")?, path, handler)
     }
 
-    pub fn put<F, R>(&mut self, path: &str, handler: F) -> Result<()>
+    pub fn put<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
         self.route(crate::Method::new("PUT")?, path, handler)
     }
 
-    pub fn patch<F, R>(&mut self, path: &str, handler: F) -> Result<()>
+    pub fn patch<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
         self.route(crate::Method::new("PATCH")?, path, handler)
     }
 
-    pub fn delete<F, R>(&mut self, path: &str, handler: F) -> Result<()>
+    pub fn delete<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
+        H: crate::controller::Handler<A>,
     {
         self.route(crate::Method::new("DELETE")?, path, handler)
-    }
-
-    pub fn head<F, R>(&mut self, path: &str, handler: F) -> Result<()>
-    where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
-    {
-        self.route(crate::Method::new("HEAD")?, path, handler)
-    }
-
-    pub fn options<F, R>(&mut self, path: &str, handler: F) -> Result<()>
-    where
-        F: Fn(crate::Request) -> R + Send + Sync + 'static,
-        R: crate::IntoResponse,
-    {
-        self.route(crate::Method::new("OPTIONS")?, path, handler)
     }
 }
 
