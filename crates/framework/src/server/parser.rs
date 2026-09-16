@@ -1,42 +1,6 @@
-use super::ProtocolError as E;
+use super::{validation::validate_request_headers, ProtocolError as E};
 use crate::{Headers, Method, Request, ServerConfig, Validate};
-use std::{io::Read, net::Ipv6Addr};
-
-fn valid_host(value: &str) -> bool {
-    if value.is_empty() {
-        return false;
-    }
-    let (host, port) = if let Some(rest) = value.strip_prefix('[') {
-        let Some((address, suffix)) = rest.split_once(']') else {
-            return false;
-        };
-        if address.parse::<Ipv6Addr>().is_err() {
-            return false;
-        }
-        if suffix.is_empty() {
-            return true;
-        }
-        let Some(port) = suffix.strip_prefix(':') else {
-            return false;
-        };
-        (address, Some(port))
-    } else {
-        let (host, port) = value
-            .split_once(':')
-            .map_or((value, None), |(h, p)| (h, Some(p)));
-        if !host
-            .bytes()
-            .all(|b| b.is_ascii_alphanumeric() || b"-._".contains(&b))
-        {
-            return false;
-        }
-        (host, port)
-    };
-    !host.is_empty()
-        && port.is_none_or(|p| {
-            !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()) && p.parse::<u16>().is_ok()
-        })
-}
+use std::io::Read;
 
 /// Parse one request without reading beyond its Content-Length.
 /// The caller must enforce deadlines on the Read implementation.
@@ -77,40 +41,14 @@ pub fn read_request<R: Read>(reader: &mut R, config: &ServerConfig) -> Result<Re
         let (name, value) = line.split_once(':').ok_or(E::Malformed)?;
         headers.append(name, value).map_err(|_| E::Malformed)?;
     }
-    let hosts: Vec<_> = headers.get_all("host").collect();
-    if hosts.len() != 1 || !valid_host(hosts[0]) {
-        return Err(E::Malformed);
-    }
-    let lengths: Vec<_> = headers.get_all("content-length").collect();
-    if lengths.len() > 1 {
-        return Err(E::Malformed);
-    }
-    let encodings: Vec<_> = headers.get_all("transfer-encoding").collect();
-    let chunked = !encodings.is_empty();
-    if chunked && !lengths.is_empty() {
-        return Err(E::Malformed);
-    }
-    if chunked && (encodings.len() != 1 || !encodings[0].eq_ignore_ascii_case("chunked")) {
-        return Err(E::UnsupportedTransferEncoding);
-    }
-    if headers.get("expect").is_some() {
-        return Err(E::UnsupportedExpectation);
-    }
-    let length = if let Some(value) = lengths.first() {
-        if value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit()) {
-            return Err(E::Malformed);
-        }
-        value.parse::<usize>().map_err(|_| E::BodyLimit)?
-    } else {
-        0
-    };
-    if length > config.max_body_bytes {
-        return Err(E::BodyLimit);
-    }
-    if chunked {
+
+    let framing = validate_request_headers(&headers, config)?;
+    if framing.chunked {
         let body = read_chunks(reader, config)?;
         return Request::new(method, fields[1], headers, body).map_err(|_| E::Malformed);
     }
+
+    let length = framing.content_length.unwrap_or(0);
     let mut body = Vec::new();
     // Grow as input arrives instead of allocating the entire declared size upfront.
     let mut chunk = [0u8; 8192];
@@ -138,6 +76,7 @@ fn line<R: Read>(reader: &mut R, budget: &mut usize) -> Result<Vec<u8>, E> {
         }
     }
 }
+
 fn read_chunks<R: Read>(reader: &mut R, config: &ServerConfig) -> Result<Vec<u8>, E> {
     let mut body = Vec::new();
     let mut budget = config.max_header_bytes;
