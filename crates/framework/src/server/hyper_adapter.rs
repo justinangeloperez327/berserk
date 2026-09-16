@@ -55,6 +55,51 @@ fn request_header_bytes(
     Ok(bytes)
 }
 
+fn body_timeout_error() -> ProtocolError {
+    ProtocolError::Io(io::Error::new(
+        io::ErrorKind::TimedOut,
+        "request body deadline exceeded",
+    ))
+}
+
+async fn collect_body<B>(body: B, config: &ServerConfig) -> Result<Vec<u8>, ProtocolError>
+where
+    B: hyper::body::Body<Data = Bytes> + Send + 'static,
+    B::Error: Into<BoxError> + 'static,
+{
+    let mut body = Limited::new(body, config.max_body_bytes);
+    let deadline = tokio::time::Instant::now() + config.request_deadline;
+    let mut bytes = Vec::new();
+
+    loop {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            return Err(body_timeout_error());
+        }
+        let wait = config.read_timeout.min(remaining);
+        let frame = tokio::time::timeout(wait, body.frame())
+            .await
+            .map_err(|_| body_timeout_error())?;
+        let Some(frame) = frame else {
+            break;
+        };
+        let frame = frame.map_err(|error| {
+            if error.downcast_ref::<LengthLimitError>().is_some() {
+                ProtocolError::BodyLimit
+            } else {
+                ProtocolError::Io(io::Error::other(error.to_string()))
+            }
+        })?;
+        if let Some(data) = frame.data_ref() {
+            bytes.extend_from_slice(data);
+        } else {
+            return Err(ProtocolError::Malformed);
+        }
+    }
+
+    Ok(bytes)
+}
+
 pub(super) async fn into_berserk_request<B>(
     request: http::Request<B>,
     config: &ServerConfig,
@@ -95,21 +140,7 @@ where
             .map_err(|_| ProtocolError::Malformed)?;
     }
     let framing = validate_request_headers(&headers, config)?;
-
-    let collected = Limited::new(body, config.max_body_bytes)
-        .collect()
-        .await
-        .map_err(|error| {
-            if error.downcast_ref::<LengthLimitError>().is_some() {
-                ProtocolError::BodyLimit
-            } else {
-                ProtocolError::Io(io::Error::other(error.to_string()))
-            }
-        })?;
-    if collected.trailers().is_some() {
-        return Err(ProtocolError::Malformed);
-    }
-    let body = collected.to_bytes();
+    let body = collect_body(body, config).await?;
 
     match framing.content_length {
         Some(length) if body.len() != length => return Err(ProtocolError::Malformed),
@@ -117,7 +148,7 @@ where
         _ => {}
     }
 
-    Request::new(method, target, headers, body.to_vec()).map_err(|_| ProtocolError::Malformed)
+    Request::new(method, target, headers, body).map_err(|_| ProtocolError::Malformed)
 }
 
 fn stream_body(stream: crate::http::StreamBody) -> Result<WireBody, ProtocolError> {
