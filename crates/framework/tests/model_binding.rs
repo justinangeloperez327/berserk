@@ -199,6 +199,25 @@ fn update_with_request(user: User, input: Validated<UserInput>, request: Request
     Response::text(format!("{}:{}:{}", user.id, input.name, request.path()))
 }
 
+fn update_nested(user: User, post: Post, input: Validated<UserInput>) -> Response {
+    Response::text(format!("{}:{}:{}", user.id, post.id, input.name))
+}
+
+fn update_nested_with_request(
+    user: User,
+    post: Post,
+    input: Validated<UserInput>,
+    request: Request,
+) -> Response {
+    Response::text(format!(
+        "{}:{}:{}:{}",
+        user.id,
+        post.id,
+        input.name,
+        request.path()
+    ))
+}
+
 #[test]
 fn controller_can_receive_a_bound_claw_model() {
     let mut app = App::new();
@@ -305,6 +324,103 @@ fn bound_model_can_precede_validated_input() {
         ))
         .unwrap();
     assert_eq!(contextual.body(), b"7:Linus:/users/7/context");
+}
+
+#[test]
+fn bound_models_can_precede_validated_input() {
+    let acquisitions = Arc::new(AtomicUsize::new(0));
+    let factory_acquisitions = Arc::clone(&acquisitions);
+    let mut app = App::new();
+    app.state(Database::new(move || {
+        factory_acquisitions.fetch_add(1, Ordering::SeqCst);
+        Ok(FakeConnection)
+    }))
+    .unwrap();
+    {
+        let mut route = app.route();
+        route
+            .put("/users/{user}/posts/{post}", update_nested)
+            .unwrap();
+        route
+            .patch(
+                "/users/{user}/posts/{post}/context",
+                update_nested_with_request,
+            )
+            .unwrap();
+    }
+
+    let updated = app
+        .handle(body_request(
+            "PUT",
+            "/users/7/posts/3",
+            r#"{"name":"  Grace  "}"#,
+            true,
+        ))
+        .unwrap();
+    assert_eq!(updated.body(), b"7:3:Grace");
+    assert_eq!(acquisitions.load(Ordering::SeqCst), 1);
+
+    let contextual = app
+        .handle(body_request(
+            "PATCH",
+            "/users/7/posts/3/context",
+            r#"{"name":"  Linus  "}"#,
+            true,
+        ))
+        .unwrap();
+    assert_eq!(contextual.body(), b"7:3:Linus:/users/7/posts/3/context");
+    assert_eq!(acquisitions.load(Ordering::SeqCst), 2);
+
+    let invalid_key = app
+        .handle(body_request(
+            "PUT",
+            "/users/7/posts/not-a-number",
+            "not-json",
+            false,
+        ))
+        .unwrap();
+    assert_eq!(invalid_key.status_code(), 400);
+    assert_eq!(acquisitions.load(Ordering::SeqCst), 2);
+
+    let missing_user = app
+        .handle(body_request(
+            "PUT",
+            "/users/99/posts/3",
+            "not-json",
+            false,
+        ))
+        .unwrap();
+    assert_eq!(missing_user.status_code(), 404);
+
+    let missing_post = app
+        .handle(body_request(
+            "PUT",
+            "/users/7/posts/99",
+            "not-json",
+            false,
+        ))
+        .unwrap();
+    assert_eq!(missing_post.status_code(), 404);
+
+    let missing_content_type = app
+        .handle(body_request(
+            "PUT",
+            "/users/7/posts/3",
+            r#"{"name":"Grace"}"#,
+            false,
+        ))
+        .unwrap_err();
+    assert_eq!(input_status(missing_content_type), 415);
+
+    let invalid_input = app
+        .handle(body_request(
+            "PUT",
+            "/users/7/posts/3",
+            r#"{"name":" A "}"#,
+            true,
+        ))
+        .unwrap_err();
+    assert_eq!(input_status(invalid_input), 422);
 }
 
 #[test]
