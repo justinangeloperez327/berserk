@@ -215,6 +215,38 @@ fn filtered_update_and_delete_use_bound_model_queries() {
 }
 
 #[test]
+fn instance_update_and_delete_filter_by_the_model_key() {
+    let user = User {
+        id: 7,
+        name: "Ada".into(),
+        active: true,
+    };
+    let mut connection = FakeConnection::default();
+
+    let updated = user
+        .update(&mut connection, [("name", Value::from("Grace"))])
+        .unwrap();
+    assert_eq!(updated.affected_rows, 1);
+    assert_eq!(user.name, "Ada");
+    assert_eq!(
+        connection.executed[0].sql(),
+        "UPDATE \"users\" SET \"name\" = ? WHERE \"id\" = ?"
+    );
+    assert_eq!(
+        connection.executed[0].bindings(),
+        &[Value::Text("Grace".into()), Value::U64(7)]
+    );
+
+    let deleted = user.delete(&mut connection).unwrap();
+    assert_eq!(deleted.affected_rows, 1);
+    assert_eq!(
+        connection.executed[1].sql(),
+        "DELETE FROM \"users\" WHERE \"id\" = ?"
+    );
+    assert_eq!(connection.executed[1].bindings(), &[Value::U64(7)]);
+}
+
+#[test]
 fn unfiltered_model_mutations_are_rejected_before_execution() {
     let mut connection = FakeConnection::default();
 
