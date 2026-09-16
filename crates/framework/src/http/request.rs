@@ -11,6 +11,7 @@ pub struct Request {
     headers: Headers,
     body: Vec<u8>,
     params: HashMap<String, String>,
+    param_values: Vec<String>,
     #[cfg(feature = "auth")]
     principal: Option<framework_auth::Principal>,
 }
@@ -71,6 +72,7 @@ impl Request {
             headers,
             body: body.into(),
             params: HashMap::new(),
+            param_values: Vec::new(),
             state: Default::default(),
             request_id: None,
             trace_context: None,
@@ -79,8 +81,16 @@ impl Request {
         })
     }
 
-    pub(crate) fn set_params(&mut self, params: HashMap<String, String>) {
-        self.params = params;
+    pub(crate) fn set_params(&mut self, params: Vec<(String, String)>) {
+        self.params.clear();
+        self.param_values.clear();
+        self.params.reserve(params.len());
+        self.param_values.reserve(params.len());
+
+        for (name, value) in params {
+            self.param_values.push(value.clone());
+            self.params.insert(name, value);
+        }
     }
 
     pub fn state<T: Send + Sync + 'static>(&self) -> Option<&T> {
@@ -136,11 +146,15 @@ impl Request {
         self.param(name).map(str::parse)
     }
 
+    pub(crate) fn param_at_as<T: FromStr>(&self, index: usize) -> Option<Result<T, T::Err>> {
+        self.param_values.get(index).map(|value| value.parse())
+    }
+
     pub(crate) fn single_param_as<T: FromStr>(&self) -> Option<Result<T, T::Err>> {
-        if self.params.len() != 1 {
+        if self.param_values.len() != 1 {
             return None;
         }
-        self.params.values().next().map(|value| value.parse())
+        self.param_at_as(0)
     }
 
     pub fn query_string(&self) -> Option<&str> {
