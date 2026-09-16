@@ -125,11 +125,7 @@ impl<M: Model> ModelQuery<M> {
             .transpose()
     }
 
-    pub fn update<I, S, V>(
-        self,
-        connection: &mut dyn Connection,
-        values: I,
-    ) -> Result<Execution>
+    pub fn update<I, S, V>(self, connection: &mut dyn Connection, values: I) -> Result<Execution>
     where
         I: IntoIterator<Item = (S, V)>,
         S: Into<String>,
