@@ -3,6 +3,7 @@
 
 mod capability;
 mod connection;
+mod database;
 mod error;
 pub mod migrations;
 pub mod query;
@@ -16,6 +17,7 @@ pub mod drivers;
 
 pub use capability::{Capabilities, Capability, Driver};
 pub use connection::Connection;
+pub use database::Database;
 pub use error::{DatabaseError, ErrorKind, Result};
 pub use migrations::{AppliedMigration, Migration, MigrationReport, MigrationRunner};
 pub use query::{Builder as Query, Direction, JoinKind, RawQuery};
