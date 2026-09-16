@@ -19,11 +19,13 @@ struct RegisteredRoute {
 #[derive(Default)]
 pub(crate) struct Router {
     routes: Vec<RegisteredRoute>,
+    fallback: Option<BoxedHandler>,
 }
 impl fmt::Debug for Router {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Router")
             .field("route_count", &self.routes.len())
+            .field("has_fallback", &self.fallback.is_some())
             .finish()
     }
 }
@@ -52,6 +54,26 @@ impl Router {
             pattern,
             handler: Box::new(move |request| handler.call(request)),
         });
+        Ok(())
+    }
+
+    pub(crate) fn set_fallback<H, A>(&mut self, handler: H) -> Result<()>
+    where
+        H: Handler<A>,
+    {
+        if let Some(expected) = H::expected_route_params() {
+            if expected != 0 {
+                return Err(RouteError::ParameterCountMismatch {
+                    expected,
+                    actual: 0,
+                }
+                .into());
+            }
+        }
+        if self.fallback.is_some() {
+            return Err(RouteError::DuplicateFallback.into());
+        }
+        self.fallback = Some(Box::new(move |request| handler.call(request)));
         Ok(())
     }
 
@@ -101,6 +123,8 @@ impl Router {
                     .status(405)
                     .header("allow", &allow.into_iter().collect::<Vec<_>>().join(", "))?
             }
+        } else if let Some(fallback) = &self.fallback {
+            fallback(request)?
         } else {
             Response::text("Not Found").status(404)
         };
@@ -118,8 +142,21 @@ impl Router {
         if !prefix.is_empty() {
             Pattern::parse(prefix)?;
         }
+
+        let Router {
+            routes,
+            fallback,
+        } = other;
+
+        if fallback.is_some() && !prefix.is_empty() {
+            return Err(RouteError::ScopedFallback.into());
+        }
+        if fallback.is_some() && self.fallback.is_some() {
+            return Err(RouteError::DuplicateFallback.into());
+        }
+
         let mut pending = Vec::new();
-        for route in other.routes {
+        for route in routes {
             let pattern = route.pattern.prefixed(prefix)?;
             if self.routes.iter().any(|existing| {
                 existing.method == route.method && existing.pattern.equivalent(&pattern)
@@ -134,7 +171,16 @@ impl Router {
                 handler: Box::new(move |request| layers.run(request, handler.as_ref())),
             });
         }
+
+        let pending_fallback = fallback.map(|handler| {
+            let layers = layers.clone();
+            Box::new(move |request| layers.run(request, handler.as_ref())) as BoxedHandler
+        });
+
         self.routes.extend(pending);
+        if let Some(fallback) = pending_fallback {
+            self.fallback = Some(fallback);
+        }
         Ok(())
     }
 }
