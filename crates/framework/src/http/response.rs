@@ -39,6 +39,7 @@ impl Response {
         ))));
         response
     }
+
     pub fn text(value: impl Into<String>) -> Self {
         let mut response = Self::empty();
         response.body = value.into().into_bytes();
@@ -64,20 +65,29 @@ impl Response {
         self.status = code;
         self
     }
+
     pub fn status_code(&self) -> u16 {
         self.status
     }
+
     pub fn headers(&self) -> &Headers {
         &self.headers
     }
+
     pub fn body(&self) -> &[u8] {
         &self.body
     }
+
+    pub(crate) fn take_body(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.body)
+    }
+
     /// Pre-suppression body size for HEAD, otherwise current body byte length.
     /// The future encoder must still apply status-specific framing rules.
     pub fn representation_length(&self) -> usize {
         self.head_length.unwrap_or(self.body.len())
     }
+
     pub(crate) fn suppress_for_head(&mut self) {
         if self.head_length.is_none() {
             self.head_length = Some(self.body.len());
@@ -120,12 +130,14 @@ impl Response {
 pub trait IntoResponse {
     fn into_response(self) -> crate::Result<Response>;
 }
+
 impl IntoResponse for Response {
     fn into_response(self) -> crate::Result<Response> {
         self.validate()?;
         Ok(self)
     }
 }
+
 impl IntoResponse for crate::Result<Response> {
     fn into_response(self) -> crate::Result<Response> {
         self?.into_response()
@@ -136,6 +148,7 @@ impl IntoResponse for crate::Result<Response> {
 pub(crate) struct StreamBody(
     pub(crate) std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::io::Read + Send>>>>,
 );
+
 impl std::fmt::Debug for StreamBody {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("StreamBody(..)")
