@@ -105,12 +105,7 @@ fn validated_controller_can_also_receive_request_context() {
     }
 
     let stored = app
-        .handle(request(
-            "POST",
-            "/context",
-            r#"{"name":"  Ada  "}"#,
-            true,
-        ))
+        .handle(request("POST", "/context", r#"{"name":"  Ada  "}"#, true))
         .unwrap();
     assert_eq!(stored.body(), b"POST:Ada");
 
