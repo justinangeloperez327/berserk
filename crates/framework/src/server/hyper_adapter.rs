@@ -67,7 +67,8 @@ where
     B: hyper::body::Body<Data = Bytes> + Send + 'static,
     B::Error: Into<BoxError> + 'static,
 {
-    let mut body = Limited::new(body, config.max_body_bytes);
+    let body = Limited::new(body, config.max_body_bytes);
+    tokio::pin!(body);
     let deadline = tokio::time::Instant::now() + config.request_deadline;
     let mut bytes = Vec::new();
 
@@ -77,9 +78,12 @@ where
             return Err(body_timeout_error());
         }
         let wait = config.read_timeout.min(remaining);
-        let frame = tokio::time::timeout(wait, body.frame())
-            .await
-            .map_err(|_| body_timeout_error())?;
+        let frame = tokio::time::timeout(
+            wait,
+            std::future::poll_fn(|cx| hyper::body::Body::poll_frame(body.as_mut(), cx)),
+        )
+        .await
+        .map_err(|_| body_timeout_error())?;
         let Some(frame) = frame else {
             break;
         };
