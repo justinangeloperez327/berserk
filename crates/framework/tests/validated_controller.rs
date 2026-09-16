@@ -98,10 +98,7 @@ fn validated_controller_input_is_sanitized_before_validation() {
         route.post("/users", store).unwrap();
         route.put("/users/{id}", update).unwrap();
         route
-            .put(
-                "/users/{user_id}/posts/{post_id}",
-                nested_update,
-            )
+            .put("/users/{user_id}/posts/{post_id}", nested_update)
             .unwrap();
     }
 
@@ -177,10 +174,7 @@ fn validated_controller_input_reuses_existing_input_errors() {
         route.post("/users", store).unwrap();
         route.put("/users/{id}", update).unwrap();
         route
-            .put(
-                "/users/{user_id}/posts/{post_id}",
-                nested_update,
-            )
+            .put("/users/{user_id}/posts/{post_id}", nested_update)
             .unwrap();
     }
 
@@ -200,12 +194,7 @@ fn validated_controller_input_reuses_existing_input_errors() {
     assert_eq!(invalid_id.status_code(), 400);
 
     let invalid_nested_id = app
-        .handle(request(
-            "PUT",
-            "/users/7/posts/nope",
-            "not-json",
-            false,
-        ))
+        .handle(request("PUT", "/users/7/posts/nope", "not-json", false))
         .unwrap();
     assert_eq!(invalid_nested_id.status_code(), 400);
 }
