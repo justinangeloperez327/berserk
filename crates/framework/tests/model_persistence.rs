@@ -10,7 +10,10 @@ use framework::{
     ValidationErrors,
 };
 use framework_validation::sanitize;
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc, Mutex,
+};
 
 #[derive(Debug)]
 struct User {
@@ -124,11 +127,14 @@ fn update(mut user: User, input: Validated<UserInput>, request: Request) -> Resu
 }
 
 #[test]
-fn bound_model_validated_input_and_save_work_end_to_end() {
+fn bound_model_validated_input_and_save_share_one_connection() {
+    let acquisitions = Arc::new(AtomicUsize::new(0));
     let executed = Arc::new(Mutex::new(Vec::new()));
+    let factory_acquisitions = Arc::clone(&acquisitions);
     let factory_executed = Arc::clone(&executed);
     let mut app = App::new();
     app.database(Database::new(move || {
+        factory_acquisitions.fetch_add(1, Ordering::SeqCst);
         Ok(FakeConnection {
             executed: Arc::clone(&factory_executed),
         })
@@ -149,6 +155,7 @@ fn bound_model_validated_input_and_save_work_end_to_end() {
     let response = app.handle(request).unwrap();
 
     assert_eq!(response.status_code(), 204);
+    assert_eq!(acquisitions.load(Ordering::SeqCst), 1);
     let executed = executed.lock().unwrap();
     assert_eq!(executed.len(), 1);
     assert_eq!(
