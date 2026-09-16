@@ -1,6 +1,38 @@
 use super::{Headers, HttpError, Method};
 use std::{collections::HashMap, str::FromStr};
 
+#[cfg(feature = "database")]
+use std::{
+    cell::{RefCell, RefMut},
+    ops::{Deref, DerefMut},
+};
+
+/// A mutable borrow of the database connection owned by one request.
+#[cfg(feature = "database")]
+pub struct RequestConnection<'a> {
+    inner: RefMut<'a, Option<Box<dyn framework_database::Connection>>>,
+}
+
+#[cfg(feature = "database")]
+impl Deref for RequestConnection<'_> {
+    type Target = dyn framework_database::Connection;
+
+    fn deref(&self) -> &Self::Target {
+        self.inner
+            .as_deref()
+            .expect("request connection is initialized before the guard is returned")
+    }
+}
+
+#[cfg(feature = "database")]
+impl DerefMut for RequestConnection<'_> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.inner
+            .as_deref_mut()
+            .expect("request connection is initialized before the guard is returned")
+    }
+}
+
 /// Owned request data. This constructor is not a wire parser.
 pub struct Request {
     method: Method,
@@ -12,6 +44,8 @@ pub struct Request {
     body: Vec<u8>,
     params: HashMap<String, String>,
     param_values: Vec<String>,
+    #[cfg(feature = "database")]
+    connection: RefCell<Option<Box<dyn framework_database::Connection>>>,
     #[cfg(feature = "auth")]
     principal: Option<framework_auth::Principal>,
 }
@@ -76,6 +110,8 @@ impl Request {
             state: Default::default(),
             request_id: None,
             trace_context: None,
+            #[cfg(feature = "database")]
+            connection: RefCell::new(None),
             #[cfg(feature = "auth")]
             principal: None,
         })
@@ -105,8 +141,17 @@ impl Request {
     }
 
     #[cfg(feature = "database")]
-    pub fn connection(&self) -> crate::Result<Box<dyn framework_database::Connection>> {
-        Ok(self.database()?.acquire()?)
+    pub fn connection(&self) -> crate::Result<RequestConnection<'_>> {
+        let mut connection = self.connection.try_borrow_mut().map_err(|_| {
+            framework_database::DatabaseError::new(
+                framework_database::ErrorKind::Connection,
+                "request database connection is already borrowed",
+            )
+        })?;
+        if connection.is_none() {
+            *connection = Some(self.database()?.acquire()?);
+        }
+        Ok(RequestConnection { inner: connection })
     }
 
     pub fn request_id(&self) -> Option<&str> {
