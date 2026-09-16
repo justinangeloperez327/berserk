@@ -72,7 +72,7 @@ impl<'a> Route<'a> {
 
     /// Creates a nested route scope with one additional middleware layer.
     ///
-    /// Middleware is applied outside previously-added inner scope middleware.
+    /// Chained middleware runs in registration order.
     pub fn middleware<'b>(&'b mut self, layer: impl Middleware) -> Route<'b> {
         let mut layers = self.layers.clone();
         layers.0.push(Arc::new(layer));
@@ -85,10 +85,7 @@ impl<'a> Route<'a> {
 
     /// Registers a group atomically. If configuration fails, none of the
     /// routes created inside the group are added to the parent router.
-    pub fn group(
-        &mut self,
-        configure: impl FnOnce(&mut Route<'_>) -> Result<()>,
-    ) -> Result<()> {
+    pub fn group(&mut self, configure: impl FnOnce(&mut Route<'_>) -> Result<()>) -> Result<()> {
         let mut child_router = Router::default();
         {
             let mut child = Route::new(&mut child_router);
