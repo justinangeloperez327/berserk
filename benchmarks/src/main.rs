@@ -9,7 +9,7 @@ use std::{
 type Result<T> = std::result::Result<T, Box<dyn Error>>;
 
 fn percentile(sorted: &[u128], percent: usize) -> u128 {
-    sorted[((sorted.len() * percent + 99) / 100).saturating_sub(1)]
+    sorted[(sorted.len() * percent).div_ceil(100).saturating_sub(1)]
 }
 fn measure(
     mut operation: impl FnMut() -> Result<()>,
