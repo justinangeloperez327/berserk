@@ -107,13 +107,11 @@ fn precedence_is_independent_of_order_and_precedes_method_selection() {
     for reversed in [false, true] {
         let mut app = App::new();
         if reversed {
-            app.post("/users/new", || Response::text("static"))
-                .unwrap();
+            app.post("/users/new", || Response::text("static")).unwrap();
         }
         app.get("/users/{id}", named).unwrap();
         if !reversed {
-            app.post("/users/new", || Response::text("static"))
-                .unwrap();
+            app.post("/users/new", || Response::text("static")).unwrap();
         }
         let response = app.handle(request("GET", "/users/new")).unwrap();
         assert_eq!(response.status_code(), 405);
@@ -126,8 +124,10 @@ fn precedence_is_independent_of_order_and_precedes_method_selection() {
     let mut app = App::new();
     app.get("/{x}/fixed", |_req: Request| Response::text("later static"))
         .unwrap();
-    app.get("/fixed/{x}", |_req: Request| Response::text("earlier static"))
-        .unwrap();
+    app.get("/fixed/{x}", |_req: Request| {
+        Response::text("earlier static")
+    })
+    .unwrap();
     assert_eq!(
         app.handle(request("GET", "/fixed/fixed")).unwrap().body(),
         b"earlier static"
