@@ -53,7 +53,7 @@ pub use middleware::{Middleware, Next, RequestId};
 
 pub mod input;
 pub mod json;
-pub use input::{FromJson, ValidateInput, ValidationErrors};
+pub use input::{FromJson, ValidateInput, Validated, ValidationErrors};
 pub use json::Json;
 
 pub mod multipart;
