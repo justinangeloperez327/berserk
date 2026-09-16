@@ -86,8 +86,5 @@ fn exists_uses_a_bounded_query_without_decoding_models() {
         active_user.statements[0].sql(),
         "SELECT * FROM \"users\" WHERE \"active\" = ? LIMIT 1"
     );
-    assert_eq!(
-        active_user.statements[0].bindings(),
-        &[Value::Bool(true)]
-    );
+    assert_eq!(active_user.statements[0].bindings(), &[Value::Bool(true)]);
 }
