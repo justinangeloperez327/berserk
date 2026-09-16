@@ -105,7 +105,7 @@ impl Pattern {
             match segment {
                 Segment::Static(expected) if expected == value => {}
                 Segment::Param(name) if !value.is_empty() => {
-                    params.insert(name.clone(), value.to_owned());
+                    params.insert(name.clone(), decode_path_segment(value)?);
                 }
                 _ => return None,
             }
@@ -155,5 +155,32 @@ fn encode_path_segment(value: &str, output: &mut String) {
             output.push(HEX[(byte >> 4) as usize] as char);
             output.push(HEX[(byte & 0x0f) as usize] as char);
         }
+    }
+}
+
+fn decode_path_segment(value: &str) -> Option<String> {
+    let bytes = value.as_bytes();
+    let mut output = Vec::with_capacity(bytes.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        if bytes[index] == b'%' {
+            let high = hex_value(*bytes.get(index + 1)?)?;
+            let low = hex_value(*bytes.get(index + 2)?)?;
+            output.push((high << 4) | low);
+            index += 3;
+        } else {
+            output.push(bytes[index]);
+            index += 1;
+        }
+    }
+    String::from_utf8(output).ok()
+}
+
+fn hex_value(byte: u8) -> Option<u8> {
+    match byte {
+        b'0'..=b'9' => Some(byte - b'0'),
+        b'a'..=b'f' => Some(byte - b'a' + 10),
+        b'A'..=b'F' => Some(byte - b'A' + 10),
+        _ => None,
     }
 }
