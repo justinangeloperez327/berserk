@@ -159,6 +159,7 @@ where
     Request::new(method, target, headers, body).map_err(|_| ProtocolError::Malformed)
 }
 
+#[cfg(test)]
 pub(super) async fn into_berserk_request<B>(
     request: http::Request<B>,
     config: &ServerConfig,
