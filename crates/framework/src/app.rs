@@ -169,6 +169,11 @@ impl App {
         Ok(())
     }
 
+    #[cfg(feature = "database")]
+    pub fn database(&mut self, database: framework_database::Database) -> Result<()> {
+        self.state(database)
+    }
+
     /// Build routes transactionally. The child application's config and state are not inherited.
     pub fn group(
         &mut self,
