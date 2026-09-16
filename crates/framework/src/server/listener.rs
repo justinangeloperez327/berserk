@@ -4,7 +4,7 @@ use std::{
     io,
     net::{SocketAddr, TcpListener, ToSocketAddrs},
     sync::Arc,
-    time::Duration,
+    time::{Duration, Instant},
 };
 use tokio::{
     sync::{mpsc, Semaphore},
@@ -55,7 +55,8 @@ impl Server {
     async fn run_async(self) -> io::Result<()> {
         let config = self.app.config().clone();
         let listener = tokio::net::TcpListener::from_std(self.listener)?;
-        let (sender, mut receiver) = mpsc::channel::<tokio::net::TcpStream>(config.queue_capacity);
+        let (sender, mut receiver) =
+            mpsc::channel::<(tokio::net::TcpStream, Instant)>(config.queue_capacity);
         let permits = Arc::new(Semaphore::new(config.workers));
 
         let app = Arc::clone(&self.app);
@@ -70,7 +71,7 @@ impl Server {
                     Ok(permit) => permit,
                     Err(_) => break,
                 };
-                let Some(stream) = receiver.recv().await else {
+                let Some((stream, accepted)) = receiver.recv().await else {
                     drop(permit);
                     break;
                 };
@@ -79,7 +80,7 @@ impl Server {
                 let stats = dispatch_stats.clone();
                 connections.spawn(async move {
                     let _permit = permit;
-                    stats.finish(serve(stream, app).await);
+                    stats.finish(serve(stream, accepted, app).await);
                 });
 
                 while let Some(result) = connections.try_join_next() {
@@ -106,13 +107,14 @@ impl Server {
                         break;
                     }
                     stats.accept();
-                    match sender.try_send(stream) {
+                    let work = (stream, Instant::now());
+                    match sender.try_send(work) {
                         Ok(()) => {}
-                        Err(mpsc::error::TrySendError::Full(stream)) => {
+                        Err(mpsc::error::TrySendError::Full((stream, _))) => {
                             stats.reject();
                             drop(stream);
                         }
-                        Err(mpsc::error::TrySendError::Closed(stream)) => {
+                        Err(mpsc::error::TrySendError::Closed((stream, _))) => {
                             stats.reject();
                             drop(stream);
                             result = Err(io::Error::new(
