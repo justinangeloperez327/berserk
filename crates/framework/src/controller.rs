@@ -101,11 +101,7 @@ fn route_model_key<M: claw_orm::Model>(
 
 #[cfg(feature = "claw")]
 fn route_database(request: &Request) -> Result<&framework_database::Database> {
-    request
-        .state::<framework_database::Database>()
-        .ok_or_else(|| {
-            framework_core::ConfigError::new("database", "database state is not configured").into()
-        })
+    request.database()
 }
 
 #[cfg(feature = "claw")]
@@ -125,7 +121,7 @@ fn route_model<M: claw_orm::Model>(request: &Request, index: usize) -> Result<Ex
 fn route_models<M, N>(request: &Request) -> Result<Extracted<(M, N)>>
 where
     M: claw_orm::Model,
-    N: claw_orm::Model,
+    N: claw_orm::ScopedRouteModel<M>,
 {
     let first_key = match route_model_key::<M>(request, 0) {
         Ok(key) => key,
@@ -140,7 +136,9 @@ where
         Some(model) => model,
         None => return Ok(Err(Response::text("Not Found").status(404))),
     };
-    let second = match N::find(&mut *connection, second_key)? {
+    let second = match <N as claw_orm::ScopedRouteModel<M>>::scoped_route_query(&first, second_key)
+        .first(&mut *connection)?
+    {
         Some(model) => model,
         None => return Ok(Err(Response::text("Not Found").status(404))),
     };
@@ -258,7 +256,7 @@ impl<F, M, N, R> Handler<RouteModels<M, N>> for F
 where
     F: Fn(M, N) -> R + Send + Sync + 'static,
     M: claw_orm::Model + 'static,
-    N: claw_orm::Model + 'static,
+    N: claw_orm::ScopedRouteModel<M> + 'static,
     R: IntoResponse,
 {
     fn expected_route_params() -> Option<usize> {
@@ -279,7 +277,7 @@ impl<F, M, N, R> Handler<RouteModelsRequest<M, N>> for F
 where
     F: Fn(M, N, Request) -> R + Send + Sync + 'static,
     M: claw_orm::Model + 'static,
-    N: claw_orm::Model + 'static,
+    N: claw_orm::ScopedRouteModel<M> + 'static,
     R: IntoResponse,
 {
     fn expected_route_params() -> Option<usize> {
@@ -300,7 +298,7 @@ impl<F, M, N, I, R> Handler<RouteModelsValidated<M, N, I>> for F
 where
     F: Fn(M, N, Validated<I>) -> R + Send + Sync + 'static,
     M: claw_orm::Model + 'static,
-    N: claw_orm::Model + 'static,
+    N: claw_orm::ScopedRouteModel<M> + 'static,
     I: FromJson + ValidateInput + 'static,
     R: IntoResponse,
 {
@@ -323,7 +321,7 @@ impl<F, M, N, I, R> Handler<RouteModelsValidatedRequest<M, N, I>> for F
 where
     F: Fn(M, N, Validated<I>, Request) -> R + Send + Sync + 'static,
     M: claw_orm::Model + 'static,
-    N: claw_orm::Model + 'static,
+    N: claw_orm::ScopedRouteModel<M> + 'static,
     I: FromJson + ValidateInput + 'static,
     R: IntoResponse,
 {
