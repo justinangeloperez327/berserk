@@ -237,10 +237,9 @@ where
         Err(error) => return fallback_wire_response(error.status_code()),
     };
 
-    let handled = tokio::task::spawn_blocking(move || {
-        catch_unwind(AssertUnwindSafe(|| app.handle(request)))
-    })
-    .await;
+    let handled =
+        tokio::task::spawn_blocking(move || catch_unwind(AssertUnwindSafe(|| app.handle(request))))
+            .await;
 
     let response = match handled {
         Ok(Ok(Ok(response))) => response,
