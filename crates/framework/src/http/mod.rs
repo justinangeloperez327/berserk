@@ -12,6 +12,6 @@ pub use method::Method;
 pub use request::Request;
 #[cfg(feature = "database")]
 pub use request::RequestConnection;
-pub use response::{IntoResponse, Response};
 pub(crate) use response::StreamBody;
+pub use response::{IntoResponse, Response};
 pub use status::StatusCode;
