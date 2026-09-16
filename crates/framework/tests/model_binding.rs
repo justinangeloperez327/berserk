@@ -383,22 +383,12 @@ fn bound_models_can_precede_validated_input() {
     assert_eq!(acquisitions.load(Ordering::SeqCst), 2);
 
     let missing_user = app
-        .handle(body_request(
-            "PUT",
-            "/users/99/posts/3",
-            "not-json",
-            false,
-        ))
+        .handle(body_request("PUT", "/users/99/posts/3", "not-json", false))
         .unwrap();
     assert_eq!(missing_user.status_code(), 404);
 
     let missing_post = app
-        .handle(body_request(
-            "PUT",
-            "/users/7/posts/99",
-            "not-json",
-            false,
-        ))
+        .handle(body_request("PUT", "/users/7/posts/99", "not-json", false))
         .unwrap();
     assert_eq!(missing_post.status_code(), 404);
 
