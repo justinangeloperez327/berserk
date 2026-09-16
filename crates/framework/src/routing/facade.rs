@@ -56,6 +56,19 @@ impl<'a> Route<'a> {
         self.add(Method::new("DELETE")?, path, handler)
     }
 
+    /// Registers a fallback used only when no route pattern matches.
+    ///
+    /// Fallbacks may use route middleware but cannot be registered beneath a
+    /// path prefix because prefix-scoped fallback matching is not supported.
+    pub fn fallback<H, A>(&mut self, handler: H) -> Result<()>
+    where
+        H: Handler<A>,
+    {
+        let mut child = Router::default();
+        child.set_fallback(handler)?;
+        self.mount_scoped(child)
+    }
+
     /// Creates a nested route scope with an additional path prefix.
     ///
     /// The returned scope borrows this registrar and does not mutate the parent
