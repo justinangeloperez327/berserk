@@ -1,4 +1,6 @@
-use claw_orm::{field, BelongsTo, Direction, HasMany, HasOne, Model, Result, Row, Statement, Value};
+use claw_orm::{
+    field, BelongsTo, Direction, HasMany, HasOne, Model, Result, Row, Statement, Value,
+};
 use framework_database::{
     Capabilities, Column, Connection, DatabaseError, Driver, ErrorKind, Execution, Transaction,
     TransactionOptions,
