@@ -237,6 +237,21 @@ fn find_uses_the_declared_primary_key() {
 }
 
 #[test]
+fn destroy_filters_by_the_declared_primary_key() {
+    let mut connection = FakeConnection::default();
+    let execution = User::destroy(&mut connection, 9_u64).unwrap();
+
+    assert_eq!(execution.affected_rows, 1);
+    assert_eq!(execution.last_insert_id, None);
+    assert_eq!(connection.executed.len(), 1);
+    assert_eq!(
+        connection.executed[0].sql(),
+        "DELETE FROM \"users\" WHERE \"id\" = ?"
+    );
+    assert_eq!(connection.executed[0].bindings(), &[Value::U64(9)]);
+}
+
+#[test]
 fn field_casting_is_strict_and_nullable_fields_are_explicit() {
     let row = Row::new(vec![Column::new("name", Value::Null)]).unwrap();
     assert_eq!(field::<Option<String>>(&row, "name").unwrap(), None);
