@@ -1,6 +1,6 @@
 use super::RouteError;
 use crate::{Headers, Method, Request};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 #[derive(Debug)]
 enum Segment {
@@ -95,17 +95,17 @@ impl Pattern {
             .count()
     }
 
-    pub(super) fn captures(&self, path: &str) -> Option<HashMap<String, String>> {
+    pub(super) fn captures(&self, path: &str) -> Option<Vec<(String, String)>> {
         let parts: Vec<_> = path.split('/').collect();
         if parts.len() != self.segments.len() {
             return None;
         }
-        let mut params = HashMap::new();
+        let mut params = Vec::with_capacity(self.parameter_count());
         for (segment, value) in self.segments.iter().zip(parts) {
             match segment {
                 Segment::Static(expected) if expected == value => {}
                 Segment::Param(name) if !value.is_empty() => {
-                    params.insert(name.clone(), value.to_owned());
+                    params.push((name.clone(), value.to_owned()));
                 }
                 _ => return None,
             }
