@@ -1,4 +1,4 @@
-use super::{hyper_adapter, ProtocolError};
+use super::{hyper_adapter, timeout_io::WriteTimeoutIo, ProtocolError};
 use crate::App;
 use hyper::service::service_fn;
 use hyper_util::rt::{TokioIo, TokioTimer};
@@ -46,6 +46,7 @@ pub(super) async fn serve(stream: tokio::net::TcpStream, app: Arc<App>) -> bool 
         .timer(TokioTimer::new())
         .auto_date_header(false);
 
+    let stream = WriteTimeoutIo::new(stream, config.write_timeout);
     http.serve_connection(TokioIo::new(stream), service)
         .await
         .is_ok()
