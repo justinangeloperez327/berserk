@@ -96,10 +96,11 @@ impl Connection for FakeConnection {
     }
 
     fn execute(&mut self, statement: &Statement) -> Result<Execution> {
+        let last_insert_id = statement.sql().starts_with("INSERT ").then_some(42);
         self.executed.push(statement.clone());
         Ok(Execution {
             affected_rows: 1,
-            last_insert_id: Some(42),
+            last_insert_id,
         })
     }
 
@@ -181,6 +182,50 @@ fn create_uses_the_model_table_and_keeps_values_bound() {
         connection.executed[0].bindings(),
         &[Value::Text("Ada".into()), Value::Bool(true)]
     );
+}
+
+#[test]
+fn filtered_update_and_delete_use_bound_model_queries() {
+    let mut connection = FakeConnection::default();
+
+    let updated = User::where_("id", "=", 7_u64)
+        .update(&mut connection, [("name", Value::from("Grace"))])
+        .unwrap();
+    assert_eq!(updated.affected_rows, 1);
+    assert_eq!(updated.last_insert_id, None);
+    assert_eq!(
+        connection.executed[0].sql(),
+        "UPDATE \"users\" SET \"name\" = ? WHERE \"id\" = ?"
+    );
+    assert_eq!(
+        connection.executed[0].bindings(),
+        &[Value::Text("Grace".into()), Value::U64(7)]
+    );
+
+    let deleted = User::where_("id", "=", 7_u64)
+        .delete(&mut connection)
+        .unwrap();
+    assert_eq!(deleted.affected_rows, 1);
+    assert_eq!(deleted.last_insert_id, None);
+    assert_eq!(
+        connection.executed[1].sql(),
+        "DELETE FROM \"users\" WHERE \"id\" = ?"
+    );
+    assert_eq!(connection.executed[1].bindings(), &[Value::U64(7)]);
+}
+
+#[test]
+fn unfiltered_model_mutations_are_rejected_before_execution() {
+    let mut connection = FakeConnection::default();
+
+    let update_error = User::query()
+        .update(&mut connection, [("active", Value::from(false))])
+        .unwrap_err();
+    assert!(matches!(update_error.kind(), ErrorKind::Query));
+
+    let delete_error = User::query().delete(&mut connection).unwrap_err();
+    assert!(matches!(delete_error.kind(), ErrorKind::Query));
+    assert!(connection.executed.is_empty());
 }
 
 #[test]
