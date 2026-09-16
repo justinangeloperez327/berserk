@@ -2,17 +2,20 @@ use framework::{App, Request, Response, Result};
 
 fn build_app() -> Result<App> {
     let mut app = App::new();
-    app.get("/", || Response::text("Hello, world!"))?;
-    app.get("/health", || Response::text("OK"))?;
-    app.get("/users/{id}", show_user)?;
-    app.post("/echo", |req: Request| Response::bytes(req.body().to_vec()))?;
-    app.post("/text", echo_text)?;
-    app.delete("/items/{id}", |_id: String| Response::empty().status(204))?;
+    {
+        let mut route = app.route();
+        route.get("/", || Response::text("Hello, world!"))?;
+        route.get("/health", || Response::text("OK"))?;
+        route.get("/users/{id}", show_user)?;
+        route.post("/echo", |req: Request| Response::bytes(req.body().to_vec()))?;
+        route.post("/text", echo_text)?;
+        route.delete("/items/{id}", |_id: String| Response::empty().status(204))?;
+    }
     Ok(app)
 }
 
-fn show_user(request: Request) -> Response {
-    Response::text(format!("User {}", request.param("id").unwrap_or("")))
+fn show_user(id: u64) -> Response {
+    Response::text(format!("User {id}"))
 }
 
 fn echo_text(request: Request) -> Result<Response> {
