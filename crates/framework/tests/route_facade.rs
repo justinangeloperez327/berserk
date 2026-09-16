@@ -1,9 +1,13 @@
-use framework::{
-    App, Headers, Method, Middleware, Next, Request, Response, Result, RouteError,
-};
+use framework::{App, Headers, Method, Middleware, Next, Request, Response, Result, RouteError};
 
 fn request(method: &str, path: &str) -> Request {
-    Request::new(Method::new(method).unwrap(), path, Headers::new(), Vec::new()).unwrap()
+    Request::new(
+        Method::new(method).unwrap(),
+        path,
+        Headers::new(),
+        Vec::new(),
+    )
+    .unwrap()
 }
 
 fn show(id: u64) -> Response {
@@ -34,10 +38,7 @@ fn route_instance_registers_standard_verbs_and_typed_handlers() {
         route.delete("/users/{id}", show).unwrap();
     }
 
-    assert_eq!(
-        app.handle(request("GET", "/users/7")).unwrap().body(),
-        b"7"
-    );
+    assert_eq!(app.handle(request("GET", "/users/7")).unwrap().body(), b"7");
     assert_eq!(
         app.handle(request("POST", "/users")).unwrap().body(),
         b"created"
@@ -89,7 +90,9 @@ fn prefix_and_middleware_are_scoped_and_composable() {
     assert_eq!(public.headers().get("x-route-middleware"), None);
 
     assert_eq!(
-        app.handle(request("GET", "/users/3")).unwrap().status_code(),
+        app.handle(request("GET", "/users/3"))
+            .unwrap()
+            .status_code(),
         404
     );
 }
