@@ -3,6 +3,7 @@ name = "framework"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
 publish.workspace = true
 
 [features]
@@ -24,7 +25,7 @@ cli = ["dep:framework-cli"]
 
 [dependencies]
 framework-core.workspace = true
-framework-validation = { path = "../validation" }
+framework-validation = { path = "../validation", version = "=0.0.0" }
 framework-database = { workspace = true, optional = true }
 claw-orm = { workspace = true, optional = true }
 framework-auth = { workspace = true, optional = true }

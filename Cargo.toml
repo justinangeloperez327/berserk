@@ -7,23 +7,24 @@ members = ["crates/core", "crates/validation", "crates/database", "crates/claw",
 version = "0.0.0"
 edition = "2024"
 rust-version = "1.88"
+license = "MIT"
 publish = false
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
 
 [workspace.dependencies]
-framework-core = { path = "crates/core" }
-framework-database = { path = "crates/database" }
-claw-orm = { path = "crates/claw" }
-framework-auth = { path = "crates/auth" }
-framework-openapi = { path = "crates/openapi" }
-framework-cache = { path = "crates/cache" }
-framework-storage = { path = "crates/storage" }
-framework-events = { path = "crates/events" }
-framework-jobs = { path = "crates/jobs" }
-framework-client = { path = "crates/client" }
-framework-notifications = { path = "crates/notifications" }
-framework-cli = { path = "crates/cli" }
-framework-testing = { path = "crates/testing" }
-framework = { path = "crates/framework" }
+framework-core = { path = "crates/core", version = "=0.0.0" }
+framework-database = { path = "crates/database", version = "=0.0.0" }
+claw-orm = { path = "crates/claw", version = "=0.0.0" }
+framework-auth = { path = "crates/auth", version = "=0.0.0" }
+framework-openapi = { path = "crates/openapi", version = "=0.0.0" }
+framework-cache = { path = "crates/cache", version = "=0.0.0" }
+framework-storage = { path = "crates/storage", version = "=0.0.0" }
+framework-events = { path = "crates/events", version = "=0.0.0" }
+framework-jobs = { path = "crates/jobs", version = "=0.0.0" }
+framework-client = { path = "crates/client", version = "=0.0.0" }
+framework-notifications = { path = "crates/notifications", version = "=0.0.0" }
+framework-cli = { path = "crates/cli", version = "=0.0.0" }
+framework-testing = { path = "crates/testing", version = "=0.0.0" }
+framework = { path = "crates/framework", version = "=0.0.0" }
