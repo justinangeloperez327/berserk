@@ -22,9 +22,7 @@ fn infallible_to_box(error: Infallible) -> BoxError {
 }
 
 fn full_body(bytes: Bytes) -> WireBody {
-    Full::new(bytes)
-        .map_err(infallible_to_box)
-        .boxed_unsync()
+    Full::new(bytes).map_err(infallible_to_box).boxed_unsync()
 }
 
 fn checked_add(total: &mut usize, value: usize) -> Result<(), ProtocolError> {
@@ -194,12 +192,10 @@ pub(super) fn into_wire_response(
     let mut wire = http::Response::new(body);
     *wire.status_mut() = status;
     for (name, value) in response.headers().iter() {
-        let name = http::HeaderName::from_bytes(name.as_bytes()).map_err(|_| {
-            ProtocolError::InvalidResponse(crate::HttpError::InvalidHeaderName)
-        })?;
-        let value = http::HeaderValue::from_bytes(value.as_bytes()).map_err(|_| {
-            ProtocolError::InvalidResponse(crate::HttpError::InvalidHeaderValue)
-        })?;
+        let name = http::HeaderName::from_bytes(name.as_bytes())
+            .map_err(|_| ProtocolError::InvalidResponse(crate::HttpError::InvalidHeaderName))?;
+        let value = http::HeaderValue::from_bytes(value.as_bytes())
+            .map_err(|_| ProtocolError::InvalidResponse(crate::HttpError::InvalidHeaderValue))?;
         wire.headers_mut().append(name, value);
     }
 
@@ -207,7 +203,8 @@ pub(super) fn into_wire_response(
         let length = representation_length.to_string();
         wire.headers_mut().insert(
             http::header::CONTENT_LENGTH,
-            http::HeaderValue::from_bytes(length.as_bytes()).expect("usize is a valid header value"),
+            http::HeaderValue::from_bytes(length.as_bytes())
+                .expect("usize is a valid header value"),
         );
     }
 
