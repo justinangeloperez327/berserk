@@ -1,13 +1,10 @@
-use super::hyper_adapter;
+use super::{hyper_adapter, ProtocolError};
 use crate::App;
 use hyper::service::service_fn;
 use hyper_util::rt::{TokioIo, TokioTimer};
-use std::{
-    convert::Infallible,
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
 };
 
 const HYPER_MIN_BUFFER: usize = 8192;
@@ -25,7 +22,7 @@ pub(super) async fn serve(stream: tokio::net::TcpStream, app: Arc<App>) -> bool 
             let config = config.clone();
             async move {
                 let current = request_count.fetch_add(1, Ordering::Relaxed) + 1;
-                let mut response = hyper_adapter::dispatch(app, request).await;
+                let mut response = hyper_adapter::dispatch(app, request).await?;
                 let connection =
                     if config.keep_alive && current < config.max_requests_per_connection {
                         "keep-alive"
@@ -36,7 +33,7 @@ pub(super) async fn serve(stream: tokio::net::TcpStream, app: Arc<App>) -> bool 
                     http::header::CONNECTION,
                     http::HeaderValue::from_static(connection),
                 );
-                Ok::<_, Infallible>(response)
+                Ok::<_, ProtocolError>(response)
             }
         }
     });
