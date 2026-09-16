@@ -1,6 +1,7 @@
-//! Synchronous HTTP server and codecs.
+//! HTTP server transport and codecs.
 mod error;
 mod parser;
+mod validation;
 mod writer;
 pub use error::ProtocolError;
 pub use parser::read_request;
