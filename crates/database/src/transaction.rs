@@ -5,7 +5,7 @@ pub struct TransactionOptions {
     pub read_only: bool,
 }
 
-pub trait Transaction: Send {
+pub trait Transaction {
     fn execute(&mut self, statement: &Statement) -> Result<Execution>;
     fn query(&mut self, statement: &Statement) -> Result<Vec<Row>>;
     fn commit(self: Box<Self>) -> Result<()>;
