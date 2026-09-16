@@ -69,6 +69,10 @@ pub trait Model: Sized {
         Self::query().get(connection)
     }
 
+    fn count(connection: &mut dyn Connection) -> Result<u64> {
+        Self::query().count(connection)
+    }
+
     fn find(connection: &mut dyn Connection, key: impl Into<Value>) -> Result<Option<Self>> {
         Self::where_(Self::PRIMARY_KEY, "=", key).first(connection)
     }
