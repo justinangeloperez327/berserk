@@ -10,6 +10,10 @@ use framework::{
     ValidationErrors,
 };
 use framework_validation::sanitize;
+use std::sync::{
+    atomic::{AtomicUsize, Ordering},
+    Arc,
+};
 
 #[derive(Debug)]
 struct User {
@@ -24,6 +28,27 @@ impl Model for User {
         Ok(Self {
             id: field(row, "id")?,
             name: field(row, "name")?,
+        })
+    }
+
+    fn key(&self) -> Value {
+        self.id.into()
+    }
+}
+
+#[derive(Debug)]
+struct Post {
+    id: u64,
+    title: String,
+}
+
+impl Model for Post {
+    const TABLE: &'static str = "posts";
+
+    fn from_row(row: &Row) -> framework::claw::Result<Self> {
+        Ok(Self {
+            id: field(row, "id")?,
+            title: field(row, "title")?,
         })
     }
 
@@ -83,13 +108,19 @@ impl Connection for FakeConnection {
     }
 
     fn query(&mut self, statement: &Statement) -> framework::database::Result<Vec<Row>> {
-        if statement.bindings() != [Value::U64(7)] {
-            return Ok(Vec::new());
+        if statement.sql().contains("\"users\"") && statement.bindings() == [Value::U64(7)] {
+            return Ok(vec![Row::new(vec![
+                framework::database::Column::new("id", 7_u64),
+                framework::database::Column::new("name", "Ada"),
+            ])?]);
         }
-        Ok(vec![Row::new(vec![
-            framework::database::Column::new("id", 7_u64),
-            framework::database::Column::new("name", "Ada"),
-        ])?])
+        if statement.sql().contains("\"posts\"") && statement.bindings() == [Value::U64(3)] {
+            return Ok(vec![Row::new(vec![
+                framework::database::Column::new("id", 3_u64),
+                framework::database::Column::new("title", "First"),
+            ])?]);
+        }
+        Ok(Vec::new())
     }
 
     fn begin(
@@ -146,6 +177,20 @@ fn show_with_request(user: User, request: Request) -> Response {
     Response::text(format!("{}:{}", user.name, request.path()))
 }
 
+fn show_nested(user: User, post: Post) -> Response {
+    Response::text(format!("{}:{}:{}", user.id, post.id, post.title))
+}
+
+fn show_nested_with_request(user: User, post: Post, request: Request) -> Response {
+    Response::text(format!(
+        "{}:{}:{}:{}",
+        user.id,
+        post.id,
+        post.title,
+        request.path()
+    ))
+}
+
 fn update(user: User, input: Validated<UserInput>) -> Response {
     Response::text(format!("{}:{}", user.id, input.name))
 }
@@ -176,6 +221,59 @@ fn controller_can_receive_a_bound_claw_model() {
         400
     );
     assert_eq!(app.handle(request("/users/99")).unwrap().status_code(), 404);
+}
+
+#[test]
+fn controller_can_receive_two_bound_claw_models() {
+    let acquisitions = Arc::new(AtomicUsize::new(0));
+    let factory_acquisitions = Arc::clone(&acquisitions);
+    let mut app = App::new();
+    app.state(Database::new(move || {
+        factory_acquisitions.fetch_add(1, Ordering::SeqCst);
+        Ok(FakeConnection)
+    }))
+    .unwrap();
+    {
+        let mut route = app.route();
+        route
+            .get("/users/{user}/posts/{post}", show_nested)
+            .unwrap();
+        route
+            .get(
+                "/users/{user}/posts/{post}/context",
+                show_nested_with_request,
+            )
+            .unwrap();
+    }
+
+    let response = app.handle(request("/users/7/posts/3")).unwrap();
+    assert_eq!(response.body(), b"7:3:First");
+    assert_eq!(acquisitions.load(Ordering::SeqCst), 1);
+
+    let contextual = app
+        .handle(request("/users/7/posts/3/context"))
+        .unwrap();
+    assert_eq!(contextual.body(), b"7:3:First:/users/7/posts/3/context");
+    assert_eq!(acquisitions.load(Ordering::SeqCst), 2);
+
+    assert_eq!(
+        app.handle(request("/users/7/posts/not-a-number"))
+            .unwrap()
+            .status_code(),
+        400
+    );
+    assert_eq!(
+        app.handle(request("/users/99/posts/3"))
+            .unwrap()
+            .status_code(),
+        404
+    );
+    assert_eq!(
+        app.handle(request("/users/7/posts/99"))
+            .unwrap()
+            .status_code(),
+        404
+    );
 }
 
 #[test]
