@@ -11,10 +11,8 @@ use framework::{
 fn database() -> Database {
     Database::new(|| {
         let mut connection = SqliteConnection::in_memory()?;
-        Query::raw(
-            "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
-        )
-        .execute(&mut connection)?;
+        Query::raw("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)")
+            .execute(&mut connection)?;
         Query::table("users")
             .insert([("id", Value::U64(7)), ("name", Value::from("Ada"))])
             .execute(&mut connection)?;
