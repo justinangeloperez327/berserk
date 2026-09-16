@@ -3,7 +3,7 @@
 pub use crate::Authenticated;
 pub use crate::{
     ActionResult, ApiResource, App, Error, IntoResponse, Request, Resource, ResourceCollection,
-    Response, Result, ServerConfig, State,
+    Response, Result, Route, ServerConfig, State,
 };
 pub use crate::{Metrics, MetricsLayer, RateLimitLayer, RateLimiter, RequestLogger, TraceLayer};
 #[cfg(feature = "claw")]
