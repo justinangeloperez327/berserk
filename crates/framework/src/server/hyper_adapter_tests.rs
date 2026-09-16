@@ -33,7 +33,8 @@ fn converts_bounded_http_request_to_berserk_request() {
             .await
             .unwrap();
         assert_eq!(request.method().as_str(), "POST");
-        assert_eq!(request.target(), "/users?active=1");
+        assert_eq!(request.path(), "/users");
+        assert_eq!(request.query_string(), Some("active=1"));
         assert_eq!(request.body(), b"hello");
     });
 }
