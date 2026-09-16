@@ -237,9 +237,7 @@ fn claw_save_works_inside_request_transaction_on_same_connection() {
         .put("/users/{user}/transaction", update_transaction)
         .unwrap();
 
-    let response = app
-        .handle(body_request("/users/7/transaction"))
-        .unwrap();
+    let response = app.handle(body_request("/users/7/transaction")).unwrap();
 
     assert_eq!(response.status_code(), 204);
     assert_eq!(acquisitions.load(Ordering::SeqCst), 1);
