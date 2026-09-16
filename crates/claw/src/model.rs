@@ -9,6 +9,15 @@ pub trait Model: Sized {
     fn from_row(row: &Row) -> Result<Self>;
     fn key(&self) -> Value;
 
+    /// Convert a raw route parameter into this model's lookup key.
+    ///
+    /// Numeric `u64` keys are the default. Models using strings, UUIDs, or
+    /// another key representation can override this method without changing
+    /// the router or controller signature.
+    fn parse_route_key(value: &str) -> Option<Value> {
+        value.parse::<u64>().ok().map(Value::from)
+    }
+
     fn query() -> ModelQuery<Self> {
         ModelQuery::new()
     }
