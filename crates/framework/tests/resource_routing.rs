@@ -68,9 +68,7 @@ fn named_routes_generate_paths_and_reject_conflicts() {
         app.path_for("users.show", &[("id", "42")]).unwrap(),
         "/users/42"
     );
-    let file_path = app
-        .path_for("files.show", &[("name", "a/b c")])
-        .unwrap();
+    let file_path = app.path_for("files.show", &[("name", "a/b c")]).unwrap();
     assert_eq!(file_path, "/files/a%2Fb%20c");
     assert_eq!(
         app.handle(request("GET", &file_path)).unwrap().body(),
