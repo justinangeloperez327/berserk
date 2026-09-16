@@ -62,14 +62,17 @@ fn body_timeout_error() -> ProtocolError {
     ))
 }
 
-async fn collect_body<B>(body: B, config: &ServerConfig) -> Result<Vec<u8>, ProtocolError>
+async fn collect_body<B>(
+    body: B,
+    config: &ServerConfig,
+    deadline: tokio::time::Instant,
+) -> Result<Vec<u8>, ProtocolError>
 where
     B: hyper::body::Body<Data = Bytes> + Send + 'static,
     B::Error: Into<BoxError> + 'static,
 {
     let body = Limited::new(body, config.max_body_bytes);
     tokio::pin!(body);
-    let deadline = tokio::time::Instant::now() + config.request_deadline;
     let mut bytes = Vec::new();
 
     loop {
@@ -104,9 +107,10 @@ where
     Ok(bytes)
 }
 
-pub(super) async fn into_berserk_request<B>(
+async fn into_berserk_request_until<B>(
     request: http::Request<B>,
     config: &ServerConfig,
+    deadline: tokio::time::Instant,
 ) -> Result<Request, ProtocolError>
 where
     B: hyper::body::Body<Data = Bytes> + Send + 'static,
@@ -144,7 +148,7 @@ where
             .map_err(|_| ProtocolError::Malformed)?;
     }
     let framing = validate_request_headers(&headers, config)?;
-    let body = collect_body(body, config).await?;
+    let body = collect_body(body, config, deadline).await?;
 
     match framing.content_length {
         Some(length) if body.len() != length => return Err(ProtocolError::Malformed),
@@ -153,6 +157,18 @@ where
     }
 
     Request::new(method, target, headers, body).map_err(|_| ProtocolError::Malformed)
+}
+
+pub(super) async fn into_berserk_request<B>(
+    request: http::Request<B>,
+    config: &ServerConfig,
+) -> Result<Request, ProtocolError>
+where
+    B: hyper::body::Body<Data = Bytes> + Send + 'static,
+    B::Error: Into<BoxError> + 'static,
+{
+    let deadline = tokio::time::Instant::now() + config.request_deadline;
+    into_berserk_request_until(request, config, deadline).await
 }
 
 fn stream_body(stream: crate::http::StreamBody) -> Result<WireBody, ProtocolError> {
@@ -257,13 +273,14 @@ fn fallback_wire_response(status: u16) -> http::Response<WireBody> {
 pub(super) async fn dispatch<B>(
     app: Arc<crate::App>,
     request: http::Request<B>,
+    deadline: tokio::time::Instant,
 ) -> Result<http::Response<WireBody>, ProtocolError>
 where
     B: hyper::body::Body<Data = Bytes> + Send + 'static,
     B::Error: Into<BoxError> + 'static,
 {
     let head = request.method() == http::Method::HEAD;
-    let request = match into_berserk_request(request, app.config()).await {
+    let request = match into_berserk_request_until(request, app.config(), deadline).await {
         Ok(request) => request,
         Err(error @ ProtocolError::Io(_)) => return Err(error),
         Err(error) => return Ok(fallback_wire_response(error.status_code())),
