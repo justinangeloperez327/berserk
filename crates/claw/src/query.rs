@@ -130,12 +130,7 @@ impl<M: Model> ModelQuery<M> {
     }
 
     pub fn exists(&self, connection: &mut dyn Connection) -> Result<bool> {
-        Ok(!self
-            .builder
-            .clone()
-            .limit(1)
-            .get(connection)?
-            .is_empty())
+        Ok(!self.builder.clone().limit(1).get(connection)?.is_empty())
     }
 
     pub fn update<I, S, V>(self, connection: &mut dyn Connection, values: I) -> Result<Execution>
