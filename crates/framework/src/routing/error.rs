@@ -6,14 +6,19 @@ pub enum RouteError {
     InvalidPattern,
     DuplicateParameter,
     DuplicateRoute,
+    ParameterCountMismatch { expected: usize, actual: usize },
 }
 impl fmt::Display for RouteError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(match self {
-            Self::InvalidPattern => "invalid route pattern",
-            Self::DuplicateParameter => "duplicate parameter name in route",
-            Self::DuplicateRoute => "equivalent route already registered for method",
-        })
+        match self {
+            Self::InvalidPattern => f.write_str("invalid route pattern"),
+            Self::DuplicateParameter => f.write_str("duplicate parameter name in route"),
+            Self::DuplicateRoute => f.write_str("equivalent route already registered for method"),
+            Self::ParameterCountMismatch { expected, actual } => write!(
+                f,
+                "controller expects {expected} typed route parameters but route defines {actual}"
+            ),
+        }
     }
 }
 impl Error for RouteError {}
