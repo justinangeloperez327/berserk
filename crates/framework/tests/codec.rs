@@ -135,7 +135,7 @@ fn response_lengths_head_and_bodyless_statuses() {
     let wire = String::from_utf8(encode(&Response::empty().status(205), "GET")).unwrap();
     assert!(wire.contains("content-length: 0\r\n"));
     let mut app = App::new();
-    app.get("/", |_| Response::text("hello")).unwrap();
+    app.get("/", || Response::text("hello")).unwrap();
     let request = parse(b"HEAD / HTTP/1.1\r\nHost: x\r\n\r\n").unwrap();
     let response = app.handle(request).unwrap();
     let wire = String::from_utf8(encode(&response, "HEAD")).unwrap();
