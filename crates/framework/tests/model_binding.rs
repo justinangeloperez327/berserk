@@ -243,12 +243,7 @@ fn model_binding_finishes_before_body_validation() {
     assert_eq!(input_status(missing_content_type), 415);
 
     let invalid_input = app
-        .handle(body_request(
-            "PUT",
-            "/users/7",
-            r#"{"name":" A "}"#,
-            true,
-        ))
+        .handle(body_request("PUT", "/users/7", r#"{"name":" A "}"#, true))
         .unwrap_err();
     assert_eq!(input_status(invalid_input), 422);
 }
