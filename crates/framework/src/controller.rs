@@ -60,6 +60,14 @@ pub struct RouteModelsRequest<M, N>(PhantomData<M>, PhantomData<N>);
 
 #[cfg(feature = "claw")]
 #[doc(hidden)]
+pub struct RouteModelsValidated<M, N, I>(PhantomData<M>, PhantomData<N>, PhantomData<I>);
+
+#[cfg(feature = "claw")]
+#[doc(hidden)]
+pub struct RouteModelsValidatedRequest<M, N, I>(PhantomData<M>, PhantomData<N>, PhantomData<I>);
+
+#[cfg(feature = "claw")]
+#[doc(hidden)]
 pub struct RouteModelValidated<M, I>(PhantomData<M>, PhantomData<I>);
 
 #[cfg(feature = "claw")]
@@ -284,6 +292,53 @@ where
             Err(response) => return Ok(response),
         };
         self(first, second, request).into_response()
+    }
+}
+
+#[cfg(feature = "claw")]
+impl<F, M, N, I, R> Handler<RouteModelsValidated<M, N, I>> for F
+where
+    F: Fn(M, N, Validated<I>) -> R + Send + Sync + 'static,
+    M: claw_orm::Model + 'static,
+    N: claw_orm::Model + 'static,
+    I: FromJson + ValidateInput + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(2)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let (first, second) = match route_models::<M, N>(&request)? {
+            Ok(models) => models,
+            Err(response) => return Ok(response),
+        };
+        let input = request.validated::<I>()?;
+        self(first, second, Validated::new(input)).into_response()
+    }
+}
+
+#[cfg(feature = "claw")]
+impl<F, M, N, I, R> Handler<RouteModelsValidatedRequest<M, N, I>> for F
+where
+    F: Fn(M, N, Validated<I>, Request) -> R + Send + Sync + 'static,
+    M: claw_orm::Model + 'static,
+    N: claw_orm::Model + 'static,
+    I: FromJson + ValidateInput + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(2)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let (first, second) = match route_models::<M, N>(&request)? {
+            Ok(models) => models,
+            Err(response) => return Ok(response),
+        };
+        let input = request.validated::<I>()?;
+        self(first, second, Validated::new(input), request)
+            .into_response()
     }
 }
 
