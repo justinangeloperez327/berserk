@@ -1,5 +1,5 @@
 use crate::ModelQuery;
-use framework_database::{Connection, Result, Row, Value};
+use framework_database::{Connection, Direction, Result, Row, Value};
 
 /// A typed database record managed by Claw ORM.
 pub trait Model: Sized {
@@ -13,13 +13,63 @@ pub trait Model: Sized {
         ModelQuery::new()
     }
 
+    fn select<I, S>(columns: I) -> ModelQuery<Self>
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        Self::query().select(columns)
+    }
+
+    fn where_(
+        column: impl Into<String>,
+        operator: impl Into<String>,
+        value: impl Into<Value>,
+    ) -> ModelQuery<Self> {
+        Self::query().where_(column, operator, value)
+    }
+
+    fn where_in<I, V>(column: impl Into<String>, values: I) -> ModelQuery<Self>
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<Value>,
+    {
+        Self::query().where_in(column, values)
+    }
+
+    fn where_not_in<I, V>(column: impl Into<String>, values: I) -> ModelQuery<Self>
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<Value>,
+    {
+        Self::query().where_not_in(column, values)
+    }
+
+    fn where_null(column: impl Into<String>) -> ModelQuery<Self> {
+        Self::query().where_null(column)
+    }
+
+    fn where_not_null(column: impl Into<String>) -> ModelQuery<Self> {
+        Self::query().where_not_null(column)
+    }
+
+    fn order_by(column: impl Into<String>, direction: Direction) -> ModelQuery<Self> {
+        Self::query().order_by(column, direction)
+    }
+
+    fn limit(limit: u64) -> ModelQuery<Self> {
+        Self::query().limit(limit)
+    }
+
+    fn offset(offset: u64) -> ModelQuery<Self> {
+        Self::query().offset(offset)
+    }
+
     fn all(connection: &mut dyn Connection) -> Result<Vec<Self>> {
         Self::query().get(connection)
     }
 
     fn find(connection: &mut dyn Connection, key: impl Into<Value>) -> Result<Option<Self>> {
-        Self::query()
-            .where_(Self::PRIMARY_KEY, "=", key)
-            .first(connection)
+        Self::where_(Self::PRIMARY_KEY, "=", key).first(connection)
     }
 }
