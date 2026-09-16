@@ -13,7 +13,7 @@ fn documented_routes_register_runtime_and_contract_together() {
         .unwrap()
         .response("200", ApiResponse::new("Healthy").unwrap())
         .unwrap();
-    app.documented_route(&mut document, HttpMethod::Get, "/health", operation, |_| {
+    app.documented_route(&mut document, HttpMethod::Get, "/health", operation, || {
         Response::text("OK")
     })
     .unwrap();
