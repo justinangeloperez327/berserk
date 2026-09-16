@@ -219,10 +219,6 @@ fn fallback_wire_response(status: u16) -> http::Response<WireBody> {
     response
 }
 
-#[expect(
-    dead_code,
-    reason = "staged Hyper transport migration; listener wiring follows adapter verification"
-)]
 pub(super) async fn dispatch<B>(
     app: Arc<crate::App>,
     request: http::Request<B>,
