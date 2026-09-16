@@ -1,6 +1,6 @@
 #![cfg(feature = "database")]
 
-use framework::{
+use berserk::{
     database::{
         Capabilities, Connection, Database, DatabaseError, Driver, ErrorKind, Execution, Query,
         Row, Statement, Transaction, TransactionOptions, Value,
@@ -35,25 +35,25 @@ impl Connection for FakeConnection {
         Capabilities::new()
     }
 
-    fn execute(&mut self, _statement: &Statement) -> framework::database::Result<Execution> {
+    fn execute(&mut self, _statement: &Statement) -> berserk::database::Result<Execution> {
         panic!("request transaction writes must use the transaction")
     }
 
-    fn query(&mut self, _statement: &Statement) -> framework::database::Result<Vec<Row>> {
+    fn query(&mut self, _statement: &Statement) -> berserk::database::Result<Vec<Row>> {
         panic!("request transaction queries must use the transaction")
     }
 
     fn begin(
         &mut self,
         options: TransactionOptions,
-    ) -> framework::database::Result<Box<dyn Transaction + '_>> {
+    ) -> berserk::database::Result<Box<dyn Transaction + '_>> {
         self.state.options.lock().unwrap().push(options);
         Ok(Box::new(FakeTransaction {
             state: Arc::clone(&self.state),
         }))
     }
 
-    fn ping(&mut self) -> framework::database::Result<()> {
+    fn ping(&mut self) -> berserk::database::Result<()> {
         Ok(())
     }
 }
@@ -63,7 +63,7 @@ struct FakeTransaction {
 }
 
 impl Transaction for FakeTransaction {
-    fn execute(&mut self, statement: &Statement) -> framework::database::Result<Execution> {
+    fn execute(&mut self, statement: &Statement) -> berserk::database::Result<Execution> {
         self.state.executed.lock().unwrap().push(statement.clone());
         Ok(Execution {
             affected_rows: 1,
@@ -71,11 +71,11 @@ impl Transaction for FakeTransaction {
         })
     }
 
-    fn query(&mut self, _statement: &Statement) -> framework::database::Result<Vec<Row>> {
+    fn query(&mut self, _statement: &Statement) -> berserk::database::Result<Vec<Row>> {
         Ok(Vec::new())
     }
 
-    fn commit(self: Box<Self>) -> framework::database::Result<()> {
+    fn commit(self: Box<Self>) -> berserk::database::Result<()> {
         if self.state.fail_commit.load(Ordering::SeqCst) {
             return Err(DatabaseError::new(
                 ErrorKind::Transaction,
@@ -86,7 +86,7 @@ impl Transaction for FakeTransaction {
         Ok(())
     }
 
-    fn rollback(self: Box<Self>) -> framework::database::Result<()> {
+    fn rollback(self: Box<Self>) -> berserk::database::Result<()> {
         if self.state.fail_rollback.load(Ordering::SeqCst) {
             return Err(DatabaseError::new(
                 ErrorKind::Transaction,

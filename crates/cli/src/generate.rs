@@ -65,9 +65,9 @@ impl Generator {
         fs::create_dir(&target).map_err(CliError::from_io)?;
         let result = (|| {
             fs::create_dir(target.join("src")).map_err(CliError::from_io)?;
-            let cargo = format!("[package]\nname = \"{package}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\nframework = \"0.1\"\n");
+            let cargo = format!("[package]\nname = \"{package}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\nberserk = \"0.1\"\n");
             write_new(&target.join("Cargo.toml"), cargo.as_bytes())?;
-            write_new(&target.join("src/main.rs"), b"use framework::{App, Response, Result};\n\nfn main() -> Result<()> {\n    let mut app = App::new();\n    app.get(\"/\", |_| Response::text(\"Hello, world!\"))?;\n    app.listen(\"127.0.0.1:3000\")\n}\n")?;
+            write_new(&target.join("src/main.rs"), b"use berserk::{App, Response, Result};\n\nfn main() -> Result<()> {\n    let mut app = App::new();\n    app.get(\"/\", |_| Response::text(\"Hello, world!\"))?;\n    app.listen(\"127.0.0.1:3000\")\n}\n")?;
             Ok(vec![
                 GeneratedFile {
                     path: target.join("Cargo.toml"),
@@ -95,7 +95,7 @@ impl Generator {
                 "model file already exists",
             ));
         }
-        let source = format!("#[derive(Clone, Debug, Eq, PartialEq)]\npub struct {name} {{\n    pub id: i64,\n}}\n\n// Implement framework::database::Model after defining the table's complete fields.\n");
+        let source = format!("#[derive(Clone, Debug, Eq, PartialEq)]\npub struct {name} {{\n    pub id: i64,\n}}\n\n// Implement berserk::database::Model after defining the table's complete fields.\n");
         write_new(&model, source.as_bytes())?;
         if let Err(error) = append_module(&index, &module) {
             let _ = fs::remove_file(&model);
@@ -116,7 +116,7 @@ impl Generator {
             .as_secs();
         let path = directory.join(format!("{timestamp}_{name}.rs"));
         let type_name = pascal_case(name);
-        let source = format!("use framework::database::{{Driver, Migration, Result, Statement}};\n\npub struct {type_name};\n\nimpl Migration for {type_name} {{\n    fn name(&self) -> &'static str {{ \"{timestamp}_{name}\" }}\n    fn up(&self, _driver: Driver) -> Result<Vec<Statement>> {{\n        Ok(vec![Statement::new(\"-- write forward migration SQL\")])\n    }}\n    fn down(&self, _driver: Driver) -> Result<Vec<Statement>> {{\n        Ok(vec![Statement::new(\"-- write rollback migration SQL\")])\n    }}\n}}\n");
+        let source = format!("use berserk::database::{{Driver, Migration, Result, Statement}};\n\npub struct {type_name};\n\nimpl Migration for {type_name} {{\n    fn name(&self) -> &'static str {{ \"{timestamp}_{name}\" }}\n    fn up(&self, _driver: Driver) -> Result<Vec<Statement>> {{\n        Ok(vec![Statement::new(\"-- write forward migration SQL\")])\n    }}\n    fn down(&self, _driver: Driver) -> Result<Vec<Statement>> {{\n        Ok(vec![Statement::new(\"-- write rollback migration SQL\")])\n    }}\n}}\n");
         write_new(&path, source.as_bytes())?;
         Ok(vec![GeneratedFile { path }])
     }

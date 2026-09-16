@@ -1,4 +1,4 @@
-use framework::{App, Request, Response};
+use berserk::{App, Request, Response};
 use std::{
     io::{Read, Write},
     net::TcpStream,
@@ -19,7 +19,7 @@ fn serves_real_connections_and_shuts_down() {
     let shutdown = server.shutdown_handle();
     let worker = std::thread::spawn(move || server.run());
     // Ensure cleanup even if an assertion fails while this guard is alive.
-    struct Guard(framework::ShutdownHandle);
+    struct Guard(berserk::ShutdownHandle);
     impl Drop for Guard {
         fn drop(&mut self) {
             self.0.shutdown();

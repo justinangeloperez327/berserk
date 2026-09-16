@@ -1,4 +1,4 @@
-use framework::{App, Headers, Json, Method, Request, Response};
+use berserk::{App, Headers, Json, Method, Request, Response};
 use std::{
     error::Error,
     hint::black_box,
@@ -49,7 +49,7 @@ fn request(path: &str) -> Request {
     )
     .unwrap()
 }
-struct Stop(framework::ShutdownHandle);
+struct Stop(berserk::ShutdownHandle);
 impl Drop for Stop {
     fn drop(&mut self) {
         self.0.shutdown();

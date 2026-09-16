@@ -1,6 +1,6 @@
 #![cfg(feature = "claw")]
 
-use framework::{
+use berserk::{
     claw::{field, Model, PersistableModel, Row, Value},
     database::{
         Capabilities, Connection, Database, Driver, Execution, Statement, Transaction,
@@ -24,7 +24,7 @@ struct User {
 impl Model for User {
     const TABLE: &'static str = "users";
 
-    fn from_row(row: &Row) -> framework::claw::Result<Self> {
+    fn from_row(row: &Row) -> berserk::claw::Result<Self> {
         Ok(Self {
             id: field(row, "id")?,
             name: field(row, "name")?,
@@ -87,7 +87,7 @@ impl Connection for FakeConnection {
         Capabilities::new()
     }
 
-    fn execute(&mut self, statement: &Statement) -> framework::database::Result<Execution> {
+    fn execute(&mut self, statement: &Statement) -> berserk::database::Result<Execution> {
         self.executed.lock().unwrap().push(statement.clone());
         Ok(Execution {
             affected_rows: 1,
@@ -95,11 +95,11 @@ impl Connection for FakeConnection {
         })
     }
 
-    fn query(&mut self, statement: &Statement) -> framework::database::Result<Vec<Row>> {
+    fn query(&mut self, statement: &Statement) -> berserk::database::Result<Vec<Row>> {
         if statement.sql().contains("\"users\"") && statement.bindings() == [Value::U64(7)] {
             return Ok(vec![Row::new(vec![
-                framework::database::Column::new("id", 7_u64),
-                framework::database::Column::new("name", "Ada"),
+                berserk::database::Column::new("id", 7_u64),
+                berserk::database::Column::new("name", "Ada"),
             ])?]);
         }
         Ok(Vec::new())
@@ -108,14 +108,14 @@ impl Connection for FakeConnection {
     fn begin(
         &mut self,
         _options: TransactionOptions,
-    ) -> framework::database::Result<Box<dyn Transaction + '_>> {
+    ) -> berserk::database::Result<Box<dyn Transaction + '_>> {
         Ok(Box::new(FakeTransaction {
             executed: Arc::clone(&self.executed),
             commits: Arc::clone(&self.commits),
         }))
     }
 
-    fn ping(&mut self) -> framework::database::Result<()> {
+    fn ping(&mut self) -> berserk::database::Result<()> {
         Ok(())
     }
 }
@@ -126,7 +126,7 @@ struct FakeTransaction {
 }
 
 impl Transaction for FakeTransaction {
-    fn execute(&mut self, statement: &Statement) -> framework::database::Result<Execution> {
+    fn execute(&mut self, statement: &Statement) -> berserk::database::Result<Execution> {
         self.executed.lock().unwrap().push(statement.clone());
         Ok(Execution {
             affected_rows: 1,
@@ -134,16 +134,16 @@ impl Transaction for FakeTransaction {
         })
     }
 
-    fn query(&mut self, _statement: &Statement) -> framework::database::Result<Vec<Row>> {
+    fn query(&mut self, _statement: &Statement) -> berserk::database::Result<Vec<Row>> {
         Ok(Vec::new())
     }
 
-    fn commit(self: Box<Self>) -> framework::database::Result<()> {
+    fn commit(self: Box<Self>) -> berserk::database::Result<()> {
         self.commits.fetch_add(1, Ordering::SeqCst);
         Ok(())
     }
 
-    fn rollback(self: Box<Self>) -> framework::database::Result<()> {
+    fn rollback(self: Box<Self>) -> berserk::database::Result<()> {
         Ok(())
     }
 }

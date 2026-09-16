@@ -1,6 +1,6 @@
 #![cfg(feature = "sqlite")]
 
-use framework::{
+use berserk::{
     database::{
         drivers::sqlite::SqliteConnection, Database, DatabaseError, ErrorKind, Query, Row,
         TransactionOptions, Value,
@@ -30,7 +30,7 @@ fn request(path: &str) -> Request {
     .unwrap()
 }
 
-fn name_from_row(row: &Row) -> framework::database::Result<String> {
+fn name_from_row(row: &Row) -> berserk::database::Result<String> {
     match row.get("name") {
         Some(Value::Text(name)) => Ok(name.clone()),
         _ => Err(DatabaseError::new(
@@ -40,7 +40,7 @@ fn name_from_row(row: &Row) -> framework::database::Result<String> {
     }
 }
 
-fn current_name(connection: &mut dyn framework::database::Connection) -> Result<String> {
+fn current_name(connection: &mut dyn berserk::database::Connection) -> Result<String> {
     let row = Query::table("users")
         .where_("id", "=", 7_u64)
         .first(connection)?

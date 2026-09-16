@@ -1,7 +1,7 @@
 #![cfg(feature = "claw")]
 
-use framework::claw::{Driver, Result as DatabaseResult, Row, Value};
-use framework::prelude::*;
+use berserk::claw::{Driver, Result as DatabaseResult, Row, Value};
+use berserk::prelude::*;
 
 struct User {
     id: u64,
@@ -12,7 +12,7 @@ impl Model for User {
 
     fn from_row(row: &Row) -> DatabaseResult<Self> {
         Ok(Self {
-            id: framework::claw::field(row, "id")?,
+            id: berserk::claw::field(row, "id")?,
         })
     }
 

@@ -7,7 +7,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-framework.workspace = true
+berserk.workspace = true
 framework-client.workspace = true
 framework-events.workspace = true
 framework-jobs.workspace = true

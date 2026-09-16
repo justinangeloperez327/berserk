@@ -1,6 +1,6 @@
 #![cfg(feature = "database")]
 
-use framework::{
+use berserk::{
     database::{
         Capabilities, Connection, Database, DatabaseError, Driver, ErrorKind, Execution, Row,
         Statement, Transaction, TransactionOptions,
@@ -25,28 +25,28 @@ impl Connection for FakeConnection {
         Capabilities::new()
     }
 
-    fn execute(&mut self, _statement: &Statement) -> framework::database::Result<Execution> {
+    fn execute(&mut self, _statement: &Statement) -> berserk::database::Result<Execution> {
         Ok(Execution {
             affected_rows: 0,
             last_insert_id: None,
         })
     }
 
-    fn query(&mut self, _statement: &Statement) -> framework::database::Result<Vec<Row>> {
+    fn query(&mut self, _statement: &Statement) -> berserk::database::Result<Vec<Row>> {
         Ok(Vec::new())
     }
 
     fn begin(
         &mut self,
         _options: TransactionOptions,
-    ) -> framework::database::Result<Box<dyn Transaction + '_>> {
+    ) -> berserk::database::Result<Box<dyn Transaction + '_>> {
         Err(DatabaseError::new(
             ErrorKind::Transaction,
             "transactions are not used by this test",
         ))
     }
 
-    fn ping(&mut self) -> framework::database::Result<()> {
+    fn ping(&mut self) -> berserk::database::Result<()> {
         self.pings.fetch_add(1, Ordering::SeqCst);
         Ok(())
     }

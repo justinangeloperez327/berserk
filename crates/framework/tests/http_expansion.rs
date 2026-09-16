@@ -1,11 +1,11 @@
-use framework::{App, Headers, Method, Request, Response, ServerConfig};
+use berserk::{App, Headers, Method, Request, Response, ServerConfig};
 use std::{
     io::{Cursor, Read, Write},
     net::TcpStream,
     time::Duration,
 };
 
-struct Stop(framework::ShutdownHandle);
+struct Stop(berserk::ShutdownHandle);
 impl Drop for Stop {
     fn drop(&mut self) {
         self.0.shutdown();

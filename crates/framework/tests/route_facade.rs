@@ -1,4 +1,4 @@
-use framework::{App, Headers, Method, Middleware, Next, Request, Response, Result, RouteError};
+use berserk::{App, Headers, Method, Middleware, Next, Request, Response, Result, RouteError};
 
 fn request(method: &str, path: &str) -> Request {
     Request::new(
@@ -112,7 +112,7 @@ fn failed_route_group_is_atomic() {
 
     assert!(matches!(
         error,
-        framework::Error::Routing(RouteError::DuplicateRoute)
+        berserk::Error::Routing(RouteError::DuplicateRoute)
     ));
     assert_eq!(
         app.handle(request("GET", "/api/users/1"))
@@ -167,7 +167,7 @@ fn fallback_supports_middleware_but_rejects_invalid_registration() {
     .unwrap_err();
     assert!(matches!(
         duplicate,
-        framework::Error::Routing(RouteError::DuplicateFallback)
+        berserk::Error::Routing(RouteError::DuplicateFallback)
     ));
 
     let mut prefixed_app = App::new();
@@ -178,7 +178,7 @@ fn fallback_supports_middleware_but_rejects_invalid_registration() {
     .unwrap_err();
     assert!(matches!(
         scoped,
-        framework::Error::Routing(RouteError::ScopedFallback)
+        berserk::Error::Routing(RouteError::ScopedFallback)
     ));
 
     let mut typed_app = App::new();
@@ -189,7 +189,7 @@ fn fallback_supports_middleware_but_rejects_invalid_registration() {
     .unwrap_err();
     assert!(matches!(
         typed,
-        framework::Error::Routing(RouteError::ParameterCountMismatch {
+        berserk::Error::Routing(RouteError::ParameterCountMismatch {
             expected: 1,
             actual: 0
         })

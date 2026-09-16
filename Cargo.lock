@@ -347,11 +347,11 @@ dependencies = [
 name = "foundation-example"
 version = "0.0.0"
 dependencies = [
- "framework",
+ "berserk",
 ]
 
 [[package]]
-name = "framework"
+name = "berserk"
 version = "0.0.0"
 dependencies = [
  "claw-orm",
@@ -384,7 +384,7 @@ dependencies = [
 name = "framework-benchmarks"
 version = "0.0.0"
 dependencies = [
- "framework",
+ "berserk",
 ]
 
 [[package]]
@@ -446,7 +446,7 @@ dependencies = [
 name = "framework-testing"
 version = "0.0.0"
 dependencies = [
- "framework",
+ "berserk",
  "framework-client",
  "framework-events",
  "framework-jobs",

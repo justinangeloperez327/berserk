@@ -52,7 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo check -p framework --all-targets ${{ matrix.args }}
+      - run: cargo check -p berserk --all-targets ${{ matrix.args }}
 
   quality:
     runs-on: ubuntu-latest

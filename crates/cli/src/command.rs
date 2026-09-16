@@ -77,13 +77,13 @@ impl Command {
         Ok(parsed)
     }
     pub const fn help() -> &'static str {
-        "framework commands:\n  new <path>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate:rollback\n  migrate:status"
+        "berserk commands:\n  new <path>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate:rollback\n  migrate:status"
     }
 }
 fn one(arguments: &mut impl Iterator<Item = String>, usage: &str) -> Result<String> {
     arguments
         .next()
-        .ok_or_else(|| CliError::new(ErrorKind::Usage, format!("usage: framework {usage}")))
+        .ok_or_else(|| CliError::new(ErrorKind::Usage, format!("usage: berserk {usage}")))
 }
 
 pub trait MigrationExecutor {

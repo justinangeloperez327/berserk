@@ -27,4 +27,4 @@ framework-client = { path = "crates/client", version = "=0.0.0" }
 framework-notifications = { path = "crates/notifications", version = "=0.0.0" }
 framework-cli = { path = "crates/cli", version = "=0.0.0" }
 framework-testing = { path = "crates/testing", version = "=0.0.0" }
-framework = { path = "crates/framework", version = "=0.0.0" }
+berserk = { path = "crates/framework", version = "=0.0.0" }

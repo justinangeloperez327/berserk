@@ -1,4 +1,4 @@
-use framework::{ApiResource, IntoResponse, Json, Resource, ResourceCollection};
+use berserk::{ApiResource, IntoResponse, Json, Resource, ResourceCollection};
 use std::collections::BTreeMap;
 
 struct User {

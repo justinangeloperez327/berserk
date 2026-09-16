@@ -1,4 +1,4 @@
-use framework::{
+use berserk::{
     App, Error, FromJson, Headers, Json, Method, Request, Response, ValidateInput, Validated,
     ValidationErrors,
 };

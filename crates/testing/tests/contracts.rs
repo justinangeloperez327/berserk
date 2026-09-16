@@ -1,4 +1,4 @@
-use framework::{App, Json, Response};
+use berserk::{App, Json, Response};
 use framework_client::{
     Header, HttpClient, Method as ClientMethod, Request as ClientRequest,
     Response as ClientResponse, Url,

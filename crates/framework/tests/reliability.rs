@@ -1,5 +1,5 @@
-use framework::server::ServerStats;
-use framework::{App, Response, ServerConfig, ShutdownHandle};
+use berserk::server::ServerStats;
+use berserk::{App, Response, ServerConfig, ShutdownHandle};
 use std::{
     io::{Read, Write},
     net::{SocketAddr, TcpStream},

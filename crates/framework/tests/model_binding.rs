@@ -1,6 +1,6 @@
 #![cfg(feature = "claw")]
 
-use framework::{
+use berserk::{
     claw::{field, Model, Row, ScopedRouteModel, Value},
     database::{
         Capabilities, Connection, Database, DatabaseError, Driver, ErrorKind, Execution, Statement,
@@ -24,7 +24,7 @@ struct User {
 impl Model for User {
     const TABLE: &'static str = "users";
 
-    fn from_row(row: &Row) -> framework::claw::Result<Self> {
+    fn from_row(row: &Row) -> berserk::claw::Result<Self> {
         Ok(Self {
             id: field(row, "id")?,
             name: field(row, "name")?,
@@ -45,7 +45,7 @@ struct Post {
 impl Model for Post {
     const TABLE: &'static str = "posts";
 
-    fn from_row(row: &Row) -> framework::claw::Result<Self> {
+    fn from_row(row: &Row) -> berserk::claw::Result<Self> {
         Ok(Self {
             id: field(row, "id")?,
             title: field(row, "title")?,
@@ -104,32 +104,32 @@ impl Connection for FakeConnection {
         Capabilities::new()
     }
 
-    fn execute(&mut self, _statement: &Statement) -> framework::database::Result<Execution> {
+    fn execute(&mut self, _statement: &Statement) -> berserk::database::Result<Execution> {
         Ok(Execution {
             affected_rows: 0,
             last_insert_id: None,
         })
     }
 
-    fn query(&mut self, statement: &Statement) -> framework::database::Result<Vec<Row>> {
+    fn query(&mut self, statement: &Statement) -> berserk::database::Result<Vec<Row>> {
         if statement.sql().contains("\"users\"") && statement.bindings() == [Value::U64(7)] {
             return Ok(vec![Row::new(vec![
-                framework::database::Column::new("id", 7_u64),
-                framework::database::Column::new("name", "Ada"),
+                berserk::database::Column::new("id", 7_u64),
+                berserk::database::Column::new("name", "Ada"),
             ])?]);
         }
         if statement.sql().contains("\"users\"") && statement.bindings() == [Value::U64(8)] {
             return Ok(vec![Row::new(vec![
-                framework::database::Column::new("id", 8_u64),
-                framework::database::Column::new("name", "Grace"),
+                berserk::database::Column::new("id", 8_u64),
+                berserk::database::Column::new("name", "Grace"),
             ])?]);
         }
         if statement.sql().contains("\"posts\"")
             && statement.bindings() == [Value::U64(3), Value::U64(7)]
         {
             return Ok(vec![Row::new(vec![
-                framework::database::Column::new("id", 3_u64),
-                framework::database::Column::new("title", "First"),
+                berserk::database::Column::new("id", 3_u64),
+                berserk::database::Column::new("title", "First"),
             ])?]);
         }
         Ok(Vec::new())
@@ -138,14 +138,14 @@ impl Connection for FakeConnection {
     fn begin(
         &mut self,
         _options: TransactionOptions,
-    ) -> framework::database::Result<Box<dyn Transaction + '_>> {
+    ) -> berserk::database::Result<Box<dyn Transaction + '_>> {
         Err(DatabaseError::new(
             ErrorKind::Transaction,
             "transactions are not used by this test",
         ))
     }
 
-    fn ping(&mut self) -> framework::database::Result<()> {
+    fn ping(&mut self) -> berserk::database::Result<()> {
         Ok(())
     }
 }

@@ -1,4 +1,4 @@
-use framework::{App, Error, Headers, HttpError, Method, Request, Response, Result, RouteError};
+use berserk::{App, Error, Headers, HttpError, Method, Request, Response, Result, RouteError};
 
 fn request(method: &str, path: &str) -> Request {
     request_with_body(method, path, Vec::new())
@@ -220,7 +220,7 @@ fn parameters_require_nonempty_segments_and_invalid_responses_propagate() {
 
 #[test]
 fn app_accepts_thread_safe_captures_and_concurrent_dispatch() {
-    let counter = framework::State::new(std::sync::atomic::AtomicUsize::new(0));
+    let counter = berserk::State::new(std::sync::atomic::AtomicUsize::new(0));
     let captured = counter.clone();
     let mut app = App::new();
     app.get("/", move || {

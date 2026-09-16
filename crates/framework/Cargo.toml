@@ -1,5 +1,5 @@
 [package]
-name = "framework"
+name = "berserk"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

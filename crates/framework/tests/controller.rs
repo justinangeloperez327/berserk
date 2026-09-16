@@ -1,4 +1,4 @@
-use framework::{App, Error, Headers, Method, Request, Response, RouteError};
+use berserk::{App, Error, Headers, Method, Request, Response, RouteError};
 
 fn request(path: &str) -> Request {
     Request::new(

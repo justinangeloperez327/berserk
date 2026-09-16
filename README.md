@@ -37,7 +37,7 @@ Enable optional components as needed:
 berserk = { version = "0.1.0", features = ["postgres", "auth", "openapi"] }
 ```
 
-Until the package is published, use a local path dependency after the crates have been renamed to the Berserk package namespace:
+Until the package is published, use a local path dependency:
 
 ```toml
 [dependencies]
