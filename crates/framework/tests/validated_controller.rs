@@ -58,12 +58,29 @@ fn update(id: u64, input: Validated<UserInput>) -> Response {
     Response::text(format!("{id}:{}", input.name))
 }
 
+fn nested_update(user_id: u64, post_id: u32, input: Validated<UserInput>) -> Response {
+    Response::text(format!("{user_id}:{post_id}:{}", input.name))
+}
+
 fn store_with_request(input: Validated<UserInput>, request: Request) -> Response {
     Response::text(format!("{}:{}", request.method().as_str(), input.name))
 }
 
 fn update_with_request(id: u64, input: Validated<UserInput>, request: Request) -> Response {
     Response::text(format!("{id}:{}:{}", input.name, request.path()))
+}
+
+fn nested_update_with_request(
+    user_id: u64,
+    post_id: u32,
+    input: Validated<UserInput>,
+    request: Request,
+) -> Response {
+    Response::text(format!(
+        "{user_id}:{post_id}:{}:{}",
+        input.name,
+        request.path()
+    ))
 }
 
 fn input_status(error: Error) -> u16 {
@@ -80,6 +97,12 @@ fn validated_controller_input_is_sanitized_before_validation() {
         let mut route = app.route();
         route.post("/users", store).unwrap();
         route.put("/users/{id}", update).unwrap();
+        route
+            .put(
+                "/users/{user_id}/posts/{post_id}",
+                nested_update,
+            )
+            .unwrap();
     }
 
     let stored = app
@@ -91,6 +114,16 @@ fn validated_controller_input_is_sanitized_before_validation() {
         .handle(request("PUT", "/users/7", r#"{"name":"  Grace  "}"#, true))
         .unwrap();
     assert_eq!(updated.body(), b"7:Grace");
+
+    let nested = app
+        .handle(request(
+            "PUT",
+            "/users/7/posts/3",
+            r#"{"name":"  Linus  "}"#,
+            true,
+        ))
+        .unwrap();
+    assert_eq!(nested.body(), b"7:3:Linus");
 }
 
 #[test]
@@ -101,6 +134,12 @@ fn validated_controller_can_also_receive_request_context() {
         route.post("/context", store_with_request).unwrap();
         route
             .patch("/users/{id}/context", update_with_request)
+            .unwrap();
+        route
+            .patch(
+                "/users/{user_id}/posts/{post_id}/context",
+                nested_update_with_request,
+            )
             .unwrap();
     }
 
@@ -118,6 +157,16 @@ fn validated_controller_can_also_receive_request_context() {
         ))
         .unwrap();
     assert_eq!(updated.body(), b"12:Grace:/users/12/context");
+
+    let nested = app
+        .handle(request(
+            "PATCH",
+            "/users/12/posts/4/context",
+            r#"{"name":"  Grace  "}"#,
+            true,
+        ))
+        .unwrap();
+    assert_eq!(nested.body(), b"12:4:Grace:/users/12/posts/4/context");
 }
 
 #[test]
@@ -127,6 +176,12 @@ fn validated_controller_input_reuses_existing_input_errors() {
         let mut route = app.route();
         route.post("/users", store).unwrap();
         route.put("/users/{id}", update).unwrap();
+        route
+            .put(
+                "/users/{user_id}/posts/{post_id}",
+                nested_update,
+            )
+            .unwrap();
     }
 
     let validation = app
@@ -143,4 +198,14 @@ fn validated_controller_input_reuses_existing_input_errors() {
         .handle(request("PUT", "/users/nope", "not-json", false))
         .unwrap();
     assert_eq!(invalid_id.status_code(), 400);
+
+    let invalid_nested_id = app
+        .handle(request(
+            "PUT",
+            "/users/7/posts/nope",
+            "not-json",
+            false,
+        ))
+        .unwrap();
+    assert_eq!(invalid_nested_id.status_code(), 400);
 }
