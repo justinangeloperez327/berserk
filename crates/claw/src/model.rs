@@ -110,4 +110,23 @@ pub trait Model: Sized {
     fn destroy(connection: &mut dyn Connection, key: impl Into<Value>) -> Result<Execution> {
         Self::where_(Self::PRIMARY_KEY, "=", key).delete(connection)
     }
+
+    /// Persist explicit values for this model's primary-key row.
+    ///
+    /// This does not mutate the in-memory model because Claw does not yet
+    /// assume a generic mapping from database column names back to struct
+    /// fields.
+    fn update<I, S, V>(&self, connection: &mut dyn Connection, values: I) -> Result<Execution>
+    where
+        I: IntoIterator<Item = (S, V)>,
+        S: Into<String>,
+        V: Into<Value>,
+    {
+        Self::where_(Self::PRIMARY_KEY, "=", self.key()).update(connection, values)
+    }
+
+    /// Delete this model's primary-key row.
+    fn delete(&self, connection: &mut dyn Connection) -> Result<Execution> {
+        Self::where_(Self::PRIMARY_KEY, "=", self.key()).delete(connection)
+    }
 }
