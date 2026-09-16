@@ -1,5 +1,5 @@
 use super::{Headers, HttpError, Method};
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 /// Owned request data. This constructor is not a wire parser.
 pub struct Request {
@@ -78,58 +78,80 @@ impl Request {
             principal: None,
         })
     }
+
     pub(crate) fn set_params(&mut self, params: HashMap<String, String>) {
         self.params = params;
     }
+
     pub fn state<T: Send + Sync + 'static>(&self) -> Option<&T> {
         self.state.get::<T>()
     }
+
     pub fn request_id(&self) -> Option<&str> {
         self.request_id.as_deref()
     }
+
     pub(crate) fn set_request_id(&mut self, id: String) {
         self.request_id = Some(id);
     }
+
     pub fn trace_context(&self) -> Option<&crate::operational::TraceContext> {
         self.trace_context.as_ref()
     }
+
     pub(crate) fn set_trace_context(&mut self, context: crate::operational::TraceContext) {
         self.trace_context = Some(context);
     }
+
     #[cfg(feature = "auth")]
     pub fn principal(&self) -> Option<&framework_auth::Principal> {
         self.principal.as_ref()
     }
+
     #[cfg(feature = "auth")]
     pub(crate) fn set_principal(&mut self, principal: framework_auth::Principal) {
         self.principal = Some(principal);
     }
+
     pub(crate) fn set_state(&mut self, state: crate::state::StateMap) {
         self.state = state;
     }
+
     pub fn method(&self) -> &Method {
         &self.method
     }
+
     pub fn path(&self) -> &str {
         self.target
             .split_once('?')
             .map_or(self.target.as_str(), |(path, _)| path)
     }
+
     pub fn param(&self, name: &str) -> Option<&str> {
         self.params.get(name).map(String::as_str)
     }
+
+    /// Parse a named route parameter without allocating an intermediate value.
+    pub fn param_as<T: FromStr>(&self, name: &str) -> Option<Result<T, T::Err>> {
+        self.param(name).map(str::parse)
+    }
+
     pub fn query_string(&self) -> Option<&str> {
         self.target.split_once('?').map(|(_, query)| query)
     }
+
     pub fn header(&self, name: &str) -> Option<&str> {
         self.headers.get(name)
     }
+
     pub fn headers(&self) -> &Headers {
         &self.headers
     }
+
     pub fn body(&self) -> &[u8] {
         &self.body
     }
+
     pub fn text(&self) -> crate::Result<&str> {
         std::str::from_utf8(&self.body).map_err(|error| HttpError::InvalidUtf8(error).into())
     }

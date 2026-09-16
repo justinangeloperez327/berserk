@@ -3,12 +3,14 @@
 
 mod app;
 mod config;
+pub mod controller;
 mod error;
 pub mod http;
 pub mod prelude;
 
 pub use app::App;
 pub use config::ServerConfig;
+pub use controller::ActionResult;
 pub use error::{Error, Result};
 pub use framework_core::{ConfigError, ShutdownHandle, State, Validate};
 
@@ -16,6 +18,8 @@ pub use framework_core::{ConfigError, ShutdownHandle, State, Validate};
 pub use framework_auth as auth;
 #[cfg(feature = "cache")]
 pub use framework_cache as cache;
+#[cfg(feature = "claw")]
+pub use claw_orm as claw;
 #[cfg(feature = "cli")]
 pub use framework_cli as cli;
 #[cfg(feature = "client")]
@@ -39,7 +43,6 @@ pub mod routing;
 pub use routing::RouteError;
 
 pub mod server;
-
 pub use server::Server;
 
 pub mod middleware;

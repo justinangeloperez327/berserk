@@ -1,4 +1,5 @@
 use crate::{Result, ServerConfig, Validate};
+use std::str::FromStr;
 
 /// Validated application configuration. Supports in-memory routing and synchronous TCP serving.
 #[derive(Debug)]
@@ -11,7 +12,6 @@ pub struct App {
 
 impl App {
     pub fn new() -> Self {
-        // Defaults are framework-owned constants, verified by a contract test.
         Self {
             config: ServerConfig::default(),
             router: Default::default(),
@@ -83,6 +83,29 @@ impl App {
         self.router.add(method, path, handler)
     }
 
+    /// Register a controller action that receives one typed route parameter directly.
+    ///
+    /// This supports actions such as `fn show(id: u64) -> Response` without forcing
+    /// the controller to accept the entire request.
+    pub fn route_param<T, F, R>(
+        &mut self,
+        method: crate::Method,
+        path: &str,
+        parameter: &str,
+        handler: F,
+    ) -> Result<()>
+    where
+        T: FromStr + 'static,
+        F: Fn(T) -> R + Send + Sync + 'static,
+        R: crate::IntoResponse,
+    {
+        self.route(
+            method,
+            path,
+            crate::controller::with_param::<T, F, R>(parameter.to_owned(), handler),
+        )
+    }
+
     /// Dispatch without network I/O. Handler errors propagate; panics are not caught here.
     pub fn handle(&self, request: crate::Request) -> Result<crate::Response> {
         let mut request = request;
@@ -96,6 +119,7 @@ impl App {
         }
         Ok(response)
     }
+
     pub fn get<F, R>(&mut self, path: &str, handler: F) -> Result<()>
     where
         F: Fn(crate::Request) -> R + Send + Sync + 'static,
@@ -103,6 +127,16 @@ impl App {
     {
         self.route(crate::Method::new("GET")?, path, handler)
     }
+
+    pub fn get_param<T, F, R>(&mut self, path: &str, parameter: &str, handler: F) -> Result<()>
+    where
+        T: FromStr + 'static,
+        F: Fn(T) -> R + Send + Sync + 'static,
+        R: crate::IntoResponse,
+    {
+        self.route_param(crate::Method::new("GET")?, path, parameter, handler)
+    }
+
     pub fn post<F, R>(&mut self, path: &str, handler: F) -> Result<()>
     where
         F: Fn(crate::Request) -> R + Send + Sync + 'static,
@@ -110,6 +144,7 @@ impl App {
     {
         self.route(crate::Method::new("POST")?, path, handler)
     }
+
     pub fn put<F, R>(&mut self, path: &str, handler: F) -> Result<()>
     where
         F: Fn(crate::Request) -> R + Send + Sync + 'static,
@@ -117,6 +152,7 @@ impl App {
     {
         self.route(crate::Method::new("PUT")?, path, handler)
     }
+
     pub fn patch<F, R>(&mut self, path: &str, handler: F) -> Result<()>
     where
         F: Fn(crate::Request) -> R + Send + Sync + 'static,
@@ -124,6 +160,7 @@ impl App {
     {
         self.route(crate::Method::new("PATCH")?, path, handler)
     }
+
     pub fn delete<F, R>(&mut self, path: &str, handler: F) -> Result<()>
     where
         F: Fn(crate::Request) -> R + Send + Sync + 'static,
@@ -131,6 +168,7 @@ impl App {
     {
         self.route(crate::Method::new("DELETE")?, path, handler)
     }
+
     pub fn head<F, R>(&mut self, path: &str, handler: F) -> Result<()>
     where
         F: Fn(crate::Request) -> R + Send + Sync + 'static,
@@ -138,6 +176,7 @@ impl App {
     {
         self.route(crate::Method::new("HEAD")?, path, handler)
     }
+
     pub fn options<F, R>(&mut self, path: &str, handler: F) -> Result<()>
     where
         F: Fn(crate::Request) -> R + Send + Sync + 'static,
@@ -151,6 +190,7 @@ impl App {
     pub fn bind(self, address: impl std::net::ToSocketAddrs) -> Result<crate::server::Server> {
         Ok(crate::server::Server::bind(self, address)?)
     }
+
     pub fn listen(self, address: impl std::net::ToSocketAddrs) -> Result<()> {
         self.bind(address)?.run()?;
         Ok(())
@@ -161,6 +201,7 @@ impl App {
     pub fn middleware(&mut self, layer: impl crate::Middleware) {
         self.layers.0.push(std::sync::Arc::new(layer));
     }
+
     /// One value per type. Newtype wrappers distinguish values of the same underlying type.
     pub fn state<T: Send + Sync + 'static>(&mut self, value: T) -> Result<()> {
         if !self.state.insert(value) {
@@ -168,6 +209,7 @@ impl App {
         }
         Ok(())
     }
+
     /// Build routes transactionally. The child application's config and state are not inherited.
     pub fn group(
         &mut self,

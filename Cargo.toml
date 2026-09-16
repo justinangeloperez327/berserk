@@ -1,11 +1,11 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 exclude = ["examples/minimal-api"]
-members = ["crates/core", "crates/validation", "crates/database", "crates/auth", "crates/openapi", "crates/cache", "crates/storage", "crates/events", "crates/jobs", "crates/client", "crates/notifications", "crates/cli", "crates/testing", "crates/framework", "examples/foundation", "benchmarks"]
+members = ["crates/core", "crates/validation", "crates/database", "crates/claw", "crates/auth", "crates/openapi", "crates/cache", "crates/storage", "crates/events", "crates/jobs", "crates/client", "crates/notifications", "crates/cli", "crates/testing", "crates/framework", "examples/foundation", "benchmarks"]
 
 [workspace.package]
 version = "0.0.0"
-edition = "2021"
+edition = "2024"
 rust-version = "1.88"
 publish = false
 
@@ -15,6 +15,7 @@ unsafe_code = "forbid"
 [workspace.dependencies]
 framework-core = { path = "crates/core" }
 framework-database = { path = "crates/database" }
+claw-orm = { path = "crates/claw" }
 framework-auth = { path = "crates/auth" }
 framework-openapi = { path = "crates/openapi" }
 framework-cache = { path = "crates/cache" }
@@ -26,5 +27,3 @@ framework-notifications = { path = "crates/notifications" }
 framework-cli = { path = "crates/cli" }
 framework-testing = { path = "crates/testing" }
 framework = { path = "crates/framework" }
-
-

@@ -73,7 +73,8 @@ impl Request {
     }
     pub fn validated<T: FromJson + ValidateInput>(&self) -> Result<T> {
         let value = self.json()?;
-        let typed = T::from_json(&value).map_err(InputError::Fields)?;
+        let mut typed = T::from_json(&value).map_err(InputError::Fields)?;
+        typed.sanitize();
         typed.validate().map_err(InputError::Fields)?;
         Ok(typed)
     }
