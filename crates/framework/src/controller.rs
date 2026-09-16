@@ -24,6 +24,12 @@ pub struct RouteParams<T, U>(PhantomData<fn() -> (T, U)>);
 pub struct RouteParamsRequest<T, U>(PhantomData<fn() -> (T, U)>);
 
 #[doc(hidden)]
+pub struct RouteParamsValidated<T, U, I>(PhantomData<fn() -> (T, U, I)>);
+
+#[doc(hidden)]
+pub struct RouteParamsValidatedRequest<T, U, I>(PhantomData<fn() -> (T, U, I)>);
+
+#[doc(hidden)]
 pub struct ValidatedArg<T>(PhantomData<fn() -> T>);
 
 #[doc(hidden)]
@@ -159,6 +165,59 @@ where
             Err(response) => return Ok(response),
         };
         self(first, second, request).into_response()
+    }
+}
+
+impl<F, T, U, I, R> Handler<RouteParamsValidated<T, U, I>> for F
+where
+    F: Fn(T, U, Validated<I>) -> R + Send + Sync + 'static,
+    T: FromStr + 'static,
+    U: FromStr + 'static,
+    I: FromJson + ValidateInput + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(2)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let first = match route_param(&request, 0) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        let second = match route_param(&request, 1) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        let input = request.validated::<I>()?;
+        self(first, second, Validated::new(input)).into_response()
+    }
+}
+
+impl<F, T, U, I, R> Handler<RouteParamsValidatedRequest<T, U, I>> for F
+where
+    F: Fn(T, U, Validated<I>, Request) -> R + Send + Sync + 'static,
+    T: FromStr + 'static,
+    U: FromStr + 'static,
+    I: FromJson + ValidateInput + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(2)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let first = match route_param(&request, 0) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        let second = match route_param(&request, 1) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        let input = request.validated::<I>()?;
+        self(first, second, Validated::new(input), request)
+            .into_response()
     }
 }
 
