@@ -10,6 +10,7 @@ use std::{
     error::Error as StdError,
     io::{self, Read},
     panic::{catch_unwind, AssertUnwindSafe},
+    sync::Arc,
 };
 
 use crate::{Headers, Method, Request, Response, ServerConfig, Validate};
@@ -223,7 +224,7 @@ fn fallback_wire_response(status: u16) -> http::Response<WireBody> {
     reason = "staged Hyper transport migration; listener wiring follows adapter verification"
 )]
 pub(super) async fn dispatch<B>(
-    app: &crate::App,
+    app: Arc<crate::App>,
     request: http::Request<B>,
 ) -> http::Response<WireBody>
 where
@@ -236,10 +237,15 @@ where
         Err(error) => return fallback_wire_response(error.status_code()),
     };
 
-    let response = match catch_unwind(AssertUnwindSafe(|| app.handle(request))) {
-        Ok(Ok(response)) => response,
-        Ok(Err(error)) => application_error_response(error),
-        Err(_) => Response::text("Internal Server Error").status(500),
+    let handled = tokio::task::spawn_blocking(move || {
+        catch_unwind(AssertUnwindSafe(|| app.handle(request)))
+    })
+    .await;
+
+    let response = match handled {
+        Ok(Ok(Ok(response))) => response,
+        Ok(Ok(Err(error))) => application_error_response(error),
+        Ok(Err(_)) | Err(_) => Response::text("Internal Server Error").status(500),
     };
 
     match into_wire_response(response, head) {
