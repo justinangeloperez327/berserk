@@ -74,13 +74,14 @@ fn post_row(id: u64, user_id: u64, title: &str) -> Row {
 struct FakeConnection {
     rows: Vec<Row>,
     statements: Vec<Statement>,
+    executed: Vec<Statement>,
 }
 
 impl FakeConnection {
     fn with_rows(rows: Vec<Row>) -> Self {
         Self {
             rows,
-            statements: Vec::new(),
+            ..Self::default()
         }
     }
 }
@@ -94,8 +95,12 @@ impl Connection for FakeConnection {
         Capabilities::new()
     }
 
-    fn execute(&mut self, _statement: &Statement) -> Result<Execution> {
-        Ok(Execution::default())
+    fn execute(&mut self, statement: &Statement) -> Result<Execution> {
+        self.executed.push(statement.clone());
+        Ok(Execution {
+            affected_rows: 1,
+            last_insert_id: Some(42),
+        })
     }
 
     fn query(&mut self, statement: &Statement) -> Result<Vec<Row>> {
@@ -154,6 +159,31 @@ fn model_static_query_entry_points_are_laravel_style() {
         "SELECT * FROM \"users\" WHERE \"active\" = $1 AND \"name\" IS NOT NULL ORDER BY \"name\" DESC LIMIT 10"
     );
     assert_eq!(statement.bindings(), &[Value::Bool(true)]);
+}
+
+#[test]
+fn create_uses_the_model_table_and_keeps_values_bound() {
+    let mut connection = FakeConnection::default();
+    let execution = User::create(
+        &mut connection,
+        [
+            ("name", Value::from("Ada")),
+            ("active", Value::from(true)),
+        ],
+    )
+    .unwrap();
+
+    assert_eq!(execution.affected_rows, 1);
+    assert_eq!(execution.last_insert_id, Some(42));
+    assert_eq!(connection.executed.len(), 1);
+    assert_eq!(
+        connection.executed[0].sql(),
+        "INSERT INTO \"users\" (\"name\", \"active\") VALUES (?, ?)"
+    );
+    assert_eq!(
+        connection.executed[0].bindings(),
+        &[Value::Text("Ada".into()), Value::Bool(true)]
+    );
 }
 
 #[test]
