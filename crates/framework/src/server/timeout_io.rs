@@ -168,4 +168,15 @@ mod tests {
             assert_eq!(error.kind(), io::ErrorKind::TimedOut);
         });
     }
+
+    #[test]
+    fn pending_shutdown_times_out() {
+        runtime().block_on(async {
+            let mut io = WriteTimeoutIo::new(PendingIo, Duration::from_millis(20));
+            let error = poll_fn(|cx| Pin::new(&mut io).poll_shutdown(cx))
+                .await
+                .unwrap_err();
+            assert_eq!(error.kind(), io::ErrorKind::TimedOut);
+        });
+    }
 }
