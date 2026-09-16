@@ -250,9 +250,7 @@ fn controller_can_receive_two_bound_claw_models() {
     assert_eq!(response.body(), b"7:3:First");
     assert_eq!(acquisitions.load(Ordering::SeqCst), 1);
 
-    let contextual = app
-        .handle(request("/users/7/posts/3/context"))
-        .unwrap();
+    let contextual = app.handle(request("/users/7/posts/3/context")).unwrap();
     assert_eq!(contextual.body(), b"7:3:First:/users/7/posts/3/context");
     assert_eq!(acquisitions.load(Ordering::SeqCst), 2);
 
