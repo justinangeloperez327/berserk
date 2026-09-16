@@ -1,5 +1,6 @@
 //! HTTP server transport and codecs.
 mod error;
+mod hyper_adapter;
 mod parser;
 mod validation;
 mod writer;
