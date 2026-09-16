@@ -44,7 +44,6 @@ impl Pattern {
                 probe.push(part);
             }
         }
-        // Reuse target grammar without normalizing static route segments.
         Request::new(
             Method::new("GET").expect("valid static method"),
             probe.join("/"),
@@ -67,6 +66,7 @@ impl Pattern {
         }
         Self::parse(&format!("{prefix}{}", self.source))
     }
+
     pub(super) fn equivalent(&self, other: &Self) -> bool {
         self.segments.len() == other.segments.len()
             && self
@@ -78,6 +78,13 @@ impl Pattern {
                     (Segment::Param(_), Segment::Param(_)) => true,
                     _ => false,
                 })
+    }
+
+    pub(super) fn parameter_count(&self) -> usize {
+        self.segments
+            .iter()
+            .filter(|segment| matches!(segment, Segment::Param(_)))
+            .count()
     }
 
     pub(super) fn captures(&self, path: &str) -> Option<HashMap<String, String>> {
