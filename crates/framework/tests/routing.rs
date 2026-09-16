@@ -166,7 +166,7 @@ fn missing_methods_and_trailing_slashes_are_distinct() {
     app.get("/", || Response::text("root")).unwrap();
     app.get("/x", || Response::text("plain")).unwrap();
     app.get("/x/", || Response::text("slash")).unwrap();
-    app.put("/x", || Response::empty()).unwrap();
+    app.put("/x", Response::empty).unwrap();
     assert_eq!(app.handle(request("GET", "/x/")).unwrap().body(), b"slash");
     assert_eq!(
         app.handle(request("GET", "/missing"))
@@ -195,7 +195,7 @@ fn head_uses_get_and_suppresses_bodies() {
         .unwrap()
         .body()
         .is_empty());
-    app.post("/post", || Response::empty()).unwrap();
+    app.post("/post", Response::empty).unwrap();
     let response = app.handle(request("HEAD", "/post")).unwrap();
     assert_eq!(response.status_code(), 405);
     assert!(response.body().is_empty());
