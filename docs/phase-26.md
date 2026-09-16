@@ -23,7 +23,7 @@ Phase 26 establishes the framework-wide quality, security, compatibility, and re
 | Dependency advisory and license audit | Passing |
 | Fuzzing, live databases, load/soak tests | Pending |
 | Independent security review | Pending |
-| License and framework name | MIT and BERSERK selected; package renaming/versioning pending |
+| License and framework name | MIT and BERSERK selected; public crate and CLI renamed to `berserk`; versioning pending |
 | Publication | Not performed; owner-only |
 
 Phase 26's implementation package is complete as a reviewable source artifact. The framework itself is not release-ready until every blocking gate in `docs/release-checklist.md` passes.
