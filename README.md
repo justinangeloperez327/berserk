@@ -174,13 +174,32 @@ fn update(id: u64, request: Request) -> Result<Response> {
 }
 ```
 
-A typed route parameter that cannot be parsed returns `400 Bad Request`. A controller expecting one typed route parameter cannot be registered against a route with a different parameter count.
+Multiple typed parameters are extracted in route-template order. A typed route parameter that cannot be parsed returns `400 Bad Request`. A controller expecting a different number of typed route parameters cannot be registered against the route.
+
+With Claw enabled, route models and validated input can be injected directly:
+
+```rust
+fn update(
+    mut user: User,
+    input: Validated<UpdateUser>,
+    request: Request,
+) -> Result<Response> {
+    user.name = input.name.clone();
+
+    let mut connection = request.connection()?;
+    user.save(&mut *connection)?;
+
+    Ok(Response::empty().status(204))
+}
+```
+
+For `route.put("/users/{user}", update)`, Berserk parses the model key, loads the model through Claw, returns `404` when the model is missing, then decodes, sanitizes, and validates the request body before invoking the controller.
 
 The router provides static-route precedence, path parameters, named paths, REST resources, `404`, `405`, automatic `HEAD` fallback to `GET`, scoped middleware, nested prefixes, atomic route groups, and a root fallback.
 
 ## Fluent database queries
 
-Berserk keeps Laravel-style readability while making database execution visible:
+Berserk keeps Laravel-style readability while making database execution visible. `User::query()` remains the canonical query-builder entry point:
 
 ```rust
 let users = User::query()
@@ -191,9 +210,70 @@ let users = User::query()
     .get(&mut connection)?;
 ```
 
-Methods such as `where_`, `or_where`, `where_in`, `where_not_null`, and `order_by` build the query. Terminal methods such as `get`, `first`, and `paginate` execute it.
+Convenience entry points remain available when a query starts with a known predicate:
+
+```rust
+let users = User::where_("active", "=", true)
+    .order_by("name", Direction::Asc)
+    .get(&mut connection)?;
+```
+
+Methods such as `where_`, `or_where`, `where_in`, `where_not_null`, and `order_by` build the query. Terminal methods such as `get`, `first`, `count`, `exists`, `update`, `delete`, and `paginate` execute it.
 
 SQL values remain separate from SQL text through bound parameters. Raw SQL remains available as an explicit escape hatch.
+
+## Claw model lifecycle
+
+Claw keeps row decoding and write serialization separate. Every model implements `Model`; models that want automatic `save()` explicitly opt into `PersistableModel` and declare the columns they allow Claw to write:
+
+```rust
+impl PersistableModel for User {
+    fn values_for_save(&self) -> Vec<(&'static str, Value)> {
+        vec![
+            ("name", self.name.clone().into()),
+            ("active", self.active.into()),
+        ]
+    }
+}
+```
+
+The primary key is always used as the update filter and is rejected if it is included in `values_for_save`:
+
+```rust
+user.name = "Grace".into();
+user.save(&mut connection)?;
+```
+
+Explicit instance mutation is also available when only selected columns should be written:
+
+```rust
+user.update(
+    &mut connection,
+    [("name", Value::from("Grace"))],
+)?;
+
+user.delete(&mut connection)?;
+```
+
+`update` does not silently rewrite the Rust struct. Use `fresh()` to fetch a new copy or `refresh()` to replace the current model from the database:
+
+```rust
+let fresh_user = user.fresh(&mut connection)?;
+
+if user.refresh(&mut connection)? {
+    // `user` now contains the current database row.
+}
+```
+
+Database access can be registered once on the application and acquired explicitly from a request:
+
+```rust
+app.database(database)?;
+
+let mut connection = request.connection()?;
+```
+
+This keeps connection ownership visible and leaves pooling strategy behind the `Database` acquisition boundary.
 
 ## Optional features
 
