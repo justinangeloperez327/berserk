@@ -21,7 +21,13 @@ pub struct RouteParamRequest<T>(PhantomData<fn() -> T>);
 pub struct ValidatedArg<T>(PhantomData<fn() -> T>);
 
 #[doc(hidden)]
+pub struct ValidatedRequest<T>(PhantomData<fn() -> T>);
+
+#[doc(hidden)]
 pub struct RouteParamValidated<T, I>(PhantomData<fn() -> (T, I)>);
+
+#[doc(hidden)]
+pub struct RouteParamValidatedRequest<T, I>(PhantomData<fn() -> (T, I)>);
 
 #[doc(hidden)]
 pub trait Handler<Args>: Send + Sync + 'static {
@@ -115,6 +121,22 @@ where
     }
 }
 
+impl<F, T, R> Handler<ValidatedRequest<T>> for F
+where
+    F: Fn(Validated<T>, Request) -> R + Send + Sync + 'static,
+    T: FromJson + ValidateInput + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(0)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let value = request.validated::<T>()?;
+        self(Validated::new(value), request).into_response()
+    }
+}
+
 impl<F, T, I, R> Handler<RouteParamValidated<T, I>> for F
 where
     F: Fn(T, Validated<I>) -> R + Send + Sync + 'static,
@@ -135,5 +157,29 @@ where
         };
         let input = request.validated::<I>()?;
         self(route_param, Validated::new(input)).into_response()
+    }
+}
+
+impl<F, T, I, R> Handler<RouteParamValidatedRequest<T, I>> for F
+where
+    F: Fn(T, Validated<I>, Request) -> R + Send + Sync + 'static,
+    T: FromStr + 'static,
+    I: FromJson + ValidateInput + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(1)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let route_param = match request.single_param_as::<T>() {
+            Some(Ok(value)) => value,
+            Some(Err(_)) | None => {
+                return Ok(Response::text("Invalid route parameter").status(400));
+            }
+        };
+        let input = request.validated::<I>()?;
+        self(route_param, Validated::new(input), request)
+            .into_response()
     }
 }
