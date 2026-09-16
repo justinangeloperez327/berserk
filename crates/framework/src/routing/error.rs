@@ -21,10 +21,14 @@ impl fmt::Display for RouteError {
         match self {
             Self::InvalidPattern => f.write_str("invalid route pattern"),
             Self::InvalidRouteName => f.write_str("invalid route name"),
-            Self::InvalidResourcePath => f.write_str("resource path must be a non-root static path"),
+            Self::InvalidResourcePath => {
+                f.write_str("resource path must be a non-root static path")
+            }
             Self::DuplicateParameter => f.write_str("duplicate parameter name in route"),
             Self::DuplicateRoute => f.write_str("equivalent route already registered for method"),
-            Self::DuplicateRouteName(name) => write!(f, "route name '{name}' is already registered"),
+            Self::DuplicateRouteName(name) => {
+                write!(f, "route name '{name}' is already registered")
+            }
             Self::DuplicateFallback => f.write_str("fallback route already registered"),
             Self::ScopedFallback => {
                 f.write_str("fallback routes cannot be registered under a path prefix")
