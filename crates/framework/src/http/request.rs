@@ -146,8 +146,12 @@ impl Request {
         self.param(name).map(str::parse)
     }
 
+    pub(crate) fn param_at(&self, index: usize) -> Option<&str> {
+        self.param_values.get(index).map(String::as_str)
+    }
+
     pub(crate) fn param_at_as<T: FromStr>(&self, index: usize) -> Option<Result<T, T::Err>> {
-        self.param_values.get(index).map(|value| value.parse())
+        self.param_at(index).map(str::parse)
     }
 
     pub fn query_string(&self) -> Option<&str> {
