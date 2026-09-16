@@ -58,6 +58,14 @@ fn update(id: u64, input: Validated<UserInput>) -> Response {
     Response::text(format!("{id}:{}", input.name))
 }
 
+fn store_with_request(input: Validated<UserInput>, request: Request) -> Response {
+    Response::text(format!("{}:{}", request.method().as_str(), input.name))
+}
+
+fn update_with_request(id: u64, input: Validated<UserInput>, request: Request) -> Response {
+    Response::text(format!("{id}:{}:{}", input.name, request.path()))
+}
+
 fn input_status(error: Error) -> u16 {
     match error {
         Error::Input(error) => error.response().status_code(),
@@ -83,6 +91,38 @@ fn validated_controller_input_is_sanitized_before_validation() {
         .handle(request("PUT", "/users/7", r#"{"name":"  Grace  "}"#, true))
         .unwrap();
     assert_eq!(updated.body(), b"7:Grace");
+}
+
+#[test]
+fn validated_controller_can_also_receive_request_context() {
+    let mut app = App::new();
+    {
+        let mut route = app.route();
+        route.post("/context", store_with_request).unwrap();
+        route
+            .patch("/users/{id}/context", update_with_request)
+            .unwrap();
+    }
+
+    let stored = app
+        .handle(request(
+            "POST",
+            "/context",
+            r#"{"name":"  Ada  "}"#,
+            true,
+        ))
+        .unwrap();
+    assert_eq!(stored.body(), b"POST:Ada");
+
+    let updated = app
+        .handle(request(
+            "PATCH",
+            "/users/12/context",
+            r#"{"name":"  Grace  "}"#,
+            true,
+        ))
+        .unwrap();
+    assert_eq!(updated.body(), b"12:Grace:/users/12/context");
 }
 
 #[test]
