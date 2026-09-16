@@ -117,10 +117,7 @@ impl Server {
         drop(sender);
         for worker in workers {
             if worker.join().is_err() && result.is_ok() {
-                result = Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    "server worker panicked",
-                ));
+                result = Err(io::Error::other("server worker panicked"));
             }
         }
         result
