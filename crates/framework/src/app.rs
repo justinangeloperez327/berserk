@@ -85,6 +85,11 @@ impl App {
         crate::routing::Route::new(&mut self.router)
     }
 
+    /// Builds a path for a named route, percent-encoding route parameter values.
+    pub fn path_for(&self, name: &str, params: &[(&str, &str)]) -> Result<String> {
+        self.router.path_for(name, params)
+    }
+
     /// Dispatch without network I/O. Handler errors propagate; panics are not caught here.
     pub fn handle(&self, request: crate::Request) -> Result<crate::Response> {
         let mut request = request;
