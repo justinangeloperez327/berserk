@@ -8,4 +8,4 @@ pub use crate::{
 };
 pub use crate::{Metrics, MetricsLayer, RateLimitLayer, RateLimiter, RequestLogger, TraceLayer};
 #[cfg(feature = "claw")]
-pub use claw_orm::{Model, PersistableModel};
+pub use claw_orm::{Model, PersistableModel, ScopedRouteModel};
