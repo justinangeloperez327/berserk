@@ -5,6 +5,7 @@ mod hyper_adapter;
 mod hyper_adapter_tests;
 mod hyper_connection;
 mod parser;
+mod timeout_io;
 mod validation;
 mod writer;
 pub use error::ProtocolError;
