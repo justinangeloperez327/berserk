@@ -37,9 +37,9 @@ pub use framework_openapi as openapi;
 #[cfg(feature = "storage")]
 pub use framework_storage as storage;
 
-pub use http::{Headers, HttpError, IntoResponse, Method, Request, Response, StatusCode};
 #[cfg(feature = "database")]
 pub use http::RequestConnection;
+pub use http::{Headers, HttpError, IntoResponse, Method, Request, Response, StatusCode};
 
 pub mod routing;
 pub use routing::{ApiResourceController, NamedRoute, ResourceController, Route, RouteError};
