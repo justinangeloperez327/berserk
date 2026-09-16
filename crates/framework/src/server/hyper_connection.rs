@@ -12,11 +12,7 @@ use std::{
 
 const HYPER_MIN_BUFFER: usize = 8192;
 
-pub(super) async fn serve(
-    stream: tokio::net::TcpStream,
-    accepted: Instant,
-    app: Arc<App>,
-) -> bool {
+pub(super) async fn serve(stream: tokio::net::TcpStream, accepted: Instant, app: Arc<App>) -> bool {
     let config = app.config().clone();
     let Some(first_deadline) = accepted.checked_add(config.request_deadline) else {
         return false;
