@@ -49,6 +49,14 @@ pub struct RouteModel<M>(PhantomData<M>);
 #[doc(hidden)]
 pub struct RouteModelRequest<M>(PhantomData<M>);
 
+#[cfg(feature = "claw")]
+#[doc(hidden)]
+pub struct RouteModelValidated<M, I>(PhantomData<M>, PhantomData<I>);
+
+#[cfg(feature = "claw")]
+#[doc(hidden)]
+pub struct RouteModelValidatedRequest<M, I>(PhantomData<M>, PhantomData<I>);
+
 #[doc(hidden)]
 pub trait Handler<Args>: Send + Sync + 'static {
     fn expected_route_params() -> Option<usize>;
@@ -190,6 +198,50 @@ where
             Err(response) => return Ok(response),
         };
         self(model, request).into_response()
+    }
+}
+
+#[cfg(feature = "claw")]
+impl<F, M, I, R> Handler<RouteModelValidated<M, I>> for F
+where
+    F: Fn(M, Validated<I>) -> R + Send + Sync + 'static,
+    M: claw_orm::Model + 'static,
+    I: FromJson + ValidateInput + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(1)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let model = match route_model::<M>(&request, 0)? {
+            Ok(model) => model,
+            Err(response) => return Ok(response),
+        };
+        let input = request.validated::<I>()?;
+        self(model, Validated::new(input)).into_response()
+    }
+}
+
+#[cfg(feature = "claw")]
+impl<F, M, I, R> Handler<RouteModelValidatedRequest<M, I>> for F
+where
+    F: Fn(M, Validated<I>, Request) -> R + Send + Sync + 'static,
+    M: claw_orm::Model + 'static,
+    I: FromJson + ValidateInput + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(1)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let model = match route_model::<M>(&request, 0)? {
+            Ok(model) => model,
+            Err(response) => return Ok(response),
+        };
+        let input = request.validated::<I>()?;
+        self(model, Validated::new(input), request).into_response()
     }
 }
 
