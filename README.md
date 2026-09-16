@@ -52,8 +52,11 @@ use berserk::{App, Response, Result};
 fn main() -> Result<()> {
     let mut app = App::new();
 
-    app.get("/", || Response::text("Hello from Berserk!"))?;
-    app.get("/users/{id}", show_user)?;
+    {
+        let mut route = app.route();
+        route.get("/", || Response::text("Hello from Berserk!"))?;
+        route.get("/users/{id}", show_user)?;
+    }
 
     app.listen("127.0.0.1:3000")
 }
@@ -67,15 +70,30 @@ No controller, service layer, application folder, or macro is required.
 
 ## Routing
 
-Berserk exposes the standard application routing verbs directly:
+Routes are registered through an instance registrar borrowed from the application:
 
 ```rust
-app.get("/health", health)?;
-app.get("/users/{id}", users::show)?;
-app.post("/users", users::store)?;
-app.put("/users/{id}", users::update)?;
-app.patch("/users/{id}", users::patch)?;
-app.delete("/users/{id}", users::destroy)?;
+let mut route = app.route();
+
+route.get("/health", health)?;
+route.get("/users/{id}", users::show)?;
+route.post("/users", users::store)?;
+route.put("/users/{id}", users::update)?;
+route.patch("/users/{id}", users::patch)?;
+route.delete("/users/{id}", users::destroy)?;
+```
+
+Prefixes and middleware are scoped rather than global:
+
+```rust
+route
+    .prefix("/api")
+    .middleware(auth)
+    .group(|route| {
+        route.get("/users", users::index)?;
+        route.get("/users/{id}", users::show)?;
+        Ok(())
+    })?;
 ```
 
 Handler signatures declare what Berserk should provide:
@@ -97,7 +115,7 @@ fn update(id: u64, request: Request) -> Result<Response> {
 
 A typed route parameter that cannot be parsed returns `400 Bad Request`. A controller expecting one typed route parameter cannot be registered against a route with a different parameter count.
 
-The router provides static-route precedence, path parameters, `404`, `405`, and automatic `HEAD` fallback to `GET`.
+The router provides static-route precedence, path parameters, `404`, `405`, automatic `HEAD` fallback to `GET`, scoped middleware, nested prefixes, and atomic route groups.
 
 ## Fluent database queries
 
