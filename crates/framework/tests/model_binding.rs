@@ -1,7 +1,7 @@
 #![cfg(feature = "claw")]
 
 use framework::{
-    claw::{field, Model, Row, Value},
+    claw::{field, Model, Row, ScopedRouteModel, Value},
     database::{
         Capabilities, Connection, Database, DatabaseError, Driver, ErrorKind, Execution, Statement,
         Transaction, TransactionOptions,
@@ -55,6 +55,10 @@ impl Model for Post {
     fn key(&self) -> Value {
         self.id.into()
     }
+}
+
+impl ScopedRouteModel<User> for Post {
+    const PARENT_FOREIGN_KEY: &'static str = "user_id";
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -114,7 +118,15 @@ impl Connection for FakeConnection {
                 framework::database::Column::new("name", "Ada"),
             ])?]);
         }
-        if statement.sql().contains("\"posts\"") && statement.bindings() == [Value::U64(3)] {
+        if statement.sql().contains("\"users\"") && statement.bindings() == [Value::U64(8)] {
+            return Ok(vec![Row::new(vec![
+                framework::database::Column::new("id", 8_u64),
+                framework::database::Column::new("name", "Grace"),
+            ])?]);
+        }
+        if statement.sql().contains("\"posts\"")
+            && statement.bindings() == [Value::U64(3), Value::U64(7)]
+        {
             return Ok(vec![Row::new(vec![
                 framework::database::Column::new("id", 3_u64),
                 framework::database::Column::new("title", "First"),
@@ -272,6 +284,10 @@ fn controller_can_receive_two_bound_claw_models() {
     let contextual = app.handle(request("/users/7/posts/3/context")).unwrap();
     assert_eq!(contextual.body(), b"7:3:First:/users/7/posts/3/context");
     assert_eq!(acquisitions.load(Ordering::SeqCst), 2);
+
+    let wrong_parent = app.handle(request("/users/8/posts/3")).unwrap();
+    assert_eq!(wrong_parent.status_code(), 404);
+    assert_eq!(acquisitions.load(Ordering::SeqCst), 3);
 
     assert_eq!(
         app.handle(request("/users/7/posts/not-a-number"))
