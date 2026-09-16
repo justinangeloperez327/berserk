@@ -140,9 +140,7 @@ fn fallback_runs_only_when_no_pattern_matches() {
         b"missing:/missing"
     );
     assert_eq!(
-        app.handle(request("POST", "/users"))
-            .unwrap()
-            .status_code(),
+        app.handle(request("POST", "/users")).unwrap().status_code(),
         405
     );
 }
@@ -175,9 +173,7 @@ fn fallback_supports_middleware_but_rejects_invalid_registration() {
     let mut prefixed_app = App::new();
     let scoped = {
         let mut route = prefixed_app.route();
-        route
-            .prefix("/api")
-            .fallback(|| Response::text("missing"))
+        route.prefix("/api").fallback(|| Response::text("missing"))
     }
     .unwrap_err();
     assert!(matches!(
