@@ -3,7 +3,10 @@ use framework::{App, Response, ServerConfig, ShutdownHandle};
 use std::{
     io::{Read, Write},
     net::{SocketAddr, TcpStream},
-    sync::{mpsc, Arc, Condvar, Mutex},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        mpsc, Arc, Condvar, Mutex,
+    },
     thread,
     time::{Duration, Instant},
 };
@@ -70,6 +73,60 @@ fn idle_connection_expires_and_worker_remains_available() {
     let mut result = String::new();
     stream.read_to_string(&mut result).unwrap();
     assert!(result.ends_with("alive"));
+    server.stop();
+}
+#[test]
+fn stalled_request_body_expires_and_worker_remains_available() {
+    let mut app = App::with_config(ServerConfig {
+        workers: 1,
+        read_timeout: Duration::from_millis(100),
+        request_deadline: Duration::from_millis(500),
+        ..ServerConfig::default()
+    })
+    .unwrap();
+    app.post("/", || Response::text("unexpected")).unwrap();
+    app.get("/alive", || Response::text("alive")).unwrap();
+    let server = Running::new(app);
+
+    let mut stalled = server.connect();
+    stalled
+        .write_all(b"POST / HTTP/1.1\r\nHost: x\r\nContent-Length: 5\r\n\r\na")
+        .unwrap();
+    wait_for(|| server.stats.snapshot().failed >= 1);
+
+    let mut stream = server.connect();
+    stream
+        .write_all(b"GET /alive HTTP/1.1\r\nHost: x\r\n\r\n")
+        .unwrap();
+    let mut result = String::new();
+    stream.read_to_string(&mut result).unwrap();
+    assert!(result.ends_with("alive"));
+    server.stop();
+}
+#[test]
+fn oversized_live_body_returns_413_without_invoking_handler() {
+    let calls = Arc::new(AtomicUsize::new(0));
+    let handler_calls = Arc::clone(&calls);
+    let mut app = App::with_config(ServerConfig {
+        max_body_bytes: 4,
+        ..ServerConfig::default()
+    })
+    .unwrap();
+    app.post("/", move || {
+        handler_calls.fetch_add(1, Ordering::SeqCst);
+        Response::text("unexpected")
+    })
+    .unwrap();
+    let server = Running::new(app);
+
+    let mut stream = server.connect();
+    stream
+        .write_all(b"POST / HTTP/1.1\r\nHost: x\r\nContent-Length: 5\r\n\r\nhello")
+        .unwrap();
+    let mut result = String::new();
+    stream.read_to_string(&mut result).unwrap();
+    assert!(result.starts_with("HTTP/1.1 413"));
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
     server.stop();
 }
 #[test]
