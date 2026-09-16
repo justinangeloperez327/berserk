@@ -81,4 +81,8 @@ pub trait Model: Sized {
     {
         Query::table(Self::TABLE).insert(values).execute(connection)
     }
+
+    fn destroy(connection: &mut dyn Connection, key: impl Into<Value>) -> Result<Execution> {
+        Self::where_(Self::PRIMARY_KEY, "=", key).delete(connection)
+    }
 }
