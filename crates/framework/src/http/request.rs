@@ -33,6 +33,55 @@ impl DerefMut for RequestConnection<'_> {
     }
 }
 
+#[cfg(feature = "database")]
+struct RequestTransactionConnection<'a> {
+    transaction: &'a mut dyn framework_database::Transaction,
+    driver: framework_database::Driver,
+    capabilities: framework_database::Capabilities,
+}
+
+#[cfg(feature = "database")]
+impl framework_database::Connection for RequestTransactionConnection<'_> {
+    fn driver(&self) -> framework_database::Driver {
+        self.driver
+    }
+
+    fn capabilities(&self) -> framework_database::Capabilities {
+        self.capabilities
+    }
+
+    fn execute(
+        &mut self,
+        statement: &framework_database::Statement,
+    ) -> framework_database::Result<framework_database::Execution> {
+        self.transaction.execute(statement)
+    }
+
+    fn query(
+        &mut self,
+        statement: &framework_database::Statement,
+    ) -> framework_database::Result<Vec<framework_database::Row>> {
+        self.transaction.query(statement)
+    }
+
+    fn begin(
+        &mut self,
+        _options: framework_database::TransactionOptions,
+    ) -> framework_database::Result<Box<dyn framework_database::Transaction + '_>> {
+        Err(framework_database::DatabaseError::new(
+            framework_database::ErrorKind::Transaction,
+            "nested transactions are not supported by request transactions",
+        ))
+    }
+
+    fn ping(&mut self) -> framework_database::Result<()> {
+        Err(framework_database::DatabaseError::new(
+            framework_database::ErrorKind::Transaction,
+            "ping is not available inside a request transaction",
+        ))
+    }
+}
+
 /// Owned request data. This constructor is not a wire parser.
 pub struct Request {
     method: Method,
@@ -152,6 +201,37 @@ impl Request {
             *connection = Some(self.database()?.acquire()?);
         }
         Ok(RequestConnection { inner: connection })
+    }
+
+    #[cfg(feature = "database")]
+    pub fn transaction<T>(
+        &self,
+        options: framework_database::TransactionOptions,
+        operation: impl FnOnce(&mut dyn framework_database::Connection) -> crate::Result<T>,
+    ) -> crate::Result<T> {
+        let mut connection = self.connection()?;
+        let driver = connection.driver();
+        let capabilities = connection.capabilities();
+        let mut transaction = connection.begin(options)?;
+        let result = {
+            let mut transactional = RequestTransactionConnection {
+                transaction: &mut *transaction,
+                driver,
+                capabilities,
+            };
+            operation(&mut transactional)
+        };
+
+        match result {
+            Ok(value) => {
+                transaction.commit()?;
+                Ok(value)
+            }
+            Err(error) => {
+                transaction.rollback()?;
+                Err(error)
+            }
+        }
     }
 
     pub fn request_id(&self) -> Option<&str> {
