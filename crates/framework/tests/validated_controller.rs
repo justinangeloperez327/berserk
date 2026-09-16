@@ -80,12 +80,7 @@ fn validated_controller_input_is_sanitized_before_validation() {
     assert_eq!(stored.body(), b"Ada");
 
     let updated = app
-        .handle(request(
-            "PUT",
-            "/users/7",
-            r#"{"name":"  Grace  "}"#,
-            true,
-        ))
+        .handle(request("PUT", "/users/7", r#"{"name":"  Grace  "}"#, true))
         .unwrap();
     assert_eq!(updated.body(), b"7:Grace");
 }
