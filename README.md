@@ -273,7 +273,38 @@ app.database(database)?;
 let mut connection = request.connection()?;
 ```
 
-This keeps connection ownership visible and leaves pooling strategy behind the `Database` acquisition boundary.
+`request.connection()` lazily acquires one connection for that request and reuses it across non-overlapping borrows. This keeps ownership visible while allowing route-model binding and controller persistence to share the same acquired connection. Pooling strategy remains behind the `Database` acquisition boundary.
+
+### Request transactions
+
+Use the request-scoped connection for atomic database work without changing the normal Claw or query-builder APIs:
+
+```rust
+request.transaction(TransactionOptions::default(), |connection| {
+    user.save(connection)?;
+    audit.save(connection)?;
+
+    Ok(())
+})?;
+```
+
+The transaction reuses the request's existing connection. The closure receives a connection-compatible mutable reference, so Claw operations and query-builder terminal methods use the same syntax they use outside a transaction.
+
+Berserk commits when the closure returns `Ok` and rolls back when it returns `Err`. When rollback succeeds, the original application error is returned. A commit or rollback failure is surfaced as a database transaction error because the final transaction state is uncertain.
+
+Read-only transactions can be requested explicitly:
+
+```rust
+request.transaction(
+    TransactionOptions { read_only: true },
+    |connection| {
+        let users = User::query().get(connection)?;
+        Ok(users)
+    },
+)?;
+```
+
+Driver capabilities still apply; a driver may reject an unsupported transaction option. Nested transactions are not currently supported through the request transaction view.
 
 ## Optional features
 
