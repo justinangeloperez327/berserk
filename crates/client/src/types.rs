@@ -318,17 +318,20 @@ fn parse_authority(authority: &str) -> Result<(String, Option<u16>)> {
         };
         return Ok((host.into(), port));
     }
-    let (host, port) = match authority.rsplit_once(':') {
-        Some((host, port)) if !port.is_empty() && port.bytes().all(|byte| byte.is_ascii_digit()) => {
-            (
-                host,
-                Some(port.parse().map_err(|_| {
-                    ClientError::new(ErrorKind::InvalidUrl, "URL port is invalid")
-                })?),
-            )
-        }
-        _ => (authority, None),
-    };
+    let (host, port) =
+        match authority.rsplit_once(':') {
+            Some((host, port))
+                if !port.is_empty() && port.bytes().all(|byte| byte.is_ascii_digit()) =>
+            {
+                (
+                    host,
+                    Some(port.parse().map_err(|_| {
+                        ClientError::new(ErrorKind::InvalidUrl, "URL port is invalid")
+                    })?),
+                )
+            }
+            _ => (authority, None),
+        };
     if host.is_empty() || host.contains(':') {
         return Err(ClientError::new(
             ErrorKind::InvalidUrl,
