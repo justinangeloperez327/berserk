@@ -142,6 +142,21 @@ fn model_queries_decode_rows_and_keep_execution_explicit() {
 }
 
 #[test]
+fn model_static_query_entry_points_are_laravel_style() {
+    let query = User::where_("active", "=", true)
+        .where_not_null("name")
+        .order_by("name", Direction::Desc)
+        .limit(10);
+    let statement = query.to_statement(Driver::Postgres).unwrap();
+
+    assert_eq!(
+        statement.sql(),
+        "SELECT * FROM \"users\" WHERE \"active\" = $1 AND \"name\" IS NOT NULL ORDER BY \"name\" DESC LIMIT 10"
+    );
+    assert_eq!(statement.bindings(), &[Value::Bool(true)]);
+}
+
+#[test]
 fn find_uses_the_declared_primary_key() {
     let mut connection = FakeConnection::with_rows(vec![user_row(9, "Lin")]);
     let user = User::find(&mut connection, 9_u64).unwrap().unwrap();
