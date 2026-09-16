@@ -1,6 +1,6 @@
 use super::RouteError;
 use crate::{Headers, Method, Request};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 #[derive(Debug)]
 enum Segment {
@@ -80,6 +80,14 @@ impl Pattern {
                 })
     }
 
+    pub(super) fn same_template(&self, other: &Self) -> bool {
+        self.source == other.source
+    }
+
+    pub(super) fn source(&self) -> &str {
+        &self.source
+    }
+
     pub(super) fn parameter_count(&self) -> usize {
         self.segments
             .iter()
@@ -105,10 +113,47 @@ impl Pattern {
         Some(params)
     }
 
+    pub(super) fn build(&self, params: &BTreeMap<String, String>) -> Result<String, RouteError> {
+        let mut used = std::collections::BTreeSet::new();
+        let mut output = String::new();
+        for (index, segment) in self.segments.iter().enumerate() {
+            if index > 0 {
+                output.push('/');
+            }
+            match segment {
+                Segment::Static(value) => output.push_str(value),
+                Segment::Param(name) => {
+                    let value = params
+                        .get(name)
+                        .ok_or_else(|| RouteError::MissingRouteParameter(name.clone()))?;
+                    used.insert(name.as_str());
+                    encode_path_segment(value, &mut output);
+                }
+            }
+        }
+        if let Some(name) = params.keys().find(|name| !used.contains(name.as_str())) {
+            return Err(RouteError::UnknownRouteParameter(name.clone()));
+        }
+        Ok(output)
+    }
+
     pub(super) fn specificity(&self) -> Vec<bool> {
         self.segments
             .iter()
             .map(|s| matches!(s, Segment::Static(_)))
             .collect()
+    }
+}
+
+fn encode_path_segment(value: &str, output: &mut String) {
+    const HEX: &[u8; 16] = b"0123456789ABCDEF";
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'.' | b'_' | b'~') {
+            output.push(byte as char);
+        } else {
+            output.push('%');
+            output.push(HEX[(byte >> 4) as usize] as char);
+            output.push(HEX[(byte & 0x0f) as usize] as char);
+        }
     }
 }
