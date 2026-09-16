@@ -76,7 +76,7 @@ fn state_and_ids_are_available_and_groups_are_isolated() {
         })
     })
     .unwrap();
-    app.get("/outside", || Response::empty()).unwrap();
+    app.get("/outside", Response::empty).unwrap();
     let response = app.handle(req("/api/users/9")).unwrap();
     assert_eq!(response.body(), b"shared:9");
     assert_eq!(response.headers().get("x-group"), Some("api"));
@@ -96,11 +96,11 @@ fn state_and_ids_are_available_and_groups_are_isolated() {
 #[test]
 fn groups_are_transactional_and_can_nest() {
     let mut app = App::new();
-    app.get("/api/taken", || Response::empty()).unwrap();
+    app.get("/api/taken", Response::empty).unwrap();
     assert!(app
         .group("/api", |g| {
-            g.get("/new", || Response::empty())?;
-            g.get("/taken", || Response::empty())
+            g.get("/new", Response::empty)?;
+            g.get("/taken", Response::empty)
         })
         .is_err());
     assert_eq!(app.handle(req("/api/new")).unwrap().status_code(), 404);
