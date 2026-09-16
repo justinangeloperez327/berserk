@@ -40,7 +40,7 @@ pub use framework_storage as storage;
 pub use http::{Headers, HttpError, IntoResponse, Method, Request, Response, StatusCode};
 
 pub mod routing;
-pub use routing::RouteError;
+pub use routing::{Route, RouteError};
 
 pub mod server;
 pub use server::Server;
