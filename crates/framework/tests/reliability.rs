@@ -137,7 +137,7 @@ fn full_queue_rejects_and_shutdown_drains_accepted_work() {
 #[test]
 fn truncated_client_does_not_consume_worker_permanently() {
     let mut app = App::new();
-    app.get("/", || Response::empty()).unwrap();
+    app.get("/", Response::empty).unwrap();
     let server = Running::new(app);
     let mut stream = server.connect();
     stream
