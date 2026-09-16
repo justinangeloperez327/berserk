@@ -100,17 +100,12 @@ fn route_model_key<M: claw_orm::Model>(
 }
 
 #[cfg(feature = "claw")]
-fn route_database(request: &Request) -> Result<&framework_database::Database> {
-    request.database()
-}
-
-#[cfg(feature = "claw")]
 fn route_model<M: claw_orm::Model>(request: &Request, index: usize) -> Result<Extracted<M>> {
     let key = match route_model_key::<M>(request, index) {
         Ok(key) => key,
         Err(response) => return Ok(Err(response)),
     };
-    let mut connection = route_database(request)?.acquire()?;
+    let mut connection = request.connection()?;
     match M::find(&mut *connection, key)? {
         Some(model) => Ok(Ok(model)),
         None => Ok(Err(Response::text("Not Found").status(404))),
@@ -131,7 +126,7 @@ where
         Ok(key) => key,
         Err(response) => return Ok(Err(response)),
     };
-    let mut connection = route_database(request)?.acquire()?;
+    let mut connection = request.connection()?;
     let first = match M::find(&mut *connection, first_key)? {
         Some(model) => model,
         None => return Ok(Err(Response::text("Not Found").status(404))),
