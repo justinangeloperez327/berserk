@@ -1,11 +1,31 @@
-use super::{validation::validate_request_headers, ProtocolError};
+use super::{
+    error::application_error_response, validation::validate_request_headers, ProtocolError,
+};
 use bytes::Bytes;
-use http_body_util::{BodyExt, LengthLimitError, Limited};
-use std::error::Error as StdError;
+use http_body_util::{
+    channel::Channel, combinators::UnsyncBoxBody, BodyExt, Full, LengthLimitError, Limited,
+};
+use std::{
+    convert::Infallible,
+    error::Error as StdError,
+    io::{self, Read},
+    panic::{catch_unwind, AssertUnwindSafe},
+};
 
-use crate::{Headers, Method, Request, ServerConfig, Validate};
+use crate::{Headers, Method, Request, Response, ServerConfig, Validate};
 
 type BoxError = Box<dyn StdError + Send + Sync>;
+pub(super) type WireBody = UnsyncBoxBody<Bytes, BoxError>;
+
+fn infallible_to_box(error: Infallible) -> BoxError {
+    match error {}
+}
+
+fn full_body(bytes: Bytes) -> WireBody {
+    Full::new(bytes)
+        .map_err(infallible_to_box)
+        .boxed_unsync()
+}
 
 fn checked_add(total: &mut usize, value: usize) -> Result<(), ProtocolError> {
     *total = total.checked_add(value).ok_or(ProtocolError::HeaderLimit)?;
@@ -99,4 +119,134 @@ where
     }
 
     Request::new(method, target, headers, body.to_vec()).map_err(|_| ProtocolError::Malformed)
+}
+
+fn stream_body(stream: crate::http::StreamBody) -> Result<WireBody, ProtocolError> {
+    let runtime = tokio::runtime::Handle::try_current().map_err(|error| {
+        ProtocolError::Io(io::Error::other(format!(
+            "stream response requires a Tokio runtime: {error}"
+        )))
+    })?;
+    let producer_runtime = runtime.clone();
+    let (mut sender, body) = Channel::<Bytes, io::Error>::new(4);
+
+    runtime.spawn_blocking(move || {
+        let mut reader = match stream.0.lock() {
+            Ok(mut source) => match source.take() {
+                Some(reader) => reader,
+                None => {
+                    sender.abort(io::Error::other("stream already consumed"));
+                    return;
+                }
+            },
+            Err(_) => {
+                sender.abort(io::Error::other("stream lock poisoned"));
+                return;
+            }
+        };
+
+        let mut buffer = [0u8; 8192];
+        loop {
+            let count = match reader.read(&mut buffer) {
+                Ok(0) => break,
+                Ok(count) => count,
+                Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+                Err(error) => {
+                    sender.abort(error);
+                    return;
+                }
+            };
+
+            let bytes = Bytes::copy_from_slice(&buffer[..count]);
+            if producer_runtime.block_on(sender.send_data(bytes)).is_err() {
+                return;
+            }
+        }
+    });
+
+    Ok(body
+        .map_err(|error| Box::new(error) as BoxError)
+        .boxed_unsync())
+}
+
+pub(super) fn into_wire_response(
+    mut response: Response,
+    head: bool,
+) -> Result<http::Response<WireBody>, ProtocolError> {
+    response
+        .validate()
+        .map_err(ProtocolError::InvalidResponse)?;
+
+    let status = http::StatusCode::from_u16(response.status_code()).map_err(|_| {
+        ProtocolError::InvalidResponse(crate::HttpError::InvalidStatus(response.status_code()))
+    })?;
+    let streamed = response.stream.is_some();
+    let representation_length = response.representation_length();
+
+    let body = if head {
+        full_body(Bytes::new())
+    } else if let Some(stream) = response.stream.take() {
+        stream_body(stream)?
+    } else {
+        full_body(Bytes::from(response.take_body()))
+    };
+
+    let mut wire = http::Response::new(body);
+    *wire.status_mut() = status;
+    for (name, value) in response.headers().iter() {
+        let name = http::HeaderName::from_bytes(name.as_bytes()).map_err(|_| {
+            ProtocolError::InvalidResponse(crate::HttpError::InvalidHeaderName)
+        })?;
+        let value = http::HeaderValue::from_bytes(value.as_bytes()).map_err(|_| {
+            ProtocolError::InvalidResponse(crate::HttpError::InvalidHeaderValue)
+        })?;
+        wire.headers_mut().append(name, value);
+    }
+
+    if !streamed && !matches!(response.status_code(), 204 | 304) {
+        let length = representation_length.to_string();
+        wire.headers_mut().insert(
+            http::header::CONTENT_LENGTH,
+            http::HeaderValue::from_bytes(length.as_bytes()).expect("usize is a valid header value"),
+        );
+    }
+
+    Ok(wire)
+}
+
+fn fallback_wire_response(status: u16) -> http::Response<WireBody> {
+    let mut response = http::Response::new(full_body(Bytes::new()));
+    *response.status_mut() =
+        http::StatusCode::from_u16(status).unwrap_or(http::StatusCode::INTERNAL_SERVER_ERROR);
+    response
+}
+
+#[expect(
+    dead_code,
+    reason = "staged Hyper transport migration; listener wiring follows adapter verification"
+)]
+pub(super) async fn dispatch<B>(
+    app: &crate::App,
+    request: http::Request<B>,
+) -> http::Response<WireBody>
+where
+    B: hyper::body::Body<Data = Bytes> + Send + 'static,
+    B::Error: Into<BoxError> + 'static,
+{
+    let head = request.method() == http::Method::HEAD;
+    let request = match into_berserk_request(request, app.config()).await {
+        Ok(request) => request,
+        Err(error) => return fallback_wire_response(error.status_code()),
+    };
+
+    let response = match catch_unwind(AssertUnwindSafe(|| app.handle(request))) {
+        Ok(Ok(response)) => response,
+        Ok(Err(error)) => application_error_response(error),
+        Err(_) => Response::text("Internal Server Error").status(500),
+    };
+
+    match into_wire_response(response, head) {
+        Ok(response) => response,
+        Err(_) => fallback_wire_response(500),
+    }
 }
