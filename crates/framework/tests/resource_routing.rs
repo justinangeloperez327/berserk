@@ -153,10 +153,7 @@ fn api_resource_omits_web_routes_and_derives_prefix_names() {
         route.prefix("/api").api_resource("/users", Users).unwrap();
     }
 
-    assert_eq!(
-        app.path_for("api.users.index", &[]).unwrap(),
-        "/api/users"
-    );
+    assert_eq!(app.path_for("api.users.index", &[]).unwrap(), "/api/users");
     assert_eq!(
         app.path_for("api.users.show", &[("id", "9")]).unwrap(),
         "/api/users/9"
@@ -182,7 +179,9 @@ fn resource_registration_is_atomic_on_collision() {
     {
         let mut route = app.route();
         route
-            .get("/users/{id}", |id: u64| Response::text(format!("existing:{id}")))
+            .get("/users/{id}", |id: u64| {
+                Response::text(format!("existing:{id}"))
+            })
             .unwrap();
     }
 
@@ -194,9 +193,7 @@ fn resource_registration_is_atomic_on_collision() {
     assert!(matches!(error, Error::Routing(RouteError::DuplicateRoute)));
 
     assert_eq!(
-        app.handle(request("GET", "/users"))
-            .unwrap()
-            .status_code(),
+        app.handle(request("GET", "/users")).unwrap().status_code(),
         404
     );
     assert_eq!(
