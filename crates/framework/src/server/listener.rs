@@ -65,11 +65,16 @@ impl Server {
         let dispatcher = tokio::spawn(async move {
             let mut connections = JoinSet::new();
 
-            while let Some(stream) = receiver.recv().await {
+            loop {
                 let permit = match Arc::clone(&dispatch_permits).acquire_owned().await {
                     Ok(permit) => permit,
                     Err(_) => break,
                 };
+                let Some(stream) = receiver.recv().await else {
+                    drop(permit);
+                    break;
+                };
+
                 let app = Arc::clone(&app);
                 let stats = dispatch_stats.clone();
                 connections.spawn(async move {
