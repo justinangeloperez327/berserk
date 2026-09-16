@@ -2,8 +2,6 @@
 use crate::{FromJson, IntoResponse, Request, Response, Result, ValidateInput, Validated};
 use std::{marker::PhantomData, str::FromStr};
 
-type HandlerArgs3<T, U, I> = (T, U, I);
-
 /// Conventional result type for controller actions that can fail.
 pub type ActionResult = Result<Response>;
 
@@ -26,10 +24,10 @@ pub struct RouteParams<T, U>(PhantomData<fn() -> (T, U)>);
 pub struct RouteParamsRequest<T, U>(PhantomData<fn() -> (T, U)>);
 
 #[doc(hidden)]
-pub struct RouteParamsValidated<T, U, I>(PhantomData<fn() -> HandlerArgs3<T, U, I>>);
+pub struct RouteParamsValidated<T, U, I>(PhantomData<T>, PhantomData<U>, PhantomData<I>);
 
 #[doc(hidden)]
-pub struct RouteParamsValidatedRequest<T, U, I>(PhantomData<fn() -> HandlerArgs3<T, U, I>>);
+pub struct RouteParamsValidatedRequest<T, U, I>(PhantomData<T>, PhantomData<U>, PhantomData<I>);
 
 #[doc(hidden)]
 pub struct ValidatedArg<T>(PhantomData<fn() -> T>);
