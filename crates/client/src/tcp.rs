@@ -193,9 +193,7 @@ fn read_response(stream: TcpStream, method: Method, config: TcpClientConfig) -> 
     let mut reader = BufReader::new(stream);
     let mut used = 0_usize;
     let status_line = read_line(&mut reader, &mut used, config.max_response_header_bytes)?;
-    let mut parts = status_line
-        .trim_end_matches(['\r', '\n'])
-        .splitn(3, ' ');
+    let mut parts = status_line.trim_end_matches(['\r', '\n']).splitn(3, ' ');
     let version = parts.next().unwrap_or("");
     if version != "HTTP/1.1" && version != "HTTP/1.0" {
         return Err(ClientError::new(
