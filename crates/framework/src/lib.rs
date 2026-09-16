@@ -1,4 +1,4 @@
-//! Framework assembly. Synchronous HTTP serving with bounded workers.
+//! BERSERK application assembly with bounded Tokio/Hyper HTTP serving.
 #![forbid(unsafe_code)]
 
 mod app;
