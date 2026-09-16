@@ -8,6 +8,52 @@ permissions:
   contents: read
 
 jobs:
+  feature-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: no-default-features
+            args: --no-default-features
+          - name: database
+            args: --no-default-features --features database
+          - name: claw
+            args: --no-default-features --features claw
+          - name: postgres
+            args: --no-default-features --features postgres
+          - name: mysql
+            args: --no-default-features --features mysql
+          - name: sqlite
+            args: --no-default-features --features sqlite
+          - name: auth
+            args: --no-default-features --features auth
+          - name: openapi
+            args: --no-default-features --features openapi
+          - name: cache
+            args: --no-default-features --features cache
+          - name: storage
+            args: --no-default-features --features storage
+          - name: events
+            args: --no-default-features --features events
+          - name: jobs
+            args: --no-default-features --features jobs
+          - name: client
+            args: --no-default-features --features client
+          - name: notifications
+            args: --no-default-features --features notifications
+          - name: cli
+            args: --no-default-features --features cli
+          - name: api-with-auth
+            args: --no-default-features --features auth,openapi
+          - name: claw-with-sqlite
+            args: --no-default-features --features claw,sqlite
+    name: feature-${{ matrix.name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo check -p framework --all-targets ${{ matrix.args }}
+
   quality:
     runs-on: ubuntu-latest
     steps:
