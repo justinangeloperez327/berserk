@@ -130,6 +130,73 @@ fn oversized_live_body_returns_413_without_invoking_handler() {
     server.stop();
 }
 #[test]
+fn queued_first_request_expires_from_accept_time() {
+    let gate = Arc::new((Mutex::new(false), Condvar::new()));
+    let blocking_gate = Arc::clone(&gate);
+    let (entered, received) = mpsc::channel();
+    let queued_calls = Arc::new(AtomicUsize::new(0));
+    let handler_calls = Arc::clone(&queued_calls);
+
+    let mut app = App::with_config(ServerConfig {
+        workers: 1,
+        queue_capacity: 1,
+        read_timeout: Duration::from_millis(500),
+        request_deadline: Duration::from_millis(100),
+        ..ServerConfig::default()
+    })
+    .unwrap();
+    app.get("/block", move || {
+        let _ = entered.send(());
+        let lock = blocking_gate.0.lock().unwrap();
+        let (_lock, _) = blocking_gate
+            .1
+            .wait_timeout_while(lock, Duration::from_secs(3), |ready| !*ready)
+            .unwrap();
+        Response::text("done")
+    })
+    .unwrap();
+    app.get("/queued", move || {
+        handler_calls.fetch_add(1, Ordering::SeqCst);
+        Response::text("late")
+    })
+    .unwrap();
+
+    let server = Running::new(app);
+    let mut first = server.connect();
+    first
+        .write_all(b"GET /block HTTP/1.1\r\nHost: x\r\n\r\n")
+        .unwrap();
+    received.recv_timeout(Duration::from_secs(2)).unwrap();
+
+    let mut queued = server.connect();
+    queued
+        .write_all(b"GET /queued HTTP/1.1\r\nHost: x\r\n\r\n")
+        .unwrap();
+    wait_for(|| server.stats.snapshot().accepted >= 2);
+    thread::sleep(Duration::from_millis(200));
+    *gate.0.lock().unwrap() = true;
+    gate.1.notify_all();
+
+    let mut first_response = String::new();
+    first.read_to_string(&mut first_response).unwrap();
+    assert!(first_response.ends_with("done"));
+    wait_for(|| server.stats.snapshot().failed >= 1);
+
+    let mut queued_response = Vec::new();
+    match queued.read_to_end(&mut queued_response) {
+        Ok(_) => {}
+        Err(error)
+            if matches!(
+                error.kind(),
+                std::io::ErrorKind::ConnectionReset | std::io::ErrorKind::ConnectionAborted
+            ) => {}
+        Err(error) => panic!("unexpected queued connection error: {error}"),
+    }
+    assert!(queued_response.is_empty());
+    assert_eq!(queued_calls.load(Ordering::SeqCst), 0);
+    server.stop();
+}
+#[test]
 fn full_queue_rejects_and_shutdown_drains_accepted_work() {
     let gate = Arc::new((Mutex::new(false), Condvar::new()));
     struct Release(Arc<(Mutex<bool>, Condvar)>);
