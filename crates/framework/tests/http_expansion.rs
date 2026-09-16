@@ -52,10 +52,8 @@ fn chunked_request_body_reaches_handler() {
 #[test]
 fn streaming_and_head_work_over_live_transport() {
     let mut app = App::new();
-    app.get("/stream", || {
-        Response::stream(Cursor::new(b"abc".to_vec()))
-    })
-    .unwrap();
+    app.get("/stream", || Response::stream(Cursor::new(b"abc".to_vec())))
+        .unwrap();
     app.get("/head", || Response::text("hello")).unwrap();
     let server = app.bind("127.0.0.1:0").unwrap();
     let addr = server.local_addr().unwrap();
