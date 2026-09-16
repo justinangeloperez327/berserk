@@ -10,7 +10,7 @@ use std::{
 /// A mutable borrow of the database connection owned by one request.
 #[cfg(feature = "database")]
 pub struct RequestConnection<'a> {
-    inner: RefMut<'a, Option<Box<dyn framework_database::Connection>>>,
+    inner: RefMut<'a, Option<Box<dyn framework_database::Connection + Send>>>,
 }
 
 #[cfg(feature = "database")]
@@ -94,7 +94,7 @@ pub struct Request {
     params: HashMap<String, String>,
     param_values: Vec<String>,
     #[cfg(feature = "database")]
-    connection: RefCell<Option<Box<dyn framework_database::Connection>>>,
+    connection: RefCell<Option<Box<dyn framework_database::Connection + Send>>>,
     #[cfg(feature = "auth")]
     principal: Option<framework_auth::Principal>,
 }
