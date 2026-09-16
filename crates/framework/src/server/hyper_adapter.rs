@@ -18,7 +18,13 @@ fn request_header_bytes(
     headers: &http::HeaderMap,
 ) -> Result<usize, ProtocolError> {
     let mut bytes = 0usize;
-    for value in [method.as_str().len(), 1, target.len(), 1, b"HTTP/1.1\r\n".len()] {
+    for value in [
+        method.as_str().len(),
+        1,
+        target.len(),
+        1,
+        b"HTTP/1.1\r\n".len(),
+    ] {
         checked_add(&mut bytes, value)?;
     }
     for (name, value) in headers {
