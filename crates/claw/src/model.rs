@@ -1,5 +1,5 @@
 use crate::ModelQuery;
-use framework_database::{Connection, Direction, Result, Row, Value};
+use framework_database::{Connection, Direction, Execution, Query, Result, Row, Value};
 
 /// A typed database record managed by Claw ORM.
 pub trait Model: Sized {
@@ -71,5 +71,14 @@ pub trait Model: Sized {
 
     fn find(connection: &mut dyn Connection, key: impl Into<Value>) -> Result<Option<Self>> {
         Self::where_(Self::PRIMARY_KEY, "=", key).first(connection)
+    }
+
+    fn create<I, S, V>(connection: &mut dyn Connection, values: I) -> Result<Execution>
+    where
+        I: IntoIterator<Item = (S, V)>,
+        S: Into<String>,
+        V: Into<Value>,
+    {
+        Query::table(Self::TABLE).insert(values).execute(connection)
     }
 }
