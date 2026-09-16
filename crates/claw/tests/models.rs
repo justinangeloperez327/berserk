@@ -166,10 +166,7 @@ fn create_uses_the_model_table_and_keeps_values_bound() {
     let mut connection = FakeConnection::default();
     let execution = User::create(
         &mut connection,
-        [
-            ("name", Value::from("Ada")),
-            ("active", Value::from(true)),
-        ],
+        [("name", Value::from("Ada")), ("active", Value::from(true))],
     )
     .unwrap();
 
