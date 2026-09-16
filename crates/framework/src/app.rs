@@ -60,7 +60,7 @@ impl App {
             framework_openapi::HttpMethod::Head => "HEAD",
             framework_openapi::HttpMethod::Options => "OPTIONS",
         };
-        self.route(crate::Method::new(runtime_method)?, path, handler)?;
+        self.register_route(crate::Method::new(runtime_method)?, path, handler)?;
         *document = staged;
         Ok(())
     }
@@ -73,11 +73,16 @@ impl Default for App {
 }
 
 impl App {
-    fn route<H, A>(&mut self, method: crate::Method, path: &str, handler: H) -> Result<()>
+    fn register_route<H, A>(&mut self, method: crate::Method, path: &str, handler: H) -> Result<()>
     where
         H: crate::controller::Handler<A>,
     {
         self.router.add(method, path, handler)
+    }
+
+    /// Returns an instance route registrar borrowing this application.
+    pub fn route(&mut self) -> crate::routing::Route<'_> {
+        crate::routing::Route::new(&mut self.router)
     }
 
     /// Dispatch without network I/O. Handler errors propagate; panics are not caught here.
@@ -94,39 +99,44 @@ impl App {
         Ok(response)
     }
 
+    /// Compatibility shortcut. Prefer `app.route().get(...)` for route registration.
     pub fn get<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         H: crate::controller::Handler<A>,
     {
-        self.route(crate::Method::new("GET")?, path, handler)
+        self.register_route(crate::Method::new("GET")?, path, handler)
     }
 
+    /// Compatibility shortcut. Prefer `app.route().post(...)` for route registration.
     pub fn post<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         H: crate::controller::Handler<A>,
     {
-        self.route(crate::Method::new("POST")?, path, handler)
+        self.register_route(crate::Method::new("POST")?, path, handler)
     }
 
+    /// Compatibility shortcut. Prefer `app.route().put(...)` for route registration.
     pub fn put<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         H: crate::controller::Handler<A>,
     {
-        self.route(crate::Method::new("PUT")?, path, handler)
+        self.register_route(crate::Method::new("PUT")?, path, handler)
     }
 
+    /// Compatibility shortcut. Prefer `app.route().patch(...)` for route registration.
     pub fn patch<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         H: crate::controller::Handler<A>,
     {
-        self.route(crate::Method::new("PATCH")?, path, handler)
+        self.register_route(crate::Method::new("PATCH")?, path, handler)
     }
 
+    /// Compatibility shortcut. Prefer `app.route().delete(...)` for route registration.
     pub fn delete<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         H: crate::controller::Handler<A>,
     {
-        self.route(crate::Method::new("DELETE")?, path, handler)
+        self.register_route(crate::Method::new("DELETE")?, path, handler)
     }
 }
 
