@@ -120,9 +120,11 @@ fn framing_host_and_header_limits_remain_strict() {
                 .header("host", host)
                 .body(Full::new(Bytes::new()))
                 .unwrap();
-            assert!(hyper_adapter::into_berserk_request(request, &ServerConfig::default())
-                .await
-                .is_ok());
+            assert!(
+                hyper_adapter::into_berserk_request(request, &ServerConfig::default())
+                    .await
+                    .is_ok()
+            );
         }
 
         for host in ["a b", "a:bad", "a:65536", "a@b", "[oops]", "::1", "a/b"] {
@@ -130,9 +132,11 @@ fn framing_host_and_header_limits_remain_strict() {
                 .header("host", host)
                 .body(Full::new(Bytes::new()))
                 .unwrap();
-            assert!(hyper_adapter::into_berserk_request(request, &ServerConfig::default())
-                .await
-                .is_err());
+            assert!(
+                hyper_adapter::into_berserk_request(request, &ServerConfig::default())
+                    .await
+                    .is_err()
+            );
         }
 
         let duplicate_length = http::Request::builder()
@@ -157,7 +161,8 @@ fn framing_host_and_header_limits_remain_strict() {
             .body(Full::new(Bytes::from_static(b"a")))
             .unwrap();
         assert!(matches!(
-            hyper_adapter::into_berserk_request(conflicting_framing, &ServerConfig::default()).await,
+            hyper_adapter::into_berserk_request(conflicting_framing, &ServerConfig::default())
+                .await,
             Err(ProtocolError::Malformed)
         ));
 
@@ -169,7 +174,8 @@ fn framing_host_and_header_limits_remain_strict() {
             .body(Full::new(Bytes::new()))
             .unwrap();
         assert!(matches!(
-            hyper_adapter::into_berserk_request(unsupported_encoding, &ServerConfig::default()).await,
+            hyper_adapter::into_berserk_request(unsupported_encoding, &ServerConfig::default())
+                .await,
             Err(ProtocolError::UnsupportedTransferEncoding)
         ));
 
@@ -206,7 +212,10 @@ fn response_lengths_head_and_bodyless_statuses_are_preserved() {
         for status in [204, 304] {
             let response =
                 hyper_adapter::into_wire_response(Response::empty().status(status), false).unwrap();
-            assert!(response.headers().get(http::header::CONTENT_LENGTH).is_none());
+            assert!(response
+                .headers()
+                .get(http::header::CONTENT_LENGTH)
+                .is_none());
         }
 
         let reset =
@@ -215,9 +224,17 @@ fn response_lengths_head_and_bodyless_statuses_are_preserved() {
 
         let head = hyper_adapter::into_wire_response(Response::text("hello"), true).unwrap();
         assert_eq!(head.headers()[http::header::CONTENT_LENGTH], "5");
-        assert!(head.into_body().collect().await.unwrap().to_bytes().is_empty());
+        assert!(head
+            .into_body()
+            .collect()
+            .await
+            .unwrap()
+            .to_bytes()
+            .is_empty());
 
-        assert!(hyper_adapter::into_wire_response(Response::text("bad").status(204), false).is_err());
+        assert!(
+            hyper_adapter::into_wire_response(Response::text("bad").status(204), false).is_err()
+        );
     });
 }
 
