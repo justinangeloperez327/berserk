@@ -96,6 +96,67 @@ route
     })?;
 ```
 
+Named routes preserve the existing verb APIs:
+
+```rust
+route
+    .name("users.show")
+    .get("/users/{id}", users::show)?;
+
+let path = app.path_for("users.show", &[("id", "42")])?;
+assert_eq!(path, "/users/42");
+```
+
+Route parameter values passed to `path_for` are percent-encoded as path segments. Missing parameters, unknown parameters, unknown names, and conflicting duplicate names return explicit routing errors.
+
+### Resource routes
+
+A full resource registers the conventional web REST surface:
+
+```rust
+route.resource("/users", UserController)?;
+```
+
+This creates:
+
+```text
+GET     /users             users.index
+GET     /users/create      users.create
+POST    /users             users.store
+GET     /users/{id}        users.show
+GET     /users/{id}/edit   users.edit
+PUT     /users/{id}        users.update
+PATCH   /users/{id}        users.update
+DELETE  /users/{id}        users.destroy
+```
+
+The controller implements `ApiResourceController` for the API actions and `ResourceController` for the additional create/edit actions. Resource registration is atomic: if any generated route conflicts, none of the resource routes are committed.
+
+For an API-only resource, omit the create/edit routes:
+
+```rust
+route.api_resource("/users", UserController)?;
+```
+
+When a resource is registered inside a prefix, generated names include the effective static path. For example:
+
+```rust
+route.prefix("/api").api_resource("/users", UserController)?;
+
+let path = app.path_for("api.users.show", &[("id", "42")])?;
+assert_eq!(path, "/api/users/42");
+```
+
+A fallback runs only when no route pattern matches, so method mismatches still return `405 Method Not Allowed`:
+
+```rust
+route.fallback(|request: Request| {
+    Response::text(format!("No route for {}", request.path())).status(404)
+})?;
+```
+
+Fallbacks can use route middleware but are intentionally root-scoped; registering a fallback beneath `prefix(...)` is rejected.
+
 Handler signatures declare what Berserk should provide:
 
 ```rust
@@ -115,7 +176,7 @@ fn update(id: u64, request: Request) -> Result<Response> {
 
 A typed route parameter that cannot be parsed returns `400 Bad Request`. A controller expecting one typed route parameter cannot be registered against a route with a different parameter count.
 
-The router provides static-route precedence, path parameters, `404`, `405`, automatic `HEAD` fallback to `GET`, scoped middleware, nested prefixes, and atomic route groups.
+The router provides static-route precedence, path parameters, named paths, REST resources, `404`, `405`, automatic `HEAD` fallback to `GET`, scoped middleware, nested prefixes, atomic route groups, and a root fallback.
 
 ## Fluent database queries
 
