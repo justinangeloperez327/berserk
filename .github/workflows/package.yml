@@ -2,7 +2,21 @@ name: Package
 
 on:
   pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/**/Cargo.toml"
+      - "benchmarks/Cargo.toml"
+      - "examples/**/Cargo.toml"
+      - "LICENSE"
+      - "README.md"
+      - "CHANGELOG.md"
+      - ".github/workflows/package.yml"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

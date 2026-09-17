@@ -2,7 +2,20 @@ name: Performance baseline
 
 on:
   pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/core/**"
+      - "crates/framework/**"
+      - "crates/database/**"
+      - "crates/claw/**"
+      - "benchmarks/**"
+      - ".github/workflows/benchmarks.yml"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
