@@ -102,7 +102,12 @@ pub fn run_live_migration_contract(connection: &mut dyn Connection) {
 }
 
 fn clean(connection: &mut dyn Connection) {
-    for table in [FAILED_TABLE, SECOND_TABLE, FIRST_TABLE, "__framework_migrations"] {
+    for table in [
+        FAILED_TABLE,
+        SECOND_TABLE,
+        FIRST_TABLE,
+        "__framework_migrations",
+    ] {
         connection
             .execute(&Statement::new(format!("DROP TABLE IF EXISTS {table}")))
             .unwrap();
