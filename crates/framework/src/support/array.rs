@@ -86,7 +86,10 @@ impl Arr {
         values.first()
     }
 
-    pub fn first_where<T>(values: &[T], mut predicate: impl FnMut(&T, usize) -> bool) -> Option<&T> {
+    pub fn first_where<T>(
+        values: &[T],
+        mut predicate: impl FnMut(&T, usize) -> bool,
+    ) -> Option<&T> {
         values
             .iter()
             .enumerate()
@@ -121,7 +124,11 @@ impl Arr {
             [] => String::new(),
             [only] => only.to_string(),
             _ => {
-                let separator = if final_glue.is_empty() { glue } else { final_glue };
+                let separator = if final_glue.is_empty() {
+                    glue
+                } else {
+                    final_glue
+                };
                 let mut output = values[..values.len() - 1]
                     .iter()
                     .map(ToString::to_string)
@@ -233,7 +240,10 @@ impl Arr {
             .collect()
     }
 
-    pub fn partition<T>(values: &[T], mut predicate: impl FnMut(&T, usize) -> bool) -> (Vec<&T>, Vec<&T>) {
+    pub fn partition<T>(
+        values: &[T],
+        mut predicate: impl FnMut(&T, usize) -> bool,
+    ) -> (Vec<&T>, Vec<&T>) {
         let mut matches = Vec::new();
         let mut rejected = Vec::new();
         for (index, value) in values.iter().enumerate() {
@@ -278,7 +288,9 @@ impl Arr {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        paths.into_iter().all(|path| Self::has(value, path.as_ref()))
+        paths
+            .into_iter()
+            .all(|path| Self::has(value, path.as_ref()))
     }
 
     pub fn has_any<I, S>(value: &Json, paths: I) -> bool
@@ -286,7 +298,9 @@ impl Arr {
         I: IntoIterator<Item = S>,
         S: AsRef<str>,
     {
-        paths.into_iter().any(|path| Self::has(value, path.as_ref()))
+        paths
+            .into_iter()
+            .any(|path| Self::has(value, path.as_ref()))
     }
 
     pub fn add(value: &mut Json, path: &str, item: Json) {
@@ -553,23 +567,35 @@ mod tests {
     #[test]
     fn filters_and_maps() {
         let values = [10, 20, 30, 40];
-        assert_eq!(Arr::first_where(&values, |value, _| *value >= 20), Some(&20));
+        assert_eq!(
+            Arr::first_where(&values, |value, _| *value >= 20),
+            Some(&20)
+        );
         assert_eq!(Arr::last_where(&values, |value, _| *value >= 20), Some(&40));
-        assert_eq!(Arr::map(&values, |value, index| value + index as i32), vec![10, 21, 32, 43]);
-        assert_eq!(Arr::where_(&values, |value, _| *value >= 30), vec![&30, &40]);
+        assert_eq!(
+            Arr::map(&values, |value, index| value + index as i32),
+            vec![10, 21, 32, 43]
+        );
+        assert_eq!(
+            Arr::where_(&values, |value, _| *value >= 30),
+            vec![&30, &40]
+        );
         assert!(Arr::every(&values, |value, _| *value >= 10));
         assert!(Arr::some(&values, |value, _| *value == 30));
     }
 
     #[test]
     fn handles_string_keyed_maps() {
-        let map = BTreeMap::from([
-            ("name".to_owned(), "Desk"),
-            ("price".to_owned(), "100"),
-        ]);
+        let map = BTreeMap::from([("name".to_owned(), "Desk"), ("price".to_owned(), "100")]);
         assert!(Arr::exists(&map, "name"));
-        assert_eq!(Arr::only(&map, ["name"]), BTreeMap::from([("name".to_owned(), "Desk")]));
-        assert_eq!(Arr::except(&map, ["price"]), BTreeMap::from([("name".to_owned(), "Desk")]));
+        assert_eq!(
+            Arr::only(&map, ["name"]),
+            BTreeMap::from([("name".to_owned(), "Desk")])
+        );
+        assert_eq!(
+            Arr::except(&map, ["price"]),
+            BTreeMap::from([("name".to_owned(), "Desk")])
+        );
     }
 
     #[test]
@@ -597,7 +623,10 @@ mod tests {
             object([("desk", object([("price", Json::from(100_u64))]))]),
         )]);
         let dotted = Arr::dot(&value);
-        assert_eq!(dotted.get("products.desk.price"), Some(&Json::from(100_u64)));
+        assert_eq!(
+            dotted.get("products.desk.price"),
+            Some(&Json::from(100_u64))
+        );
         assert_eq!(Arr::undot(dotted), value);
     }
 
@@ -612,8 +641,14 @@ mod tests {
             vec![Json::from("Desk"), Json::from("Chair")]
         );
 
-        let nested = Json::Array(vec![Json::from(1_u64), Json::Array(vec![Json::from(2_u64)])]);
-        assert_eq!(Arr::flatten(&nested), vec![Json::from(1_u64), Json::from(2_u64)]);
+        let nested = Json::Array(vec![
+            Json::from(1_u64),
+            Json::Array(vec![Json::from(2_u64)]),
+        ]);
+        assert_eq!(
+            Arr::flatten(&nested),
+            vec![Json::from(1_u64), Json::from(2_u64)]
+        );
     }
 
     #[test]
