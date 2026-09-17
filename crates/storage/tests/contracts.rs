@@ -104,8 +104,7 @@ impl TemporaryDirectory {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path =
-            std::env::temp_dir().join(format!("berserk-storage-{}-{nonce}", process::id()));
+        let path = std::env::temp_dir().join(format!("berserk-storage-{}-{nonce}", process::id()));
         fs::create_dir(&path).unwrap();
         Self(path)
     }

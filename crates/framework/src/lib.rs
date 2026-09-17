@@ -9,13 +9,11 @@ pub mod http;
 pub mod prelude;
 
 pub use app::App;
+pub use berserk_core::{ConfigError, ShutdownHandle, State, Validate};
 pub use config::ServerConfig;
 pub use controller::ActionResult;
 pub use error::{Error, Result};
-pub use berserk_core::{ConfigError, ShutdownHandle, State, Validate};
 
-#[cfg(feature = "claw")]
-pub use claw_orm as claw;
 #[cfg(feature = "auth")]
 pub use berserk_auth as auth;
 #[cfg(feature = "cache")]
@@ -36,6 +34,8 @@ pub use berserk_notifications as notifications;
 pub use berserk_openapi as openapi;
 #[cfg(feature = "storage")]
 pub use berserk_storage as storage;
+#[cfg(feature = "claw")]
+pub use claw_orm as claw;
 
 #[cfg(feature = "database")]
 pub use http::RequestConnection;

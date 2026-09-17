@@ -1,8 +1,8 @@
-use claw_orm::{field, Model, PersistableModel, Result, Row, Statement, Value};
 use berserk_database::{
     Capabilities, Column, Connection, DatabaseError, Driver, ErrorKind, Execution, Transaction,
     TransactionOptions,
 };
+use claw_orm::{field, Model, PersistableModel, Result, Row, Statement, Value};
 
 #[derive(Debug)]
 struct User {

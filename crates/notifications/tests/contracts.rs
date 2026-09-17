@@ -142,9 +142,10 @@ impl SequenceClient {
 impl HttpClient for SequenceClient {
     fn send(&self, _request: berserk_client::Request) -> ClientResult<Response> {
         *self.calls.lock().unwrap() += 1;
-        let status = self.statuses.lock().unwrap().pop().ok_or_else(|| {
-            ClientError::new(berserk_client::ErrorKind::Transport, "no response")
-        })?;
+        let status =
+            self.statuses.lock().unwrap().pop().ok_or_else(|| {
+                ClientError::new(berserk_client::ErrorKind::Transport, "no response")
+            })?;
         Response::new(status, Vec::new(), Vec::new())
     }
 }
