@@ -1,0 +1,12 @@
+# Berserk maintainer ownership
+
+# The repository owner is the default maintainer for all code, documentation,
+# release policy, and security-sensitive changes until additional maintainers
+# are explicitly added here.
+* @justinangeloperez327
+
+# Keep security policy and response-process changes explicitly owner-reviewed.
+SECURITY.md @justinangeloperez327
+docs/security-review.md @justinangeloperez327
+docs/vulnerability-response.md @justinangeloperez327
+.github/CODEOWNERS @justinangeloperez327
