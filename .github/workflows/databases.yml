@@ -1,9 +1,18 @@
 name: Live databases
 
 on:
-  push:
   pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/database/**"
+      - "crates/claw/**"
+      - ".github/workflows/databases.yml"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
