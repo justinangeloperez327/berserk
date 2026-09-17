@@ -20,7 +20,7 @@ Publishing is always a manual owner decision. This checklist intentionally conta
 - [x] Fuzz the current JSON, HTTP-value, route-registration, and multipart input boundaries.
 - [x] Run concurrent server load, overload, shutdown-under-load, and prolonged soak tests. `Concurrent load` run 5 on `main` completed a 900-second soak with 16,676,335 attempted/completed requests, zero client errors, zero rejections, and zero server failures.
 - [x] Record reproducible sequential latency, throughput, process RSS, and environment data; retain raw evidence.
-- [ ] Complete an independent security and API review; resolve or document every finding. An internal 2026-09-17 review fixed outbound HTTP header validation and request-debug target redaction, and refreshed the security/public-API records, but an independent external review is still required before this gate is complete.
+- [ ] Complete an independent security and API review; resolve or document every finding. The reviewer handoff is prepared in `docs/external-review-package.md`, with `docs/external-review-findings-template.md`, `docs/external-review-signoff-template.md`, and `docs/external-review-record-template.md`. The gate remains open until an independent reviewer completes that scope against an exact candidate commit, all findings are dispositioned under the documented closure criteria, and the final review record/sign-off is retained. The prior 2026-09-17 review in `docs/security-review.md` was internal and does not satisfy this gate.
 
 ## Release artifacts
 
