@@ -29,6 +29,7 @@ cli = ["dep:berserk-cli"]
 
 [dependencies]
 berserk-core.workspace = true
+berserk-support.workspace = true
 berserk-validation = { path = "../validation", version = "=0.1.0" }
 berserk-database = { workspace = true, optional = true }
 claw-orm = { workspace = true, optional = true }
