@@ -5,7 +5,7 @@ Phase 17 adds typed records above the driver-neutral query builder. The model AP
 ## Typed models and fields
 
 ```rust
-use framework_database::{field, Model, Result, Row, Value};
+use berserk_database::{field, Model, Result, Row, Value};
 
 struct User { id: u64, name: String, active: bool }
 

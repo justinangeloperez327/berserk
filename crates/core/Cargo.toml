@@ -1,7 +1,11 @@
 [package]
-name = "framework-core"
+name = "berserk-core"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-publish.workspace = true
+authors.workspace = true
+repository.workspace = true
+readme.workspace = true
+description = "Core configuration, state, lifecycle, and shared foundations for Berserk."
+publish = true

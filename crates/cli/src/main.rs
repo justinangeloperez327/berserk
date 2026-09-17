@@ -1,10 +1,10 @@
 #![forbid(unsafe_code)]
 
-use framework_cli::{execute, Command, Generator, UnsupportedMigrations};
+use berserk_cli::{execute, Command, Generator, UnsupportedMigrations};
 
 fn main() {
     let result = std::env::current_dir()
-        .map_err(framework_cli::CliError::from_io)
+        .map_err(berserk_cli::CliError::from_io)
         .and_then(Generator::at)
         .and_then(|generator| {
             Command::parse(std::env::args().skip(1))

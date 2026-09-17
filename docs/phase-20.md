@@ -21,7 +21,7 @@ app.get("/users/{id}", |_request| Resource::new(user))?;
 
 ## OpenAPI contracts
 
-The `framework-openapi` crate builds OpenAPI 3.1 documents without depending on the HTTP server:
+The `berserk-openapi` crate builds OpenAPI 3.1 documents without depending on the HTTP server:
 
 ```rust
 let mut document = OpenApi::new(Info::new("Users API", "1.0.0")?);

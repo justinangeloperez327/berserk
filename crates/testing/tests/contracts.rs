@@ -1,11 +1,11 @@
 use berserk::{App, Json, Response};
-use framework_client::{
+use berserk_client::{
     Header, HttpClient, Method as ClientMethod, Request as ClientRequest,
     Response as ClientResponse, Url,
 };
-use framework_events::{Event, EventBus};
-use framework_jobs::{MemoryFailedJobs, QueueConfig, RetryPolicy, WorkerPool};
-use framework_testing::{
+use berserk_events::{Event, EventBus};
+use berserk_jobs::{MemoryFailedJobs, QueueConfig, RetryPolicy, WorkerPool};
+use berserk_testing::{
     EventRecorder, FakeHttpClient, RecordingJob, TemporaryDirectory, TestClient,
 };
 use std::{collections::BTreeMap, sync::Arc};

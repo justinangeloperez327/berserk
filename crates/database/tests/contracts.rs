@@ -1,4 +1,4 @@
-use framework_database::{
+use berserk_database::{
     Capabilities, Capability, Column, Driver, ErrorKind, Row, Statement, Value,
 };
 
@@ -21,7 +21,7 @@ fn capabilities_are_explicit() {
     assert!(capabilities.supports(Capability::Returning));
     assert!(!capabilities.supports(Capability::AdvisoryLocks));
     assert_eq!(
-        framework_database::driver_enabled(Driver::Postgres),
+        berserk_database::driver_enabled(Driver::Postgres),
         cfg!(feature = "postgres")
     );
 }

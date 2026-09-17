@@ -26,7 +26,7 @@ The first adapter supports the common scalar types represented by Phase 13. Post
 
 ```sh
 FRAMEWORK_POSTGRES_TEST_URL='host=localhost user=postgres dbname=framework_test' \
-  cargo test -p framework-database --features postgres
+  cargo test -p berserk-database --features postgres
 ```
 
 Without the environment variable, live tests return without connecting. Unit and contract tests still run. The test account should point to a dedicated test database. Current live tests only query and roll back; they do not create persistent objects.

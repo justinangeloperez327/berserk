@@ -7,8 +7,8 @@ mod job;
 mod outbound;
 mod temporary;
 
+pub use berserk_notifications::MemoryMailTransport;
 pub use event::EventRecorder;
-pub use framework_notifications::MemoryMailTransport;
 pub use http::{TestClient, TestRequest, TestResponse};
 pub use job::{JobProbe, RecordingJob};
 pub use outbound::FakeHttpClient;

@@ -13,7 +13,7 @@ import sys
 def main():
     output = Path(sys.argv[1] if len(sys.argv) > 1 else "benchmark-results")
     output.mkdir(parents=True, exist_ok=False)
-    binary = Path("target/release/framework-benchmarks").resolve()
+    binary = Path("target/release/berserk-benchmarks").resolve()
     environment = {
         "revision": subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip(),
         "rust": subprocess.check_output(["rustc", "-Vv"], text=True),

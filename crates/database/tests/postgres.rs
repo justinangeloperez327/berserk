@@ -2,7 +2,7 @@
 
 mod common;
 
-use framework_database::{drivers::postgres::PostgresConnection, Connection, Statement, Value};
+use berserk_database::{drivers::postgres::PostgresConnection, Connection, Statement, Value};
 
 fn connection() -> Option<PostgresConnection> {
     let url = match std::env::var("FRAMEWORK_POSTGRES_TEST_URL") {

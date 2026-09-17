@@ -1,4 +1,4 @@
-use framework_core::{ShutdownHandle, State};
+use berserk_core::{ShutdownHandle, State};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 #[test]

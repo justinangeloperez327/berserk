@@ -1,6 +1,6 @@
 #[cfg(feature = "sqlite")]
 mod sqlite {
-    use framework_database::{drivers::sqlite::SqliteConnection, Database};
+    use berserk_database::{drivers::sqlite::SqliteConnection, Database};
     use std::sync::{
         atomic::{AtomicUsize, Ordering},
         Arc,

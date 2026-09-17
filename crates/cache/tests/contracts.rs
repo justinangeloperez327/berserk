@@ -1,4 +1,4 @@
-use framework_cache::{Cache, MemoryCache, Namespaced};
+use berserk_cache::{Cache, MemoryCache, Namespaced};
 use std::{sync::Arc, thread, time::Duration};
 
 #[test]

@@ -1,4 +1,4 @@
-use framework_database::{Connection, Driver, Migration, MigrationRunner, Result, Statement};
+use berserk_database::{Connection, Driver, Migration, MigrationRunner, Result, Statement};
 
 const FIRST_TABLE: &str = "berserk_migration_first";
 const SECOND_TABLE: &str = "berserk_migration_second";

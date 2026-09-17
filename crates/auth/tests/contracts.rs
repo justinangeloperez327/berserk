@@ -1,4 +1,4 @@
-use framework_auth::{
+use berserk_auth::{
     Ability, Argon2Passwords, Decision, ErrorKind, Gate, Guard, IdentityProvider, IdentityRecord,
     MemorySessionStore, PasswordAuthenticator, PasswordService, Principal, Result, Secret,
     SessionManager,

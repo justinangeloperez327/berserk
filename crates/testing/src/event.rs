@@ -1,4 +1,4 @@
-use framework_events::{Event, Result};
+use berserk_events::{Event, Result};
 use std::sync::{Arc, Mutex};
 
 pub struct EventRecorder<E> {

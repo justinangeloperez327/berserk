@@ -4,7 +4,7 @@ Phase 23 adds two optional crates that remain independent of HTTP and database c
 
 ## Events
 
-`framework-events` provides a typed `EventBus`. Applications implement `Event` with a stable diagnostic name, register typed closures, and dispatch an event by reference. Listeners run synchronously in registration order. Registration returns a `ListenerId` for explicit removal.
+`berserk-events` provides a typed `EventBus`. Applications implement `Event` with a stable diagnostic name, register typed closures, and dispatch an event by reference. Listeners run synchronously in registration order. Registration returns a `ListenerId` for explicit removal.
 
 Dispatch copies the current listener list before execution, so listeners can be registered or removed while another dispatch is running without holding the bus lock across application code. It stops at the first returned error. A panic is converted into a dispatch error when the binary uses panic unwinding; aborting panic profiles cannot be contained.
 
@@ -12,7 +12,7 @@ Events are deliberately not background jobs. Dispatch completing means all selec
 
 ## Background jobs
 
-`framework-jobs` provides `WorkerPool`, a clonable `JobQueue`, and a `Job` trait. Queue and worker capacities are fixed and validated. Dispatch is nonblocking: a full or closed queue returns an explicit error. Workers catch handler panics, apply a validated `RetryPolicy`, and write exhausted failures to a `FailedJobStore`.
+`berserk-jobs` provides `WorkerPool`, a clonable `JobQueue`, and a `Job` trait. Queue and worker capacities are fixed and validated. Dispatch is nonblocking: a full or closed queue returns an explicit error. Workers catch handler panics, apply a validated `RetryPolicy`, and write exhausted failures to a `FailedJobStore`.
 
 Retries execute the same owned job instance. Applications must make retryable side effects idempotent because a failure may occur after an external effect succeeded. Backoff occupies one worker, which keeps concurrency bounded but means long retry delays require deliberate worker sizing.
 
@@ -34,7 +34,7 @@ The built-in queue is process-local and in-memory. It drains during controlled s
 framework = { path = "crates/framework", features = ["events", "jobs"] }
 ```
 
-Applications may instead depend directly on `framework-events` or `framework-jobs`.
+Applications may instead depend directly on `berserk-events` or `berserk-jobs`.
 
 ## Verification status
 

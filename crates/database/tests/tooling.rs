@@ -1,4 +1,4 @@
-use framework_database::{
+use berserk_database::{
     run_seeders, Capabilities, Column, Connection, DatabaseError, Driver, ErrorKind, Execution,
     Factory, Migration, MigrationRunner, Result, Row, Seeder, Statement, Transaction,
     TransactionOptions,

@@ -1,9 +1,9 @@
-use claw_orm::{
-    field, BelongsTo, Direction, HasMany, HasOne, Model, Result, Row, Statement, Value,
-};
-use framework_database::{
+use berserk_database::{
     Capabilities, Column, Connection, DatabaseError, Driver, ErrorKind, Execution, Transaction,
     TransactionOptions,
+};
+use claw_orm::{
+    field, BelongsTo, Direction, HasMany, HasOne, Model, Result, Row, Statement, Value,
 };
 
 #[derive(Debug, PartialEq)]
@@ -123,7 +123,7 @@ impl Connection for FakeConnection {
 
 #[test]
 fn model_queries_decode_rows_and_keep_execution_explicit() {
-    fn active(query: framework_database::Query) -> framework_database::Query {
+    fn active(query: berserk_database::Query) -> berserk_database::Query {
         query.where_("active", "=", true)
     }
 

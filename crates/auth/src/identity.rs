@@ -31,7 +31,7 @@ pub struct PasswordAuthenticator<P, H> {
 
 impl<P: IdentityProvider, H: PasswordService> PasswordAuthenticator<P, H> {
     pub fn new(provider: P, passwords: H) -> Result<Self> {
-        let dummy_hash = passwords.hash(&Secret::new("framework-auth-dummy-password"))?;
+        let dummy_hash = passwords.hash(&Secret::new("berserk-auth-dummy-password"))?;
         Ok(Self {
             provider,
             passwords,

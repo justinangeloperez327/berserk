@@ -1,4 +1,4 @@
-use framework_jobs::{ErrorKind, Job, JobContext, JobError, Result};
+use berserk_jobs::{ErrorKind, Job, JobContext, JobError, Result};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,

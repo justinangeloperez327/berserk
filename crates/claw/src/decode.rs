@@ -1,4 +1,4 @@
-use framework_database::{DatabaseError, ErrorKind, Result, Row, Value};
+use berserk_database::{DatabaseError, ErrorKind, Result, Row, Value};
 
 /// Strictly converts one database value into an application field type.
 pub trait FromValue: Sized {

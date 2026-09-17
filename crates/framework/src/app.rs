@@ -40,10 +40,10 @@ impl App {
     /// Registers the runtime route and its OpenAPI operation as one setup action.
     pub fn documented_route<H, A>(
         &mut self,
-        document: &mut framework_openapi::OpenApi,
-        method: framework_openapi::HttpMethod,
+        document: &mut berserk_openapi::OpenApi,
+        method: berserk_openapi::HttpMethod,
         path: &str,
-        operation: framework_openapi::Operation,
+        operation: berserk_openapi::Operation,
         handler: H,
     ) -> Result<()>
     where
@@ -52,13 +52,13 @@ impl App {
         let mut staged = document.clone();
         staged.operation(method, path, operation)?;
         let runtime_method = match method {
-            framework_openapi::HttpMethod::Get => "GET",
-            framework_openapi::HttpMethod::Post => "POST",
-            framework_openapi::HttpMethod::Put => "PUT",
-            framework_openapi::HttpMethod::Patch => "PATCH",
-            framework_openapi::HttpMethod::Delete => "DELETE",
-            framework_openapi::HttpMethod::Head => "HEAD",
-            framework_openapi::HttpMethod::Options => "OPTIONS",
+            berserk_openapi::HttpMethod::Get => "GET",
+            berserk_openapi::HttpMethod::Post => "POST",
+            berserk_openapi::HttpMethod::Put => "PUT",
+            berserk_openapi::HttpMethod::Patch => "PATCH",
+            berserk_openapi::HttpMethod::Delete => "DELETE",
+            berserk_openapi::HttpMethod::Head => "HEAD",
+            berserk_openapi::HttpMethod::Options => "OPTIONS",
         };
         self.register_route(crate::Method::new(runtime_method)?, path, handler)?;
         *document = staged;
@@ -170,7 +170,7 @@ impl App {
     }
 
     #[cfg(feature = "database")]
-    pub fn database(&mut self, database: framework_database::Database) -> Result<()> {
+    pub fn database(&mut self, database: berserk_database::Database) -> Result<()> {
         self.state(database)
     }
 

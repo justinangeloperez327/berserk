@@ -21,7 +21,7 @@ pub use query::ModelQuery;
 pub use relationship::{BelongsTo, HasMany, HasOne, RelatedSet};
 pub use route_binding::ScopedRouteModel;
 
-pub use framework_database::{
+pub use berserk_database::{
     Connection, DatabaseError, Direction, Driver, ErrorKind, Result, Row, Statement, Value,
 };
 

@@ -1,4 +1,4 @@
-use framework_database::{Direction, Driver, Query, Value};
+use berserk_database::{Direction, Driver, Query, Value};
 
 #[test]
 fn select_compiles_for_postgres_with_stable_binding_order() {

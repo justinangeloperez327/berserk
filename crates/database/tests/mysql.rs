@@ -2,7 +2,7 @@
 
 mod common;
 
-use framework_database::{drivers::mysql::MySqlConnection, Connection, Statement, Value};
+use berserk_database::{drivers::mysql::MySqlConnection, Connection, Statement, Value};
 
 fn connection() -> Option<MySqlConnection> {
     let url = match std::env::var("FRAMEWORK_MYSQL_TEST_URL") {

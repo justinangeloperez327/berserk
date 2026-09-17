@@ -1,4 +1,4 @@
-use framework_core::{ConfigError, Validate};
+use berserk_core::{ConfigError, Validate};
 use std::time::Duration;
 
 /// Proposed defaults. Resource enforcement belongs to the server phase.

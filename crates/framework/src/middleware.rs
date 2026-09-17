@@ -81,14 +81,14 @@ impl<G> Authenticated<G> {
 }
 
 #[cfg(feature = "auth")]
-impl<G: framework_auth::Guard> Middleware for Authenticated<G> {
+impl<G: berserk_auth::Guard> Middleware for Authenticated<G> {
     fn handle(&self, mut request: Request, next: Next<'_>) -> Result<Response> {
         let token = request.header("authorization").and_then(bearer_token);
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|_| {
-                framework_auth::AuthError::new(
-                    framework_auth::ErrorKind::Configuration,
+                berserk_auth::AuthError::new(
+                    berserk_auth::ErrorKind::Configuration,
                     "system clock is before the Unix epoch",
                 )
             })?

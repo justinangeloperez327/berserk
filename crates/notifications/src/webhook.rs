@@ -1,5 +1,5 @@
 use crate::{Channel, ErrorKind, NotificationError, Result};
-use framework_client::{Header, Method, Request, Url};
+use berserk_client::{Header, Method, Request, Url};
 use std::fmt;
 
 #[derive(Clone, Eq, PartialEq)]
@@ -75,7 +75,7 @@ impl fmt::Debug for WebhookMessage {
             .finish()
     }
 }
-fn client_error(error: framework_client::ClientError) -> NotificationError {
+fn client_error(error: berserk_client::ClientError) -> NotificationError {
     NotificationError::new(
         ErrorKind::InvalidMessage,
         Some(Channel::Webhook),

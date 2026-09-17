@@ -1,5 +1,5 @@
 use crate::ModelQuery;
-use framework_database::{Connection, Direction, Execution, Query, Result, Row, Value};
+use berserk_database::{Connection, Direction, Execution, Query, Result, Row, Value};
 
 /// A typed database record managed by Claw ORM.
 pub trait Model: Sized {

@@ -4,7 +4,7 @@ Phase 24 adds optional outbound HTTP and notification components while keeping n
 
 ## HTTP client
 
-`framework-client` defines `HttpClient`, validated `Url`, `Header`, `Request`, and `Response` types, and structured client errors. External TLS-capable clients can implement the same synchronous trait.
+`berserk-client` defines `HttpClient`, validated `Url`, `Header`, `Request`, and `Response` types, and structured client errors. External TLS-capable clients can implement the same synchronous trait.
 
 `TcpHttpClient` is a bounded standard-library transport for plaintext `http://` connections. It owns Host, Connection, Content-Length, and Transfer-Encoding framing; validates request header/body limits; uses connect/read/write timeouts; and bounds response headers, header count, body bytes, chunks, and trailers. It accepts content-length, chunked, and connection-close response bodies. It returns redirects rather than following them and does not manage cookies.
 
@@ -14,7 +14,7 @@ Debug implementations omit HTTP header values and body contents. URL debug outpu
 
 ## Mail and notifications
 
-`framework-notifications` provides safe email/message types, `MailTransport`, a bounded `MemoryMailTransport` test fake, webhook messages, recipients, and a Laravel-inspired `Notification` trait. A notification can produce mail, webhook, both, or neither for a recipient.
+`berserk-notifications` provides safe email/message types, `MailTransport`, a bounded `MemoryMailTransport` test fake, webhook messages, recipients, and a Laravel-inspired `Notification` trait. A notification can produce mail, webhook, both, or neither for a recipient.
 
 `Notifier` applies configurable body limits and returns one `DeliveryOutcome` per produced channel. A missing transport is an explicit failed outcome. Webhooks require HTTPS by default; local plaintext use requires the visible `allow_insecure_webhooks` opt-in.
 

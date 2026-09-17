@@ -1,0 +1,88 @@
+name: Package
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: Verify canonical Rust formatting
+        run: cargo fmt --all -- --check
+      - name: Verify release package identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e LICENCE
+          test -s LICENSE
+          ! git grep -n -E 'framework-(core|validation|database|auth|openapi|cache|storage|events|jobs|client|notifications|cli|testing|benchmarks)' -- ':!Cargo.lock'
+          ! git grep -n -E 'framework_(core|validation|database|auth|openapi|cache|storage|events|jobs|client|notifications|cli|testing|benchmarks)' -- ':!Cargo.lock'
+          cargo metadata --locked --no-deps --format-version 1 > /tmp/metadata.json
+          python3 - <<'CHECK'
+          import json
+          data = json.load(open('/tmp/metadata.json'))
+          expected = {
+              'berserk', 'berserk-core', 'berserk-validation', 'berserk-database',
+              'claw-orm', 'berserk-auth', 'berserk-openapi', 'berserk-cache',
+              'berserk-storage', 'berserk-events', 'berserk-jobs', 'berserk-client',
+              'berserk-notifications', 'berserk-cli', 'berserk-testing',
+          }
+          packages = {p['name']: p for p in data['packages']}
+          missing = expected - packages.keys()
+          if missing:
+              raise SystemExit(f'missing expected packages: {sorted(missing)}')
+          for name in expected:
+              package = packages[name]
+              if package['version'] != '0.1.0':
+                  raise SystemExit(f'{name}: expected version 0.1.0, got {package["version"]}')
+              if package.get('publish') == []:
+                  raise SystemExit(f'{name}: publication is disabled')
+              if package.get('license') != 'MIT':
+                  raise SystemExit(f'{name}: expected MIT license metadata')
+              if package.get('repository') != 'https://github.com/justinangeloperez327/berserk':
+                  raise SystemExit(f'{name}: repository metadata mismatch')
+          for name in {'foundation-example', 'berserk-benchmarks'}:
+              package = packages[name]
+              if package.get('publish') != []:
+                  raise SystemExit(f'{name}: must remain non-publishable')
+          CHECK
+      - name: Inspect every package file list
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p package-lists
+          packages=(
+            berserk-core berserk-validation berserk-database claw-orm berserk-auth
+            berserk-openapi berserk-cache berserk-storage berserk-events berserk-jobs
+            berserk-client berserk-notifications berserk-cli berserk-testing berserk
+          )
+          for package in "${packages[@]}"; do
+            cargo package --locked -p "$package" --list > "package-lists/$package.txt"
+            if grep -E '(^|/)(target|benchmark-results|\.git)(/|$)|(^|/)\.env($|\.)|\.(pem|key)$|credentials' "package-lists/$package.txt"; then
+              echo "forbidden packaged path detected in $package" >&2
+              exit 1
+            fi
+          done
+      - name: Build first-publication foundation archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          for package in berserk-core berserk-validation berserk-database; do
+            cargo package --locked -p "$package" --no-verify --allow-dirty
+          done
+      - name: Retain package file lists
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-file-lists-${{ github.sha }}
+          path: package-lists/
+          if-no-files-found: error
+          retention-days: 30

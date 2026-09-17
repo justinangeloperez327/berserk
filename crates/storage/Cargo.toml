@@ -1,10 +1,14 @@
 [package]
-name = "framework-storage"
+name = "berserk-storage"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-publish.workspace = true
+authors.workspace = true
+repository.workspace = true
+readme.workspace = true
+description = "Storage contracts and local or memory storage for Berserk."
+publish = true
 
 [dependencies]
 rand_core = { version = "0.6", features = ["getrandom"] }

@@ -1,4 +1,4 @@
-use framework_database::{Statement, Value};
+use berserk_database::{Statement, Value};
 
 #[test]
 fn database_debug_output_redacts_values_and_sql() {

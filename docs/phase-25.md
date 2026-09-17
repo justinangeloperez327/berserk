@@ -4,7 +4,7 @@ Phase 25 adds optional tools that shorten ordinary Laravel-inspired workflows wi
 
 ## CLI
 
-`framework-cli` includes a `framework` binary and a reusable command API. Supported commands are:
+`berserk-cli` includes a `framework` binary and a reusable command API. Supported commands are:
 
 ```text
 framework new demo-api
@@ -29,7 +29,7 @@ The generated dependency currently uses the placeholder package name and `0.1` r
 
 ## Testing
 
-`framework-testing` is a separate development crate. `TestClient` sends owned requests through `App::handle`, exercising routing, state, and middleware without TCP. `TestResponse` supplies chainable assertions for status, successful status ranges, headers, raw bytes, UTF-8 text, and parsed JSON structure.
+`berserk-testing` is a separate development crate. `TestClient` sends owned requests through `App::handle`, exercising routing, state, and middleware without TCP. `TestResponse` supplies chainable assertions for status, successful status ranges, headers, raw bytes, UTF-8 text, and parsed JSON structure.
 
 `FakeHttpClient` returns queued responses or errors and retains every owned outbound request. `MemoryMailTransport` is re-exported for mail assertions. `EventRecorder<E>` creates a typed listener and exposes captured events. `RecordingJob` and `JobProbe` test queue retries and attempt ordering using the real job worker contract.
 
@@ -39,10 +39,10 @@ Applications add testing explicitly:
 
 ```toml
 [dev-dependencies]
-framework-testing = { path = "crates/testing" }
+berserk-testing = { path = "crates/testing" }
 ```
 
-The main framework does not depend on or re-export `framework-testing`, preventing a production dependency cycle and accidental inclusion of test fakes.
+The main framework does not depend on or re-export `berserk-testing`, preventing a production dependency cycle and accidental inclusion of test fakes.
 
 ## Verification status
 

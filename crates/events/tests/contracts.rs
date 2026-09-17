@@ -1,4 +1,4 @@
-use framework_events::{DispatchError, ErrorKind, Event, EventBus};
+use berserk_events::{DispatchError, ErrorKind, Event, EventBus};
 use std::sync::{Arc, Mutex};
 
 struct Created {
@@ -47,7 +47,7 @@ fn removal_and_failure_are_explicit() {
 #[test]
 fn listener_panics_are_contained() {
     let bus = EventBus::new();
-    bus.listen::<Created, _>(|_| -> framework_events::Result<()> { panic!("listener panic") })
+    bus.listen::<Created, _>(|_| -> berserk_events::Result<()> { panic!("listener panic") })
         .unwrap();
     assert_eq!(
         bus.dispatch(&Created { id: 1 }).unwrap_err().kind(),
