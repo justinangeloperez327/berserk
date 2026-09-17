@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   repository-hygiene:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - name: Reject tracked Cargo build output
@@ -27,7 +27,7 @@ jobs:
           PYTHON
 
   feature-matrix:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -73,7 +73,7 @@ jobs:
       - run: cargo check -p berserk --all-targets ${{ matrix.args }}
 
   quality:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
@@ -89,10 +89,26 @@ jobs:
       - run: cargo test --manifest-path examples/minimal-api/Cargo.toml
 
   msrv:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.88"
       - run: cargo check --workspace --all-targets --all-features
+
+  platform-compatibility:
+    name: platform-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo check --workspace --all-targets --all-features
+      - run: cargo test --workspace --all-features
+      - run: cargo test --manifest-path examples/minimal-api/Cargo.toml
