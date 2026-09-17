@@ -38,7 +38,7 @@ jobs:
           rm .github/workflows/package-identity-migration.yml
           git add -A
           git diff --cached --check
-      - name: Upload migration tree without moving branch
+      - name: Upload non-workflow migration tree
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -79,8 +79,12 @@ jobs:
               ["git", "diff", "--cached", "--name-only", "-z", base, "--"]
           ).decode().split("\0")
           entries = []
+          workflow_paths = []
           for raw in names:
               if not raw:
+                  continue
+              if raw.startswith(".github/workflows/"):
+                  workflow_paths.append(raw)
                   continue
               path = Path(raw)
               if not path.exists():
@@ -101,7 +105,9 @@ jobs:
               f"/repos/{repo}/git/trees",
               {"base_tree": base_tree, "tree": entries},
           )
-          print(f"SERVER_TREE_SHA={tree['sha']}")
+          print(f"NON_WORKFLOW_TREE_SHA={tree['sha']}")
           print(f"BASE_COMMIT_SHA={base}")
-          print(f"CHANGED_FILES={len(entries)}")
+          print(f"NON_WORKFLOW_CHANGED_FILES={len(entries)}")
+          for path in workflow_paths:
+              print(f"WORKFLOW_PATH={path}")
           PY
