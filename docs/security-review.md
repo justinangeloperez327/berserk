@@ -2,7 +2,7 @@
 
 Date: 2026-09-17
 
-Status: completed release review pass for the `0.1.0` candidate surface. This is an independent review pass over the repository state, not a third-party penetration test, external certification, or guarantee of vulnerability absence.
+Status: internal release review pass completed for the `0.1.0` candidate surface. This is not an independent third-party security audit, penetration test, external certification, or guarantee of vulnerability absence.
 
 ## Scope
 
@@ -30,7 +30,7 @@ The review covered the security-sensitive and developer-facing boundaries of the
 - Session tokens use OS randomness, are stored by digest, redact `Debug`, expire, and support revocation.
 - Password operations use the RustCrypto Argon2 password-hashing API and keep password material behind a redacting secret wrapper.
 - Storage paths reject absolute paths, traversal, empty components, backslashes and control bytes; local storage rejects observed symlinks.
-- Default diagnostics redact request bodies, header values, SQL/bindings, cache keys/values, multipart bodies and authentication secrets.
+- Default diagnostics redact request targets/bodies, header values, SQL/bindings, cache keys/values, multipart bodies and authentication secrets.
 - Dependency advisory/license/source policy, fuzzing, real PostgreSQL/MySQL/SQLite tests, sequential performance evidence, concurrent overload/shutdown tests, and a 900-second main-branch soak have completed successfully.
 
 ## Findings
@@ -46,6 +46,8 @@ The review covered the security-sensitive and developer-facing boundaries of the
 | SR-07 | Deployment boundary | Bearer session primitives do not automatically define cookie attributes or CSRF policy. | Documented: cookie-based applications must define Secure/HttpOnly/SameSite, rotation/revocation and CSRF behavior. |
 | SR-08 | Operational boundary | `MemorySessionStore` is process-local and unbounded; arbitrary synchronous handler code can also block indefinitely. | Documented: production systems should use bounded/persistent session storage and must not run unbounded blocking handler work on request paths. |
 | SR-09 | Release process | A private vulnerability-reporting channel and named maintainer response ownership are not yet configured. | Remains a release checklist item; this cannot be satisfied by source changes alone. |
+| SR-10 | Medium | Framework `Request` `Debug` output included the complete request path, which could expose route-parameter values in logs despite the intended redaction boundary. | Fixed in this review: request diagnostics now report only target byte length plus metadata, with regression coverage that rejects path/query value disclosure. |
+| SR-11 | Release process | The repository checklist requires an independent security/API review, but this pass was performed internally while developing the framework. | Kept open: an independent external reviewer must complete that gate before release readiness is claimed. |
 
 ## Public API review
 
@@ -58,12 +60,12 @@ The primary API remains coherent around instance registration and explicit execu
 - Claw query chains build operations while terminal methods perform database I/O.
 - Optional subsystems remain feature-gated and the crate prelude exposes common application types without hiding ownership or error boundaries.
 
-The review found no release-blocking API inconsistency after correcting the stale contract documentation.
+The internal review found no additional release-blocking API inconsistency after correcting the stale contract documentation. That conclusion is limited to this internal review and does not replace the independent review gate.
 
 ## Residual release gates
 
-This review closes the repository security/API review gate, but it does not close unrelated owner or deployment decisions. The release checklist still requires, among other items, package-name availability, a private vulnerability-reporting channel, supported OS/database-version policy, clean-machine documentation/example review, final changelog/support review, provenance/checksum policy, rollback/yank planning and explicit owner publication approval.
+This internal review closes the repository's internal hardening pass, but it does not close the independent security/API review requirement. The release checklist also still requires package-name availability, a private vulnerability-reporting channel, supported OS/database-version policy, clean-machine documentation/example review, final changelog/support review, provenance/checksum policy, rollback/yank planning and explicit owner publication approval.
 
 ## Conclusion
 
-The reviewed `0.1.0` candidate has a materially stronger and now accurately documented security baseline. One concrete protocol-boundary issue found by this pass was fixed and regression-tested. Remaining findings are explicit deployment or release-process boundaries rather than hidden framework guarantees. No third-party audit or penetration-test claim is made.
+The reviewed `0.1.0` candidate has a materially stronger and more accurately documented security baseline. Two concrete diagnostic/protocol-boundary issues found by the internal pass were fixed and regression-tested. Remaining findings are explicit deployment or release-process boundaries rather than hidden framework guarantees. An independent external security/API review is still required before that release gate can be marked complete.
