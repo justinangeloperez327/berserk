@@ -3,7 +3,7 @@
 pub use crate::Authenticated;
 pub use crate::{
     ActionResult, ApiResource, ApiResourceController, App, Error, IntoResponse, Request, Resource,
-    ResourceCollection, ResourceController, Response, Result, Route, ServerConfig, State,
+    ResourceCollection, ResourceController, Response, Result, Route, ServerConfig, State, Str,
     Validated,
 };
 pub use crate::{Metrics, MetricsLayer, RateLimitLayer, RateLimiter, RequestLogger, TraceLayer};

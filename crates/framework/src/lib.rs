@@ -7,12 +7,14 @@ pub mod controller;
 mod error;
 pub mod http;
 pub mod prelude;
+pub mod support;
 
 pub use app::App;
 pub use berserk_core::{ConfigError, ShutdownHandle, State, Validate};
 pub use config::ServerConfig;
 pub use controller::ActionResult;
 pub use error::{Error, Result};
+pub use support::Str;
 
 #[cfg(feature = "auth")]
 pub use berserk_auth as auth;
