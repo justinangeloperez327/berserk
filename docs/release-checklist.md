@@ -18,7 +18,7 @@ Publishing is always a manual owner decision. This checklist intentionally conta
 - [x] Pass PostgreSQL, MySQL, and SQLite contract and migration tests against real databases.
 - [x] Run dependency advisory, license, duplicate-version, and source-policy checks.
 - [x] Fuzz the current JSON, HTTP-value, route-registration, and multipart input boundaries.
-- [ ] Run concurrent server load, overload, shutdown-under-load, and prolonged soak tests.
+- [ ] Run concurrent server load, overload, shutdown-under-load, and prolonged soak tests. The `Concurrent load` workflow supplies PR stress evidence plus scheduled/manual prolonged soak evidence; check this only after a prolonged main-branch run passes.
 - [x] Record reproducible sequential latency, throughput, process RSS, and environment data; retain raw evidence.
 - [ ] Complete an independent security and API review; resolve or document every finding.
 
@@ -26,7 +26,7 @@ Publishing is always a manual owner decision. This checklist intentionally conta
 
 - [ ] Review public API documentation and examples from a clean machine.
 - [ ] Review changelog, upgrade notes, known limitations, MSRV, and support policy.
-- [ ] Inspect packaged file lists and verify no credentials, local paths, fixtures, or build output are included.
+- [x] Inspect packaged file lists and verify no credentials, local paths, fixtures, or build output are included.
 - [ ] Generate checksums and provenance/signing material according to the chosen release platform.
 - [ ] Prepare a rollback/yank and security-response plan.
 
