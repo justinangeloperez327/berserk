@@ -10,18 +10,18 @@ This policy defines the support boundary intended for the first public `0.1.0` r
 
 ## Host operating systems
 
-### Tier 1: production support
+### Tier 1: release support
 
 - **Linux x86_64**, validated on **Ubuntu 24.04 LTS**.
 
-Tier 1 means the release-blocking quality, MSRV, live-database, security, fuzzing, load, and package workflows are expected to remain green for the release candidate. Production claims for `0.1.0` are limited to this tier.
+Tier 1 means the release-blocking quality, MSRV, live-database, security, fuzzing, load, and package workflows are expected to remain green for the release candidate. This is the strongest host-platform compatibility claim for `0.1.0`; it does not replace the separate independent security/API review gate or imply security certification.
 
 ### Tier 2: development compatibility
 
 - **Windows**, validated on the current GitHub-hosted `windows-latest` runner.
 - **macOS**, validated on the current GitHub-hosted `macos-latest` runner.
 
-Tier 2 runs workspace compile/tests and the standalone minimal API example. These platforms are supported for development compatibility, but `0.1.0` does not make the same production-operability claim as Tier 1 because live database services, load/soak, and fuzzing are not executed there.
+Tier 2 runs workspace compile/tests and the standalone minimal API example. These platforms are supported for development compatibility, but `0.1.0` does not make the same operational-validation claim as Tier 1 because live database services, load/soak, and fuzzing are not executed there.
 
 Other operating systems, Linux distributions, and architectures may work but are not part of the `0.1.0` support contract unless they are added to CI and this document.
 
