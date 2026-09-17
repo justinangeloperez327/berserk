@@ -84,7 +84,7 @@ impl Connection for FakeConnection {
 #[test]
 fn find_many_uses_the_declared_primary_key_and_bound_values() {
     let mut connection = FakeConnection::with_users();
-    let users = User::find_many(&mut connection, [3_u64, 8_u64]).unwrap();
+    let users = User::find_many_on(&mut connection, [3_u64, 8_u64]).unwrap();
 
     assert_eq!(
         users,

@@ -6,7 +6,8 @@ All packages live under `crates/` with short folder names:
 
 - `framework`: main import, App assembly, HTTP, routing, handlers, middleware, server, logging, health, metrics, trace propagation, and rate limiting.
 - `core`: small shared foundations, state, configuration utilities, lifecycle contracts, core errors.
-- `database`: execution interfaces, query builder, models, migrations, pagination, database testing.
+- `database`: execution interfaces, lexical request/job scope, query builder, migrations, and driver contracts.
+- `claw`: typed models, guarded input conversions, relationships, eager loading, and pagination.
 - `auth`: identity providers, password verification, sessions, principals, gates, policies, and optional HTTP integration.
 - `openapi`: standalone schemas, operations, security definitions, validation, and OpenAPI 3.1 JSON generation.
 - `cache`: backend-neutral byte-value cache operations, expiration, namespaces, and the bounded memory backend.
@@ -17,11 +18,11 @@ All packages live under `crates/` with short folder names:
 - `notifications`: mail and webhook messages, delivery policies, channel reports, and replaceable transports.
 - `cli`: command parsing, safe generators, and application-provided migration command hooks.
 - `testing`: in-memory HTTP assertions, fakes, recorders, and isolated temporary workspaces.
-- `validation`, `macros`: added in their corresponding phases.
+- `validation`: explicit field errors, validation rules, and sanitization helpers.
 
 Beginning in Phase 13, `database` owns the shared connection, transaction, statement, value, row, capability, and error contracts. Phases 14–15 implement `database/src/drivers/postgres/`, `mysql/`, and `sqlite/`. They remain inside one database package, not three packages. Backend features are additive and disabled by default. The main `framework` package forwards those optional features. Backend-specific behavior remains explicit.
 
-Folder names and Cargo package names are independent. Use a distinctive framework prefix for published package names; avoid naming the Rust crate itself `core` because Rust already supplies a core crate. Final package names are pending.
+Folder names and Cargo package names are independent. Use a distinctive framework prefix for published package names; avoid naming the Rust crate itself `core` because Rust already supplies a core crate. Published names use `berserk`, `berserk-*`, and `claw-orm`.
 
 Phase 22 keeps `cache` and `storage` independent of HTTP and database code. Applications may use the contracts directly or enable the main framework's `cache` and `storage` re-export features. Remote adapters must implement the same explicit contracts and map their failures into public component errors.
 
@@ -37,26 +38,10 @@ Phase 26 does not add a runtime crate. Hardening remains cross-cutting: crate ro
 
 The main framework assembles components. Core must not depend on the main framework, HTTP implementation, or database drivers. Components use core only where needed; each owns its domain-specific errors. The `auth` and `openapi` crates do not depend on HTTP; the main framework adds their optional integrations. Re-exports and optional integrations must avoid circular dependencies. The testing package can depend on the framework without the framework depending on testing in production.
 
-## Phase 2 original target
+## Request execution
 
-```text
-framework/
-  Cargo.toml
-  crates/
-    core/
-      Cargo.toml
-      src/lib.rs
-      src/error.rs
-    framework/
-      Cargo.toml
-      src/lib.rs
-      src/app.rs
-      src/error.rs
-  examples/
-    minimal-api/
-      Cargo.toml
-      src/main.rs
-  docs/
-```
+The current release contract is [v0.2.0](v0.2.0.md). App installs a fresh lazy DatabaseScope around middleware and routing. The router installs the authenticated principal immediately around handler extraction and execution. Typed parameters resolve models, decode/validate/authorize forms, and call the action. Errors remain typed until an explicit response boundary.
 
-The foundation is now implemented; see phase-2.md for actual scope. The consumer is named examples/foundation, and the HTTP example remains design-only. Add state, HTTP types, and other files as their implementations arrive. Root integration tests will require a workspace test package or per-package tests; a virtual workspace root does not itself own Rust integration tests.
+DatabaseScope uses checked exclusive connection borrowing through scoped-tls-hkt. Transactions install a borrowed connection view lexically and restore it during unwinding. No local unsafe code is required. Claw remains independent of HTTP: the framework supplies pagination context through database scope and maps domain errors at the HTTP boundary.
+
+Optional async actions reuse the same extraction adapters. Their future is polled on one blocking worker while Tokio drives I/O, preserving lexical context without claiming that synchronous drivers are nonblocking. Independent tasks receive no implicit database or principal. This boundary is tested with concurrent current-thread-runtime callers and spawned tasks.

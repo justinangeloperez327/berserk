@@ -10,7 +10,7 @@ pub trait ScopedRouteModel<P: Model>: Model {
     const PARENT_FOREIGN_KEY: &'static str;
 
     fn scoped_route_query(parent: &P, key: Value) -> ModelQuery<Self> {
-        Self::where_(Self::PRIMARY_KEY, "=", key).where_(
+        Self::where_op(Self::PRIMARY_KEY, "=", key).where_op(
             Self::PARENT_FOREIGN_KEY,
             "=",
             parent.key(),

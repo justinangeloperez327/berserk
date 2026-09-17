@@ -71,3 +71,21 @@ impl<T: ApiResource> IntoResponse for ResourceCollection<T> {
         Response::json(&Json::Object(body))?.into_response()
     }
 }
+
+impl<T: ApiResource + ?Sized> ApiResource for &T {
+    fn to_resource(&self) -> Json {
+        (*self).to_resource()
+    }
+}
+#[cfg(feature = "claw")]
+impl<T> ResourceCollection<T> {
+    pub fn page(page: claw_orm::Page<T>) -> Self {
+        let (number, per_page, total, last) =
+            (page.page(), page.per_page(), page.total(), page.last_page());
+        Self::new(page.into_items())
+            .meta("current_page", number)
+            .meta("per_page", per_page)
+            .meta("total", total)
+            .meta("last_page", last)
+    }
+}

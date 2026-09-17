@@ -1,0 +1,8 @@
+use berserk::auth::{Ability, Decision, Policy, Principal};
+
+pub struct {{name}};
+impl Policy<u64> for {{name}} {
+    fn authorize(&self, _principal: &Principal, _ability: &Ability, _resource: &u64) -> Decision {
+        Decision::Deny
+    }
+}

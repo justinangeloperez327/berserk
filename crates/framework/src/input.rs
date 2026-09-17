@@ -162,3 +162,52 @@ impl Response {
         Self::text(text).header("content-type", "application/json")
     }
 }
+
+pub type ValidationResult = std::result::Result<(), ValidationErrors>;
+
+/// Input lifecycle: decode, sanitize, validate, validate with request context, authorize.
+pub trait FormRequest: FromJson {
+    fn sanitize(&mut self) {}
+    fn validate(&self) -> ValidationResult;
+    fn validate_request(&self, _request: &Request) -> Result<()> {
+        Ok(())
+    }
+    fn authorize(&self) -> bool {
+        true
+    }
+    fn authorize_request(&self, _request: &Request) -> Result<()> {
+        if self.authorize() {
+            Ok(())
+        } else {
+            Err(crate::Error::forbidden())
+        }
+    }
+}
+impl Request {
+    pub fn form_request<T: FormRequest>(&self) -> Result<T> {
+        let mut input = T::from_json(&self.json()?).map_err(InputError::Fields)?;
+        input.sanitize();
+        input.validate().map_err(InputError::Fields)?;
+        input.validate_request(self)?;
+        input.authorize_request(self)?;
+        Ok(input)
+    }
+    /// One positive decimal `page` value; invalid and duplicate values are rejected.
+    pub fn page_number(&self) -> Result<u64> {
+        let mut page = None;
+        for (key, value) in self.query()? {
+            if key == "page" {
+                if page.is_some() || value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit())
+                {
+                    return Err(InputError::Query.into());
+                }
+                let number = value.parse::<u64>().map_err(|_| InputError::Query)?;
+                if number == 0 {
+                    return Err(InputError::Query.into());
+                }
+                page = Some(number);
+            }
+        }
+        Ok(page.unwrap_or(1))
+    }
+}

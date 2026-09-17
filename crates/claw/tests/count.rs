@@ -69,7 +69,7 @@ impl Connection for FakeConnection {
 #[test]
 fn model_and_filtered_query_count_use_the_database_count_path() {
     let mut all = FakeConnection::with_count(3);
-    assert_eq!(User::count(&mut all).unwrap(), 3);
+    assert_eq!(User::count_on(&mut all).unwrap(), 3);
     assert_eq!(
         all.statements[0].sql(),
         "SELECT COUNT(*) AS \"aggregate\" FROM \"users\""
@@ -78,8 +78,8 @@ fn model_and_filtered_query_count_use_the_database_count_path() {
 
     let mut active = FakeConnection::with_count(2);
     assert_eq!(
-        User::where_("active", "=", true)
-            .count(&mut active)
+        User::where_op("active", "=", true)
+            .count_on(&mut active)
             .unwrap(),
         2
     );

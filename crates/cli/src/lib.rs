@@ -18,6 +18,18 @@ pub fn execute(
         Command::New { path } => generator
             .new_project(&path)
             .map(|files| summary("project", &files)),
+        Command::MakeController { name } => generator
+            .make_controller(&name)
+            .map(|files| summary("controller", &files)),
+        Command::MakeRequest { name } => generator
+            .make_request(&name)
+            .map(|files| summary("request", &files)),
+        Command::MakeResource { name } => generator
+            .make_resource(&name)
+            .map(|files| summary("resource", &files)),
+        Command::MakePolicy { name } => generator
+            .make_policy(&name)
+            .map(|files| summary("policy", &files)),
         Command::MakeModel { name } => generator
             .make_model(&name)
             .map(|files| summary("model", &files)),

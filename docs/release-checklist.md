@@ -1,4 +1,6 @@
-# Release checklist
+# Release checklist — v0.2.0 candidate
+
+The [v0.2.0 integration review](v0.2.0-review.md) records the current implementation and local verification. The checkboxes below are historical 0.1.0 foundation evidence unless explicitly linked to that review. External review, provenance for the final commit, live CI matrix results, and publication authorization must be renewed for v0.2.0. They are publication gates, not claims that this release branch has already been published.
 
 Publishing is always a manual owner decision. This checklist intentionally contains no publish command.
 

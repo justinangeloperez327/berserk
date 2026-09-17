@@ -8,6 +8,7 @@ mod error;
 pub mod migrations;
 pub mod query;
 mod row;
+pub mod scope;
 mod seeding;
 mod statement;
 mod transaction;

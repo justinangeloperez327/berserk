@@ -2,85 +2,7 @@ use super::{Headers, HttpError, Method};
 use std::{collections::HashMap, str::FromStr};
 
 #[cfg(feature = "database")]
-use std::{
-    cell::{RefCell, RefMut},
-    ops::{Deref, DerefMut},
-};
-
-/// A mutable borrow of the database connection owned by one request.
-#[cfg(feature = "database")]
-pub struct RequestConnection<'a> {
-    inner: RefMut<'a, Option<Box<dyn berserk_database::Connection + Send>>>,
-}
-
-#[cfg(feature = "database")]
-impl Deref for RequestConnection<'_> {
-    type Target = dyn berserk_database::Connection;
-
-    fn deref(&self) -> &Self::Target {
-        self.inner
-            .as_deref()
-            .expect("request connection is initialized before the guard is returned")
-    }
-}
-
-#[cfg(feature = "database")]
-impl DerefMut for RequestConnection<'_> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.inner
-            .as_deref_mut()
-            .expect("request connection is initialized before the guard is returned")
-    }
-}
-
-#[cfg(feature = "database")]
-struct RequestTransactionConnection<'a> {
-    transaction: &'a mut dyn berserk_database::Transaction,
-    driver: berserk_database::Driver,
-    capabilities: berserk_database::Capabilities,
-}
-
-#[cfg(feature = "database")]
-impl berserk_database::Connection for RequestTransactionConnection<'_> {
-    fn driver(&self) -> berserk_database::Driver {
-        self.driver
-    }
-
-    fn capabilities(&self) -> berserk_database::Capabilities {
-        self.capabilities
-    }
-
-    fn execute(
-        &mut self,
-        statement: &berserk_database::Statement,
-    ) -> berserk_database::Result<berserk_database::Execution> {
-        self.transaction.execute(statement)
-    }
-
-    fn query(
-        &mut self,
-        statement: &berserk_database::Statement,
-    ) -> berserk_database::Result<Vec<berserk_database::Row>> {
-        self.transaction.query(statement)
-    }
-
-    fn begin(
-        &mut self,
-        _options: berserk_database::TransactionOptions,
-    ) -> berserk_database::Result<Box<dyn berserk_database::Transaction + '_>> {
-        Err(berserk_database::DatabaseError::new(
-            berserk_database::ErrorKind::Transaction,
-            "nested transactions are not supported by request transactions",
-        ))
-    }
-
-    fn ping(&mut self) -> berserk_database::Result<()> {
-        Err(berserk_database::DatabaseError::new(
-            berserk_database::ErrorKind::Transaction,
-            "ping is not available inside a request transaction",
-        ))
-    }
-}
+pub use berserk_database::scope::ScopedConnection as RequestConnection;
 
 /// Owned request data. This constructor is not a wire parser.
 pub struct Request {
@@ -94,7 +16,7 @@ pub struct Request {
     params: HashMap<String, String>,
     param_values: Vec<String>,
     #[cfg(feature = "database")]
-    connection: RefCell<Option<Box<dyn berserk_database::Connection + Send>>>,
+    database_scope: std::sync::Arc<berserk_database::scope::DatabaseScope>,
     #[cfg(feature = "auth")]
     principal: Option<berserk_auth::Principal>,
 }
@@ -160,7 +82,10 @@ impl Request {
             request_id: None,
             trace_context: None,
             #[cfg(feature = "database")]
-            connection: RefCell::new(None),
+            database_scope: std::sync::Arc::new(berserk_database::scope::DatabaseScope::optional(
+                None,
+                Ok(1),
+            )),
             #[cfg(feature = "auth")]
             principal: None,
         })
@@ -191,16 +116,13 @@ impl Request {
 
     #[cfg(feature = "database")]
     pub fn connection(&self) -> crate::Result<RequestConnection<'_>> {
-        let mut connection = self.connection.try_borrow_mut().map_err(|_| {
-            berserk_database::DatabaseError::new(
-                berserk_database::ErrorKind::Connection,
-                "request database connection is already borrowed",
-            )
-        })?;
-        if connection.is_none() {
-            *connection = Some(self.database()?.acquire()?);
-        }
-        Ok(RequestConnection { inner: connection })
+        self.database()?;
+        Ok(self.database_scope.connection()?)
+    }
+
+    #[cfg(feature = "database")]
+    pub(crate) fn database_scope(&self) -> std::sync::Arc<berserk_database::scope::DatabaseScope> {
+        self.database_scope.clone()
     }
 
     #[cfg(feature = "database")]
@@ -209,29 +131,11 @@ impl Request {
         options: berserk_database::TransactionOptions,
         operation: impl FnOnce(&mut dyn berserk_database::Connection) -> crate::Result<T>,
     ) -> crate::Result<T> {
-        let mut connection = self.connection()?;
-        let driver = connection.driver();
-        let capabilities = connection.capabilities();
-        let mut transaction = connection.begin(options)?;
-        let result = {
-            let mut transactional = RequestTransactionConnection {
-                transaction: &mut *transaction,
-                driver,
-                capabilities,
-            };
-            operation(&mut transactional)
-        };
-
-        match result {
-            Ok(value) => {
-                transaction.commit()?;
-                Ok(value)
-            }
-            Err(error) => {
-                transaction.rollback()?;
-                Err(error)
-            }
-        }
+        self.database_scope.run(|| {
+            berserk_database::scope::transaction(options, || {
+                berserk_database::scope::with_connection(operation)
+            })
+        })
     }
 
     pub fn request_id(&self) -> Option<&str> {
@@ -262,6 +166,19 @@ impl Request {
 
     pub(crate) fn set_state(&mut self, state: crate::state::StateMap) {
         self.state = state;
+        #[cfg(feature = "database")]
+        {
+            self.database_scope =
+                std::sync::Arc::new(berserk_database::scope::DatabaseScope::optional(
+                    self.state::<berserk_database::Database>().cloned(),
+                    self.page_number().map_err(|_| {
+                        berserk_database::DatabaseError::new(
+                            berserk_database::ErrorKind::InvalidInput,
+                            "invalid page number",
+                        )
+                    }),
+                ));
+        }
     }
 
     pub fn method(&self) -> &Method {

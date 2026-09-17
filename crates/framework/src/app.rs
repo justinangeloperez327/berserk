@@ -96,7 +96,13 @@ impl App {
         let head = request.method().as_str() == "HEAD";
         request.set_state(self.state.clone());
         let terminal = |request| self.router.dispatch(request);
-        let mut response = self.layers.run(request, &terminal)?;
+        #[cfg(feature = "database")]
+        let result = request
+            .database_scope()
+            .run(|| self.layers.run(request, &terminal));
+        #[cfg(not(feature = "database"))]
+        let result = self.layers.run(request, &terminal);
+        let mut response = result?;
         response.validate()?;
         if head {
             response.suppress_for_head();
@@ -188,5 +194,105 @@ impl App {
             );
         }
         self.router.mount(child.router, prefix, child.layers)
+    }
+}
+
+impl App {
+    /// Dispatch and render public HTTP errors, as the test client does.
+    pub fn respond(&self, request: crate::Request) -> crate::Response {
+        let head = request.method().as_str() == "HEAD";
+        let mut response = self
+            .handle(request)
+            .unwrap_or_else(|error| error.response());
+        if head {
+            response.suppress_for_head();
+        }
+        response
+    }
+}
+
+#[cfg(feature = "async")]
+impl App {
+    /// Dispatch on a blocking worker. Dropping this future does not cancel a started action.
+    pub async fn handle_async(
+        self: &std::sync::Arc<Self>,
+        request: crate::Request,
+    ) -> Result<crate::Response> {
+        let app = self.clone();
+        tokio::task::spawn_blocking(move || {
+            crate::controller::async_handlers::in_worker(|| app.handle(request))
+        })
+        .await
+        .map_err(|_| crate::ConfigError::new("async", "request worker failed"))?
+    }
+}
+
+#[cfg(feature = "async")]
+impl App {
+    pub fn get_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
+    {
+        self.route().get_async(path, handler)
+    }
+}
+
+#[cfg(feature = "async")]
+impl App {
+    pub fn post_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
+    {
+        self.route().post_async(path, handler)
+    }
+}
+
+#[cfg(feature = "async")]
+impl App {
+    pub fn put_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
+    {
+        self.route().put_async(path, handler)
+    }
+}
+
+#[cfg(feature = "async")]
+impl App {
+    pub fn patch_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
+    {
+        self.route().patch_async(path, handler)
+    }
+}
+
+#[cfg(feature = "async")]
+impl App {
+    pub fn delete_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
+    {
+        self.route().delete_async(path, handler)
+    }
+}
+
+#[cfg(feature = "async")]
+impl App {
+    pub fn head_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
+    {
+        self.route().head_async(path, handler)
+    }
+}
+
+#[cfg(feature = "async")]
+impl App {
+    pub fn options_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
+    {
+        self.route().options_async(path, handler)
     }
 }

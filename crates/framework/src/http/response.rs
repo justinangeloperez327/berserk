@@ -138,7 +138,7 @@ impl IntoResponse for Response {
     }
 }
 
-impl IntoResponse for crate::Result<Response> {
+impl<T: IntoResponse> IntoResponse for crate::Result<T> {
     fn into_response(self) -> crate::Result<Response> {
         self?.into_response()
     }
@@ -152,5 +152,34 @@ pub(crate) struct StreamBody(
 impl std::fmt::Debug for StreamBody {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("StreamBody(..)")
+    }
+}
+
+impl IntoResponse for crate::Json {
+    fn into_response(self) -> crate::Result<Response> {
+        Response::json(&self)
+    }
+}
+impl IntoResponse for String {
+    fn into_response(self) -> crate::Result<Response> {
+        Ok(Response::text(self))
+    }
+}
+impl IntoResponse for &str {
+    fn into_response(self) -> crate::Result<Response> {
+        Ok(Response::text(self))
+    }
+}
+impl IntoResponse for () {
+    fn into_response(self) -> crate::Result<Response> {
+        Ok(Response::no_content())
+    }
+}
+impl Response {
+    pub fn no_content() -> Self {
+        Self::empty().status(204)
+    }
+    pub fn created(value: &crate::Json) -> crate::Result<Self> {
+        Ok(Self::json(value)?.status(201))
     }
 }

@@ -34,8 +34,8 @@ The default scoped lookup is equivalent to:
 
 ```rust
 Post::query()
-    .where_(Post::PRIMARY_KEY, "=", post_key)
-    .where_("user_id", "=", user.key())
+    .where_op(Post::PRIMARY_KEY, "=", post_key)
+    .where_op("user_id", "=", user.key())
     .first(&mut connection)?;
 ```
 
@@ -56,9 +56,9 @@ impl ScopedRouteModel<Account> for Membership {
         key: Value,
     ) -> ModelQuery<Self> {
         Self::query()
-            .where_(Self::PRIMARY_KEY, "=", key)
-            .where_("account_id", "=", account.key())
-            .where_("active", "=", true)
+            .where_op(Self::PRIMARY_KEY, "=", key)
+            .where_op("account_id", "=", account.key())
+            .where_op("active", "=", true)
     }
 }
 ```

@@ -57,7 +57,9 @@ pub use middleware::{Middleware, Next, RequestId};
 
 pub mod input;
 pub mod json;
-pub use input::{FromJson, ValidateInput, Validated, ValidationErrors};
+pub use input::{
+    FormRequest, FromJson, ValidateInput, Validated, ValidationErrors, ValidationResult,
+};
 pub use json::Json;
 
 pub mod multipart;
@@ -71,3 +73,16 @@ pub use operational::{
     MetricsLayer, MetricsSnapshot, RateLimitDecision, RateLimitLayer, RateLimiter, RequestLogger,
     StderrJson, TraceContext, TraceLayer,
 };
+
+mod responses;
+pub use responses::{response, ResponseFactory};
+#[cfg(feature = "auth")]
+mod authorization;
+#[cfg(feature = "auth")]
+pub use authorization::Auth;
+pub use middleware::HandleErrors;
+#[cfg(feature = "auth")]
+pub use middleware::RequireAbility;
+
+#[cfg(feature = "claw")]
+pub use routing::CrudController;

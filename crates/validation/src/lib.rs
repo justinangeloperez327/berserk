@@ -115,3 +115,34 @@ pub trait ValidateInput {
 
     fn validate(&self) -> Result<(), ValidationErrors>;
 }
+
+impl ValidationErrors {
+    /// Practical ASCII mailbox validation; quoted local parts and internationalized addresses are not supported.
+    pub fn email(&mut self, field: &str, value: &str) {
+        let valid = value.len() <= 254
+            && value.is_ascii()
+            && value.split_once('@').is_some_and(|(local, domain)| {
+                !local.is_empty()
+                    && local.len() <= 64
+                    && !local.starts_with('.')
+                    && !local.ends_with('.')
+                    && !local.contains("..")
+                    && local
+                        .bytes()
+                        .all(|c| c.is_ascii_alphanumeric() || b".!#$%&'*+-/=?^_`{|}~".contains(&c))
+                    && domain.contains('.')
+                    && domain.split('.').all(|label| {
+                        !label.is_empty()
+                            && label.len() <= 63
+                            && !label.starts_with('-')
+                            && !label.ends_with('-')
+                            && label
+                                .bytes()
+                                .all(|c| c.is_ascii_alphanumeric() || c == b'-')
+                    })
+            });
+        if !valid {
+            self.add(field, "email", "This field must be a valid email address.");
+        }
+    }
+}

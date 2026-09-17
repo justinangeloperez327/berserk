@@ -6,6 +6,8 @@ pub type Result<T> = std::result::Result<T, DatabaseError>;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ErrorKind {
     Configuration,
+    NotFound,
+    InvalidInput,
     Connection,
     Timeout,
     Constraint,

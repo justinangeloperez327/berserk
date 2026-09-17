@@ -37,13 +37,7 @@ impl ProtocolError {
 }
 
 pub(super) fn application_error_response(error: crate::Error) -> crate::Response {
-    match error {
-        crate::Error::Input(error) => error.response(),
-        crate::Error::Http(crate::HttpError::InvalidUtf8(_)) => {
-            crate::Response::text("Bad Request").status(400)
-        }
-        _ => crate::Response::text("Internal Server Error").status(500),
-    }
+    error.response()
 }
 
 impl From<io::Error> for ProtocolError {

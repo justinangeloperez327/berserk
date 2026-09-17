@@ -85,7 +85,7 @@ fn fresh_returns_current_database_state_without_mutating_original() {
     };
     let mut connection = FakeConnection::with_rows(vec![user_row(7, "Grace")]);
 
-    let fresh = user.fresh(&mut connection).unwrap().unwrap();
+    let fresh = user.fresh_on(&mut connection).unwrap().unwrap();
 
     assert_eq!(user.name, "Ada");
     assert_eq!(fresh.name, "Grace");
@@ -101,7 +101,7 @@ fn refresh_replaces_model_with_current_database_state() {
     };
     let mut connection = FakeConnection::with_rows(vec![user_row(7, "Grace")]);
 
-    let found = user.refresh(&mut connection).unwrap();
+    let found = user.refresh_on(&mut connection).unwrap();
 
     assert!(found);
     assert_eq!(user.name, "Grace");
@@ -116,7 +116,7 @@ fn refresh_returns_false_when_row_no_longer_exists() {
     };
     let mut connection = FakeConnection::default();
 
-    let found = user.refresh(&mut connection).unwrap();
+    let found = user.refresh_on(&mut connection).unwrap();
 
     assert!(!found);
     assert_eq!(user.name, "Ada");

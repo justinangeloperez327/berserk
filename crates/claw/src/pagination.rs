@@ -73,5 +73,5 @@ impl<T> Page<T> {
 }
 
 fn error(message: impl Into<String>) -> DatabaseError {
-    DatabaseError::new(ErrorKind::Query, message)
+    DatabaseError::new(ErrorKind::InvalidInput, message)
 }

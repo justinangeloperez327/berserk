@@ -127,7 +127,7 @@ fn save_persists_declared_values_and_filters_by_primary_key() {
     };
     let mut connection = FakeConnection::default();
 
-    let execution = user.save(&mut connection).unwrap();
+    let execution = user.save_on(&mut connection).unwrap();
 
     assert_eq!(execution.affected_rows, 1);
     assert_eq!(connection.executed.len(), 1);
@@ -150,7 +150,7 @@ fn save_rejects_primary_key_updates_before_execution() {
     let user = BrokenUser { id: 7 };
     let mut connection = FakeConnection::default();
 
-    let error = user.save(&mut connection).unwrap_err();
+    let error = user.save_on(&mut connection).unwrap_err();
 
     assert!(matches!(error.kind(), ErrorKind::Query));
     assert!(connection.executed.is_empty());
@@ -161,7 +161,7 @@ fn save_rejects_models_without_persisted_values() {
     let user = EmptyUser { id: 7 };
     let mut connection = FakeConnection::default();
 
-    let error = user.save(&mut connection).unwrap_err();
+    let error = user.save_on(&mut connection).unwrap_err();
 
     assert!(matches!(error.kind(), ErrorKind::Query));
     assert!(connection.executed.is_empty());

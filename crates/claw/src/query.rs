@@ -13,6 +13,45 @@ pub struct ModelQuery<M> {
 }
 
 impl<M: Model> ModelQuery<M> {
+    pub fn where_(self, column: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.where_op(column, "=", value)
+    }
+    pub fn or_where(self, column: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.or_where_op(column, "=", value)
+    }
+    pub fn get(&self) -> Result<Vec<M>> {
+        berserk_database::scope::with_connection(|c| self.get_on(c))
+    }
+    pub fn first(self) -> Result<Option<M>> {
+        berserk_database::scope::with_connection(|c| self.first_on(c))
+    }
+    pub fn first_or_fail(self) -> Result<M> {
+        self.first()?.ok_or_else(crate::writes::not_found)
+    }
+    pub fn count(&self) -> Result<u64> {
+        berserk_database::scope::with_connection(|c| self.count_on(c))
+    }
+    pub fn exists(&self) -> Result<bool> {
+        berserk_database::scope::with_connection(|c| self.exists_on(c))
+    }
+    pub fn update(self, input: impl crate::IntoUpdate<M>) -> Result<Execution> {
+        let values = crate::writes::allowed_values::<M>(input.into_update()?)?;
+        berserk_database::scope::with_connection(|c| self.update_on(c, values))
+    }
+    pub fn delete(self) -> Result<Execution> {
+        berserk_database::scope::with_connection(|c| self.delete_on(c))
+    }
+    pub fn paginate(self, per_page: u64) -> Result<Page<M>> {
+        let page = berserk_database::scope::current_page()?;
+        berserk_database::scope::with_connection(|c| self.paginate_on(c, page, per_page))
+    }
+    pub fn with<R: crate::Relationship<M>>(self, relations: R) -> crate::EagerQuery<M, R> {
+        crate::EagerQuery {
+            query: self,
+            relations,
+        }
+    }
+
     pub fn new() -> Self {
         Self {
             builder: Query::table(M::TABLE),
@@ -29,7 +68,7 @@ impl<M: Model> ModelQuery<M> {
         self
     }
 
-    pub fn where_(
+    pub fn where_op(
         mut self,
         column: impl Into<String>,
         operator: impl Into<String>,
@@ -39,7 +78,7 @@ impl<M: Model> ModelQuery<M> {
         self
     }
 
-    pub fn or_where(
+    pub fn or_where_op(
         mut self,
         column: impl Into<String>,
         operator: impl Into<String>,
@@ -109,7 +148,7 @@ impl<M: Model> ModelQuery<M> {
         self.builder.to_statement(driver)
     }
 
-    pub fn get(&self, connection: &mut dyn Connection) -> Result<Vec<M>> {
+    pub fn get_on(&self, connection: &mut dyn Connection) -> Result<Vec<M>> {
         self.builder
             .get(connection)?
             .iter()
@@ -117,7 +156,7 @@ impl<M: Model> ModelQuery<M> {
             .collect()
     }
 
-    pub fn first(self, connection: &mut dyn Connection) -> Result<Option<M>> {
+    pub fn first_on(self, connection: &mut dyn Connection) -> Result<Option<M>> {
         self.builder
             .first(connection)?
             .as_ref()
@@ -125,15 +164,15 @@ impl<M: Model> ModelQuery<M> {
             .transpose()
     }
 
-    pub fn count(&self, connection: &mut dyn Connection) -> Result<u64> {
+    pub fn count_on(&self, connection: &mut dyn Connection) -> Result<u64> {
         self.builder.count(connection)
     }
 
-    pub fn exists(&self, connection: &mut dyn Connection) -> Result<bool> {
+    pub fn exists_on(&self, connection: &mut dyn Connection) -> Result<bool> {
         Ok(!self.builder.clone().limit(1).get(connection)?.is_empty())
     }
 
-    pub fn update<I, S, V>(self, connection: &mut dyn Connection, values: I) -> Result<Execution>
+    pub fn update_on<I, S, V>(self, connection: &mut dyn Connection, values: I) -> Result<Execution>
     where
         I: IntoIterator<Item = (S, V)>,
         S: Into<String>,
@@ -142,11 +181,11 @@ impl<M: Model> ModelQuery<M> {
         self.builder.update(values).execute(connection)
     }
 
-    pub fn delete(self, connection: &mut dyn Connection) -> Result<Execution> {
+    pub fn delete_on(self, connection: &mut dyn Connection) -> Result<Execution> {
         self.builder.delete().execute(connection)
     }
 
-    pub fn paginate(
+    pub fn paginate_on(
         self,
         connection: &mut dyn Connection,
         page: u64,
@@ -155,13 +194,16 @@ impl<M: Model> ModelQuery<M> {
         Page::<M>::validate(page, per_page)?;
         let offset = (page - 1)
             .checked_mul(per_page)
-            .ok_or_else(|| DatabaseError::new(ErrorKind::Query, "pagination offset overflow"))?;
+            .filter(|offset| *offset <= i64::MAX as u64)
+            .ok_or_else(|| {
+                DatabaseError::new(ErrorKind::InvalidInput, "pagination offset overflow")
+            })?;
         let total = self.builder.count(connection)?;
         let items = Self {
             builder: self.builder.limit(per_page).offset(offset),
             marker: PhantomData,
         }
-        .get(connection)?;
+        .get_on(connection)?;
         Page::new(items, page, per_page, total)
     }
 }

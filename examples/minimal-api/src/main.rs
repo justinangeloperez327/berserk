@@ -92,7 +92,11 @@ mod tests {
                 headers.starts_with(&format!("HTTP/1.1 {status} ")),
                 "{method} {path}"
             );
-            assert_eq!(&bytes[split + 4..], expected);
+            if status >= 400 {
+                let body = berserk::Json::parse(&bytes[split + 4..]).unwrap();
+                assert_eq!(body.get("message").and_then(berserk::Json::as_str), Some(std::str::from_utf8(expected).unwrap()));
+                assert!(headers.contains("content-type: application/json"));
+            } else { assert_eq!(&bytes[split + 4..], expected); }
             if status == 405 {
                 assert!(headers.contains("allow: GET, HEAD"));
             }

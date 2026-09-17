@@ -1,5 +1,8 @@
 # Development roadmap
 
+Current candidate: [Berserk v0.2.0](v0.2.0.md). The phases below record the foundation history.
+
+
 1. **Public API Design**
 2. **Workspace and Core**
 3. **Requests and Responses**

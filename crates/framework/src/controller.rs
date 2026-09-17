@@ -1,5 +1,7 @@
 //! Controller-oriented handler adapters.
-use crate::{FromJson, IntoResponse, Request, Response, Result, ValidateInput, Validated};
+use crate::{
+    FormRequest, FromJson, IntoResponse, Request, Response, Result, ValidateInput, Validated,
+};
 use std::{marker::PhantomData, str::FromStr};
 
 /// Conventional result type for controller actions that can fail.
@@ -83,7 +85,7 @@ pub trait Handler<Args>: Send + Sync + 'static {
 fn route_param<T: FromStr>(request: &Request, index: usize) -> Extracted<T> {
     match request.param_at_as::<T>(index) {
         Some(Ok(value)) => Ok(value),
-        Some(Err(_)) | None => Err(Response::text("Invalid route parameter").status(400)),
+        Some(Err(_)) | None => Err(crate::Error::bad_request("Invalid route parameter").response()),
     }
 }
 
@@ -94,9 +96,10 @@ fn route_model_key<M: claw_orm::Model>(
 ) -> Extracted<berserk_database::Value> {
     let raw = match request.param_at(index) {
         Some(value) => value,
-        None => return Err(Response::text("Invalid route parameter").status(400)),
+        None => return Err(crate::Error::bad_request("Invalid route parameter").response()),
     };
-    M::parse_route_key(raw).ok_or_else(|| Response::text("Invalid route parameter").status(400))
+    M::parse_route_key(raw)
+        .ok_or_else(|| crate::Error::bad_request("Invalid route parameter").response())
 }
 
 #[cfg(feature = "claw")]
@@ -106,9 +109,9 @@ fn route_model<M: claw_orm::Model>(request: &Request, index: usize) -> Result<Ex
         Err(response) => return Ok(Err(response)),
     };
     let mut connection = request.connection()?;
-    match M::find(&mut *connection, key)? {
+    match M::find_on(&mut *connection, key)? {
         Some(model) => Ok(Ok(model)),
-        None => Ok(Err(Response::text("Not Found").status(404))),
+        None => Ok(Err(crate::Error::not_found().response())),
     }
 }
 
@@ -127,15 +130,15 @@ where
         Err(response) => return Ok(Err(response)),
     };
     let mut connection = request.connection()?;
-    let first = match M::find(&mut *connection, first_key)? {
+    let first = match M::find_on(&mut *connection, first_key)? {
         Some(model) => model,
-        None => return Ok(Err(Response::text("Not Found").status(404))),
+        None => return Ok(Err(crate::Error::not_found().response())),
     };
     let second = match <N as claw_orm::ScopedRouteModel<M>>::scoped_route_query(&first, second_key)
-        .first(&mut *connection)?
+        .first_on(&mut *connection)?
     {
         Some(model) => model,
-        None => return Ok(Err(Response::text("Not Found").status(404))),
+        None => return Ok(Err(crate::Error::not_found().response())),
     };
     Ok(Ok((first, second)))
 }
@@ -551,3 +554,246 @@ where
         self(route_param, Validated::new(input), request).into_response()
     }
 }
+
+#[doc(hidden)]
+pub struct RouteParamsForm<T, U, I>(PhantomData<T>, PhantomData<U>, PhantomData<I>);
+#[doc(hidden)]
+pub struct RouteParamsFormAndRequest<T, U, I>(PhantomData<T>, PhantomData<U>, PhantomData<I>);
+#[doc(hidden)]
+pub struct FormArg<T>(PhantomData<fn() -> T>);
+#[doc(hidden)]
+pub struct FormAndRequest<T>(PhantomData<fn() -> T>);
+#[doc(hidden)]
+pub struct RouteParamForm<T, I>(PhantomData<fn() -> (T, I)>);
+#[doc(hidden)]
+pub struct RouteParamFormAndRequest<T, I>(PhantomData<fn() -> (T, I)>);
+#[cfg(feature = "claw")]
+#[doc(hidden)]
+pub struct RouteModelsForm<M, N, I>(PhantomData<M>, PhantomData<N>, PhantomData<I>);
+#[cfg(feature = "claw")]
+#[doc(hidden)]
+pub struct RouteModelsFormAndRequest<M, N, I>(PhantomData<M>, PhantomData<N>, PhantomData<I>);
+#[cfg(feature = "claw")]
+#[doc(hidden)]
+pub struct RouteModelForm<M, I>(PhantomData<M>, PhantomData<I>);
+#[cfg(feature = "claw")]
+#[doc(hidden)]
+pub struct RouteModelFormAndRequest<M, I>(PhantomData<M>, PhantomData<I>);
+#[cfg(feature = "claw")]
+impl<F, M, N, I, R> Handler<RouteModelsForm<M, N, I>> for F
+where
+    F: Fn(M, N, I) -> R + Send + Sync + 'static,
+    M: claw_orm::Model + 'static,
+    N: claw_orm::ScopedRouteModel<M> + 'static,
+    I: FormRequest + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(2)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let (first, second) = match route_models::<M, N>(&request)? {
+            Ok(models) => models,
+            Err(response) => return Ok(response),
+        };
+        let input = request.form_request::<I>()?;
+        self(first, second, input).into_response()
+    }
+}
+
+#[cfg(feature = "claw")]
+impl<F, M, N, I, R> Handler<RouteModelsFormAndRequest<M, N, I>> for F
+where
+    F: Fn(M, N, I, Request) -> R + Send + Sync + 'static,
+    M: claw_orm::Model + 'static,
+    N: claw_orm::ScopedRouteModel<M> + 'static,
+    I: FormRequest + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(2)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let (first, second) = match route_models::<M, N>(&request)? {
+            Ok(models) => models,
+            Err(response) => return Ok(response),
+        };
+        let input = request.form_request::<I>()?;
+        self(first, second, input, request).into_response()
+    }
+}
+
+#[cfg(feature = "claw")]
+impl<F, M, I, R> Handler<RouteModelForm<M, I>> for F
+where
+    F: Fn(M, I) -> R + Send + Sync + 'static,
+    M: claw_orm::Model + 'static,
+    I: FormRequest + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(1)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let model = match route_model::<M>(&request, 0)? {
+            Ok(model) => model,
+            Err(response) => return Ok(response),
+        };
+        let input = request.form_request::<I>()?;
+        self(model, input).into_response()
+    }
+}
+
+#[cfg(feature = "claw")]
+impl<F, M, I, R> Handler<RouteModelFormAndRequest<M, I>> for F
+where
+    F: Fn(M, I, Request) -> R + Send + Sync + 'static,
+    M: claw_orm::Model + 'static,
+    I: FormRequest + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(1)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let model = match route_model::<M>(&request, 0)? {
+            Ok(model) => model,
+            Err(response) => return Ok(response),
+        };
+        let input = request.form_request::<I>()?;
+        self(model, input, request).into_response()
+    }
+}
+
+impl<F, T, U, I, R> Handler<RouteParamsForm<T, U, I>> for F
+where
+    F: Fn(T, U, I) -> R + Send + Sync + 'static,
+    T: FromStr + 'static,
+    U: FromStr + 'static,
+    I: FormRequest + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(2)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let first = match route_param(&request, 0) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        let second = match route_param(&request, 1) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        let input = request.form_request::<I>()?;
+        self(first, second, input).into_response()
+    }
+}
+
+impl<F, T, U, I, R> Handler<RouteParamsFormAndRequest<T, U, I>> for F
+where
+    F: Fn(T, U, I, Request) -> R + Send + Sync + 'static,
+    T: FromStr + 'static,
+    U: FromStr + 'static,
+    I: FormRequest + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(2)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let first = match route_param(&request, 0) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        let second = match route_param(&request, 1) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        let input = request.form_request::<I>()?;
+        self(first, second, input, request).into_response()
+    }
+}
+
+impl<F, T, R> Handler<FormArg<T>> for F
+where
+    F: Fn(T) -> R + Send + Sync + 'static,
+    T: FormRequest + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(0)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let value = request.form_request::<T>()?;
+        self(value).into_response()
+    }
+}
+
+impl<F, T, R> Handler<FormAndRequest<T>> for F
+where
+    F: Fn(T, Request) -> R + Send + Sync + 'static,
+    T: FormRequest + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(0)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let value = request.form_request::<T>()?;
+        self(value, request).into_response()
+    }
+}
+
+impl<F, T, I, R> Handler<RouteParamForm<T, I>> for F
+where
+    F: Fn(T, I) -> R + Send + Sync + 'static,
+    T: FromStr + 'static,
+    I: FormRequest + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(1)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let route_param = match route_param(&request, 0) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        let input = request.form_request::<I>()?;
+        self(route_param, input).into_response()
+    }
+}
+
+impl<F, T, I, R> Handler<RouteParamFormAndRequest<T, I>> for F
+where
+    F: Fn(T, I, Request) -> R + Send + Sync + 'static,
+    T: FromStr + 'static,
+    I: FormRequest + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(1)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let route_param = match route_param(&request, 0) {
+            Ok(value) => value,
+            Err(response) => return Ok(response),
+        };
+        let input = request.form_request::<I>()?;
+        self(route_param, input, request).into_response()
+    }
+}
+
+#[cfg(feature = "async")]
+pub mod async_handlers;

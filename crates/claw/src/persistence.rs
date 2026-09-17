@@ -8,10 +8,14 @@ use berserk_database::{Connection, DatabaseError, ErrorKind, Execution, Result, 
 /// `values_for_save`; `save` always uses it as the update filter.
 pub trait PersistableModel: Model {
     /// Return the non-primary-key columns that should be written by `save`.
+    fn save(&self) -> Result<Execution> {
+        berserk_database::scope::with_connection(|c| self.save_on(c))
+    }
+
     fn values_for_save(&self) -> Vec<(&'static str, Value)>;
 
     /// Persist this model's declared values using its primary key as the update filter.
-    fn save(&self, connection: &mut dyn Connection) -> Result<Execution> {
+    fn save_on(&self, connection: &mut dyn Connection) -> Result<Execution> {
         let values = self.values_for_save();
         if values
             .iter()
@@ -23,6 +27,6 @@ pub trait PersistableModel: Model {
             ));
         }
 
-        Self::where_(Self::PRIMARY_KEY, "=", self.key()).update(connection, values)
+        Self::where_op(Self::PRIMARY_KEY, "=", self.key()).update_on(connection, values)
     }
 }

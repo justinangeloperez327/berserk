@@ -86,7 +86,7 @@ impl Router {
             method,
             pattern,
             name,
-            handler: Box::new(move |request| handler.call(request)),
+            handler: Box::new(move |request| call_handler(&handler, request)),
         });
         Ok(())
     }
@@ -107,7 +107,7 @@ impl Router {
         if self.fallback.is_some() {
             return Err(RouteError::DuplicateFallback.into());
         }
-        self.fallback = Some(Box::new(move |request| handler.call(request)));
+        self.fallback = Some(Box::new(move |request| call_handler(&handler, request)));
         Ok(())
     }
 
@@ -166,14 +166,14 @@ impl Router {
                 if allow.contains("GET") {
                     allow.insert("HEAD");
                 }
-                Response::text("Method Not Allowed")
-                    .status(405)
+                crate::Error::rejected(405, "Method Not Allowed")
+                    .response()
                     .header("allow", &allow.into_iter().collect::<Vec<_>>().join(", "))?
             }
         } else if let Some(fallback) = &self.fallback {
             fallback(request)?
         } else {
-            Response::text("Not Found").status(404)
+            crate::Error::not_found().response()
         };
         crate::IntoResponse::into_response(response)
     }
@@ -252,3 +252,22 @@ fn validate_name(name: &str) -> std::result::Result<(), RouteError> {
     }
     Ok(())
 }
+
+fn call_handler<H: crate::controller::Handler<A>, A>(
+    handler: &H,
+    request: Request,
+) -> Result<Response> {
+    #[cfg(feature = "auth")]
+    {
+        crate::authorization::scope_principal(request.principal().cloned(), || {
+            handler.call(request)
+        })
+    }
+    #[cfg(not(feature = "auth"))]
+    {
+        handler.call(request)
+    }
+}
+
+#[cfg(feature = "claw")]
+pub use resource::CrudController;

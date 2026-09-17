@@ -5,6 +5,11 @@ use std::path::PathBuf;
 pub enum Command {
     New { path: PathBuf },
     MakeModel { name: String },
+    MakeController { name: String },
+    MakeRequest { name: String },
+    MakeResource { name: String },
+    MakePolicy { name: String },
+
     MakeMigration { name: String },
     Migrate(MigrationCommand),
     Help,
@@ -29,6 +34,18 @@ impl Command {
             "new" => Self::New {
                 path: one(&mut arguments, "new <path>")?.into(),
             },
+            "make:controller" => Self::MakeController {
+                name: one(&mut arguments, "make:controller <Name>")?,
+            },
+            "make:request" => Self::MakeRequest {
+                name: one(&mut arguments, "make:request <Name>")?,
+            },
+            "make:resource" => Self::MakeResource {
+                name: one(&mut arguments, "make:resource <Name>")?,
+            },
+            "make:policy" => Self::MakePolicy {
+                name: one(&mut arguments, "make:policy <Name>")?,
+            },
             "make:model" => Self::MakeModel {
                 name: one(&mut arguments, "make:model <Name>")?,
             },
@@ -36,13 +53,17 @@ impl Command {
                 name: one(&mut arguments, "make:migration <name>")?,
             },
             "make" => {
-                let kind = one(&mut arguments, "make model|migration <name>")?;
+                let kind = one(&mut arguments, "make <kind> <name>")?;
                 if let Some(name) = kind.strip_prefix("model:") {
                     Self::MakeModel { name: name.into() }
                 } else if let Some(name) = kind.strip_prefix("migration:") {
                     Self::MakeMigration { name: name.into() }
                 } else {
                     match kind.as_str() {
+                        "controller" => Self::MakeController { name: one(&mut arguments, "make controller <Name>")? },
+                        "request" => Self::MakeRequest { name: one(&mut arguments, "make request <Name>")? },
+                        "resource" => Self::MakeResource { name: one(&mut arguments, "make resource <Name>")? },
+                        "policy" => Self::MakePolicy { name: one(&mut arguments, "make policy <Name>")? },
                         "model" => Self::MakeModel {
                             name: one(&mut arguments, "make model <Name>")?,
                         },
@@ -52,7 +73,7 @@ impl Command {
                         _ => {
                             return Err(CliError::new(
                                 ErrorKind::Usage,
-                                "make accepts model or migration",
+                                "make accepts model, controller, request, resource, policy, or migration",
                             ))
                         }
                     }
@@ -77,7 +98,7 @@ impl Command {
         Ok(parsed)
     }
     pub const fn help() -> &'static str {
-        "berserk commands:\n  new <path>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate:rollback\n  migrate:status"
+        "berserk commands:\n  new <path>\n  make:controller <Name>\n  make:request <Name>\n  make:resource <Name>\n  make:policy <Name>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate:rollback\n  migrate:status"
     }
 }
 fn one(arguments: &mut impl Iterator<Item = String>, usage: &str) -> Result<String> {

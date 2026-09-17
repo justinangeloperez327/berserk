@@ -151,7 +151,7 @@ impl Transaction for FakeTransaction {
 fn update(mut user: User, input: Validated<UserInput>, request: Request) -> Result<Response> {
     user.name = input.name.clone();
     let mut connection = request.connection()?;
-    user.save(&mut *connection)?;
+    user.save_on(&mut *connection)?;
     Ok(Response::empty().status(204))
 }
 
@@ -162,7 +162,7 @@ fn update_transaction(
 ) -> Result<Response> {
     user.name = input.name.clone();
     request.transaction(TransactionOptions::default(), |connection| {
-        user.save(connection)?;
+        user.save_on(connection)?;
         Ok(())
     })?;
     Ok(Response::empty().status(204))

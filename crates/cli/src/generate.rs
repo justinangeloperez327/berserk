@@ -65,9 +65,9 @@ impl Generator {
         fs::create_dir(&target).map_err(CliError::from_io)?;
         let result = (|| {
             fs::create_dir(target.join("src")).map_err(CliError::from_io)?;
-            let cargo = format!("[package]\nname = \"{package}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\nberserk = \"0.1\"\n");
+            let cargo = format!("[package]\nname = \"{package}\"\nversion = \"0.1.0\"\nedition = \"2021\"\nrust-version = \"1.88\"\n\n[dependencies]\nberserk = \"0.2\"\n");
             write_new(&target.join("Cargo.toml"), cargo.as_bytes())?;
-            write_new(&target.join("src/main.rs"), b"use berserk::{App, Response, Result};\n\nfn main() -> Result<()> {\n    let mut app = App::new();\n    app.get(\"/\", |_| Response::text(\"Hello, world!\"))?;\n    app.listen(\"127.0.0.1:3000\")\n}\n")?;
+            write_new(&target.join("src/main.rs"), b"use berserk::{App, Response, Result};\n\nfn main() -> Result<()> {\n    let mut app = App::new();\n    app.route().get(\"/\", || Response::text(\"Hello, world!\"))?;\n    app.listen(\"127.0.0.1:3000\")\n}\n")?;
             Ok(vec![
                 GeneratedFile {
                     path: target.join("Cargo.toml"),
@@ -83,26 +83,53 @@ impl Generator {
         result
     }
     pub fn make_model(&self, name: &str) -> Result<Vec<GeneratedFile>> {
+        self.make_type(name, "models", include_str!("../templates/model.rs.stub"))
+    }
+    pub fn make_controller(&self, name: &str) -> Result<Vec<GeneratedFile>> {
+        self.make_type(
+            name,
+            "controllers",
+            include_str!("../templates/controller.rs.stub"),
+        )
+    }
+    pub fn make_request(&self, name: &str) -> Result<Vec<GeneratedFile>> {
+        self.make_type(
+            name,
+            "requests",
+            include_str!("../templates/request.rs.stub"),
+        )
+    }
+    pub fn make_resource(&self, name: &str) -> Result<Vec<GeneratedFile>> {
+        self.make_type(
+            name,
+            "resources",
+            include_str!("../templates/resource.rs.stub"),
+        )
+    }
+    pub fn make_policy(&self, name: &str) -> Result<Vec<GeneratedFile>> {
+        self.make_type(
+            name,
+            "policies",
+            include_str!("../templates/policy.rs.stub"),
+        )
+    }
+    fn make_type(&self, name: &str, folder: &str, template: &str) -> Result<Vec<GeneratedFile>> {
         self.ensure_application()?;
         validate_type_name(name)?;
         let module = snake_case(name);
-        let directory = self.safe_directory("src/models")?;
-        let model = directory.join(format!("{module}.rs"));
+        let directory = self.safe_directory(&format!("src/{folder}"))?;
+        let source_path = directory.join(format!("{module}.rs"));
         let index = directory.join("mod.rs");
-        if model.exists() {
-            return Err(CliError::new(
-                ErrorKind::AlreadyExists,
-                "model file already exists",
-            ));
-        }
-        let source = format!("#[derive(Clone, Debug, Eq, PartialEq)]\npub struct {name} {{\n    pub id: i64,\n}}\n\n// Implement berserk::database::Model after defining the table's complete fields.\n");
-        write_new(&model, source.as_bytes())?;
+        let source = template
+            .replace("{{name}}", name)
+            .replace("{{table}}", &format!("{module}s"));
+        write_new(&source_path, source.as_bytes())?;
         if let Err(error) = append_module(&index, &module) {
-            let _ = fs::remove_file(&model);
+            let _ = fs::remove_file(&source_path);
             return Err(error);
         }
         Ok(vec![
-            GeneratedFile { path: model },
+            GeneratedFile { path: source_path },
             GeneratedFile { path: index },
         ])
     }
@@ -238,7 +265,7 @@ fn append_module(path: &Path, module: &str) -> Result<()> {
     if existing.lines().any(|line| line.trim() == declaration) {
         return Err(CliError::new(
             ErrorKind::AlreadyExists,
-            "model module is already registered",
+            "module is already registered",
         ));
     }
     let mut updated = existing;
@@ -247,7 +274,7 @@ fn append_module(path: &Path, module: &str) -> Result<()> {
     }
     updated.push_str(&declaration);
     updated.push('\n');
-    let temporary = path.with_extension("rs.framework-tmp");
+    let temporary = path.with_extension("rs.berserk-tmp");
     write_new(&temporary, updated.as_bytes())?;
     if let Err(error) = replace_file(&temporary, path) {
         let _ = fs::remove_file(&temporary);
@@ -316,6 +343,7 @@ fn validate_type_name(name: &str) -> Result<()> {
     if name.is_empty()
         || name.len() > 64
         || rust_keyword(name)
+        || rust_keyword(&snake_case(name))
         || !name.bytes().enumerate().all(|(index, byte)| {
             byte.is_ascii_alphabetic() && (index > 0 || byte.is_ascii_uppercase())
                 || byte.is_ascii_digit() && index > 0
@@ -323,7 +351,7 @@ fn validate_type_name(name: &str) -> Result<()> {
     {
         Err(CliError::new(
             ErrorKind::InvalidName,
-            "model name must be a PascalCase Rust identifier",
+            "type name must be a PascalCase Rust identifier",
         ))
     } else {
         Ok(())
@@ -371,5 +399,59 @@ fn pascal_case(name: &str) -> String {
         .collect()
 }
 fn rust_keyword(name: &str) -> bool {
-    name == "Self"
+    matches!(
+        name,
+        "Self"
+            | "self"
+            | "super"
+            | "crate"
+            | "as"
+            | "async"
+            | "await"
+            | "break"
+            | "const"
+            | "continue"
+            | "dyn"
+            | "else"
+            | "enum"
+            | "extern"
+            | "false"
+            | "fn"
+            | "for"
+            | "if"
+            | "impl"
+            | "in"
+            | "let"
+            | "loop"
+            | "match"
+            | "mod"
+            | "move"
+            | "mut"
+            | "pub"
+            | "ref"
+            | "return"
+            | "static"
+            | "struct"
+            | "trait"
+            | "true"
+            | "type"
+            | "unsafe"
+            | "use"
+            | "where"
+            | "while"
+            | "abstract"
+            | "become"
+            | "box"
+            | "do"
+            | "final"
+            | "macro"
+            | "override"
+            | "priv"
+            | "typeof"
+            | "unsized"
+            | "virtual"
+            | "yield"
+            | "try"
+            | "gen"
+    )
 }

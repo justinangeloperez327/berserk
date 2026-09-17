@@ -83,7 +83,12 @@ impl<G> Authenticated<G> {
 #[cfg(feature = "auth")]
 impl<G: berserk_auth::Guard> Middleware for Authenticated<G> {
     fn handle(&self, mut request: Request, next: Next<'_>) -> Result<Response> {
-        let token = request.header("authorization").and_then(bearer_token);
+        let mut headers = request.headers().get_all("authorization");
+        let first = headers.next();
+        if headers.next().is_some() {
+            return Ok(crate::Error::unauthorized().response());
+        }
+        let token = first.and_then(bearer_token);
         let now = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .map_err(|_| {
@@ -97,14 +102,13 @@ impl<G: berserk_auth::Guard> Middleware for Authenticated<G> {
             Some(token) => self.guard.authenticate(token, now)?,
             None => None,
         };
+        drop(headers);
         match principal {
             Some(principal) => {
                 request.set_principal(principal);
                 next.run(request)
             }
-            None => Response::text("Unauthorized")
-                .status(401)
-                .header("www-authenticate", "Bearer"),
+            None => Ok(crate::Error::unauthorized().response()),
         }
     }
 }
@@ -118,4 +122,25 @@ fn bearer_token(value: &str) -> Option<&str> {
         return None;
     }
     Some(token)
+}
+
+/// Place inside response-decorating middleware to preserve headers on rendered errors.
+pub struct HandleErrors;
+impl Middleware for HandleErrors {
+    fn handle(&self, request: Request, next: Next<'_>) -> Result<Response> {
+        Ok(next.run(request).unwrap_or_else(|error| error.response()))
+    }
+}
+#[cfg(feature = "auth")]
+pub struct RequireAbility(pub berserk_auth::Ability);
+#[cfg(feature = "auth")]
+impl Middleware for RequireAbility {
+    fn handle(&self, request: Request, next: Next<'_>) -> Result<Response> {
+        let principal = request.principal().ok_or_else(crate::Error::unauthorized)?;
+        let gate = request
+            .state::<berserk_auth::Gate>()
+            .ok_or_else(|| crate::ConfigError::new("auth", "no gate configured"))?;
+        gate.authorize(principal, &self.0)?;
+        next.run(request)
+    }
 }

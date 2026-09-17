@@ -1,12 +1,12 @@
 # Known limitations
 
-This document records intentional or currently unresolved boundaries for the Berserk `0.1.0` release candidate. These are not necessarily defects, but applications must account for them explicitly.
+This document records intentional or currently unresolved boundaries for the Berserk `0.2.0` release candidate. These are not necessarily defects, but applications must account for them explicitly.
 
 ## Security review status
 
 Berserk has completed an internal security/API review, but the release checklist still requires an independent external security/API review. The project has not received a third-party penetration test or security certification.
 
-Do not describe the `0.1.0` candidate as production-certified.
+Do not describe the `0.2.0` candidate as production-certified.
 
 ## TLS termination
 
@@ -50,7 +50,7 @@ Driver capabilities still apply, and a backend may reject transaction options it
 
 ## Platform support
 
-The strongest `0.1.0` host claim is Linux x86_64 validated on Ubuntu 24.04 LTS.
+The strongest `0.2.0` host claim is Linux x86_64 validated on Ubuntu 24.04 LTS.
 
 Windows and macOS receive development compatibility compile/test coverage, but they do not receive the same live-database, fuzzing, load, and soak validation as the Tier-1 Linux host.
 
@@ -58,7 +58,7 @@ Other operating systems, Linux distributions, and architectures are outside the 
 
 ## Database support
 
-The `0.1.0` support contract is intentionally narrow:
+The `0.2.0` support contract is intentionally narrow:
 
 - PostgreSQL 15, 16, 17, and 18;
 - MySQL 8.4 LTS;
@@ -74,4 +74,8 @@ This keeps the default dependency surface small but means examples that use opti
 
 ## Pre-1.0 compatibility
 
-`0.1.x` is pre-1.0. The API is documented and release-reviewed, but breaking changes may still occur in later pre-1.0 releases when necessary. Such changes should be recorded in `CHANGELOG.md` with migration guidance when practical.
+`0.2.x` is pre-1.0. The API is documented and release-reviewed, but breaking changes may still occur in later pre-1.0 releases when necessary. Such changes should be recorded in `CHANGELOG.md` with migration guidance when practical.
+
+## v0.2.0 scope and async boundaries
+
+Synchronous SQL drivers remain blocking. Optional async actions occupy a blocking worker for their lifetime; disconnects, timeouts, and dropped response futures cannot force-stop started application code. Spawned tasks do not inherit database or principal scope. Transaction closures and explicit scope helpers are synchronous. Nested transactions are rejected. Eager loading is bulk and explicit, but very large collections can hit driver parameter limits. Offset pagination requires explicit ordering and a transaction when count/items must share a snapshot. Model timestamps and soft deletes require application code.
