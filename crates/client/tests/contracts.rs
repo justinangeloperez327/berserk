@@ -18,6 +18,10 @@ fn urls_and_headers_validate_boundaries() {
         ErrorKind::UnsupportedScheme
     );
     assert!(Header::new("x-test", "bad\r\nvalue").is_err());
+    assert!(Header::new("x-test", "bad\u{1}value").is_err());
+    assert!(Header::new("x-test", "bad\u{7f}value").is_err());
+    assert!(Header::new("x-test", "caf\u{e9}").is_err());
+    assert_eq!(Header::new("x-test", "a\tb").unwrap().value(), "a\tb");
     assert!(!format!("{:?}", Header::new("authorization", "secret").unwrap()).contains("secret"));
 }
 
