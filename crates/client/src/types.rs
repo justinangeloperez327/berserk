@@ -40,9 +40,9 @@ impl Header {
                 "HTTP header name is invalid",
             ));
         }
-        if value
+        if !value
             .bytes()
-            .any(|byte| byte == b'\r' || byte == b'\n' || byte == 0)
+            .all(|byte| byte == b'\t' || (32..=126).contains(&byte))
         {
             return Err(ClientError::new(
                 ErrorKind::InvalidRequest,
