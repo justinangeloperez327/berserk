@@ -140,10 +140,8 @@ impl TemporaryDirectory {
             .unwrap()
             .as_nanos();
         let sequence = NEXT_TEMP_DIRECTORY_ID.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!(
-            "berserk-cli-{}-{nonce}-{sequence}",
-            process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("berserk-cli-{}-{nonce}-{sequence}", process::id()));
         fs::create_dir(&path).unwrap();
         Self(path)
     }
