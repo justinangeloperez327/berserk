@@ -19,17 +19,19 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Apply package identity migration
         run: python3 scripts/package_identity_migration.py
-      - name: Refresh lockfile and verify migration
+      - name: Refresh lockfiles and verify migration
         shell: bash
         run: |
           set -euo pipefail
+          sed -i 's/framework-benchmarks/berserk-benchmarks/g' benchmarks/collect.py
           cargo generate-lockfile
+          cargo generate-lockfile --manifest-path examples/minimal-api/Cargo.toml
           git diff --check
-          if git grep -n -E 'framework-(core|validation|database|auth|openapi|cache|storage|events|jobs|client|notifications|cli|testing|benchmarks)' -- ':!Cargo.lock' ':!scripts/package_identity_migration.py' ':!.github/workflows/package-identity-migration.yml'; then
+          if git grep -n -E 'framework-(core|validation|database|auth|openapi|cache|storage|events|jobs|client|notifications|cli|testing|benchmarks)' -- ':!scripts/package_identity_migration.py' ':!.github/workflows/package-identity-migration.yml'; then
             echo "stale framework-* package identity remains" >&2
             exit 1
           fi
-          if git grep -n -E 'framework_(core|validation|database|auth|openapi|cache|storage|events|jobs|client|notifications|cli|testing|benchmarks)' -- ':!Cargo.lock' ':!scripts/package_identity_migration.py' ':!.github/workflows/package-identity-migration.yml'; then
+          if git grep -n -E 'framework_(core|validation|database|auth|openapi|cache|storage|events|jobs|client|notifications|cli|testing|benchmarks)' -- ':!scripts/package_identity_migration.py' ':!.github/workflows/package-identity-migration.yml'; then
             echo "stale framework_* crate identity remains" >&2
             exit 1
           fi
