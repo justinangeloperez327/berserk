@@ -24,8 +24,8 @@ Publishing is always a manual owner decision. This checklist intentionally conta
 
 ## Release artifacts
 
-- [ ] Review public API documentation and examples from a clean machine. `docs/clean-machine-review.md` records the current review and the Package workflow now creates fresh external Cargo consumers; close this item after the `clean-consumer` job passes for the review change.
-- [ ] Review changelog, upgrade notes, known limitations, MSRV, and support policy.
+- [x] Review public API documentation and examples from a clean machine. `docs/clean-machine-review.md` records the review; Package run 26 passed both fresh external-consumer compilation checks on 2026-09-17.
+- [x] Review changelog, upgrade notes, known limitations, MSRV, and support policy. `CHANGELOG.md`, `docs/upgrade-notes.md`, `docs/known-limitations.md`, `docs/compatibility.md`, and `docs/support-policy.md` now describe the `0.1.0` candidate consistently, including Rust 1.88 and the current platform/database boundaries.
 - [x] Inspect packaged file lists and verify no credentials, local paths, fixtures, or build output are included.
 - [ ] Generate checksums and provenance/signing material according to the chosen release platform.
 - [ ] Prepare a rollback/yank and security-response plan.
