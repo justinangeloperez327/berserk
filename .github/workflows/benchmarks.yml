@@ -1,0 +1,30 @@
+name: Performance baseline
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      LC_ALL: C
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build release benchmark
+        run: cargo build --locked --release -p framework-benchmarks
+      - name: Collect checked samples and process memory
+        run: python3 benchmarks/collect.py
+      - name: Retain measurements and environment
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-baseline-${{ github.sha }}
+          path: benchmark-results/
+          if-no-files-found: error
+          retention-days: 30
