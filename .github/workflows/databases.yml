@@ -10,17 +10,23 @@ permissions:
 
 jobs:
   sqlite:
-    runs-on: ubuntu-latest
+    name: sqlite-bundled
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test -p berserk-database --features sqlite --test sqlite
 
   postgres:
-    runs-on: ubuntu-latest
+    name: postgres-${{ matrix.version }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ["15", "16", "17", "18"]
     services:
       postgres:
-        image: postgres:16-alpine
+        image: postgres:${{ matrix.version }}-alpine
         env:
           POSTGRES_DB: berserk
           POSTGRES_PASSWORD: berserk
@@ -41,7 +47,8 @@ jobs:
       - run: cargo test -p berserk-database --features postgres --test postgres
 
   mysql:
-    runs-on: ubuntu-latest
+    name: mysql-8.4
+    runs-on: ubuntu-24.04
     services:
       mysql:
         image: mysql:8.4
