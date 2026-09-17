@@ -17,180 +17,28 @@ jobs:
         with:
           ref: chatgpt/package-release-readiness
       - uses: dtolnay/rust-toolchain@stable
-      - name: Rename packages and prepare release metadata
+      - name: Apply package identity migration
+        run: python3 scripts/package_identity_migration.py
+      - name: Refresh lockfile and verify migration
         shell: bash
         run: |
           set -euo pipefail
-          python3 - <<'PY'
-          from pathlib import Path
-          import subprocess
-
-          package_names = [
-              "core", "validation", "database", "auth", "openapi", "cache",
-              "storage", "events", "jobs", "client", "notifications", "cli", "testing",
-          ]
-          replacements = []
-          for name in package_names:
-              replacements.append((f"framework-{name}", f"berserk-{name}"))
-              replacements.append((f"framework_{name.replace('-', '_')}", f"berserk_{name.replace('-', '_')}"))
-          replacements.extend([
-              ("framework-benchmarks", "berserk-benchmarks"),
-              ("framework_benchmarks", "berserk_benchmarks"),
-          ])
-
-          text_suffixes = {".rs", ".toml", ".md", ".yml", ".yaml", ".txt"}
-          tracked = subprocess.check_output(["git", "ls-files", "-z"]).decode().split("\0")
-          for raw in tracked:
-              if not raw or raw in {"Cargo.lock", ".github/workflows/package-identity-migration.yml"}:
-                  continue
-              path = Path(raw)
-              if path.suffix not in text_suffixes and path.name not in {"Cargo.toml"}:
-                  continue
-              try:
-                  text = path.read_text()
-              except UnicodeDecodeError:
-                  continue
-              updated = text
-              for old, new in replacements:
-                  updated = updated.replace(old, new)
-              if path.name == "Cargo.toml":
-                  updated = updated.replace('0.0.0', '0.1.0')
-              if updated != text:
-                  path.write_text(updated)
-
-          root = Path("Cargo.toml")
-          text = root.read_text()
-          marker = 'rust-version = "1.88"\nlicense = "MIT"\npublish = false\n'
-          replacement = (
-              'rust-version = "1.88"\n'
-              'authors = ["Justin Angelo Perez"]\n'
-              'license = "MIT"\n'
-              'repository = "https://github.com/justinangeloperez327/berserk"\n'
-              'readme = "README.md"\n'
-              'publish = false\n'
-          )
-          if marker not in text:
-              raise SystemExit("workspace package metadata marker not found")
-          root.write_text(text.replace(marker, replacement))
-
-          descriptions = {
-              "crates/core/Cargo.toml": "Core configuration, state, lifecycle, and shared foundations for Berserk.",
-              "crates/validation/Cargo.toml": "Validation and sanitization contracts for Berserk.",
-              "crates/database/Cargo.toml": "Database abstractions, query building, migrations, and SQL drivers for Berserk.",
-              "crates/claw/Cargo.toml": "Claw ORM models, typed queries, persistence, and relationships for Berserk.",
-              "crates/auth/Cargo.toml": "Authentication, password, session, and authorization contracts for Berserk.",
-              "crates/openapi/Cargo.toml": "OpenAPI document generation for Berserk applications.",
-              "crates/cache/Cargo.toml": "Cache contracts and in-memory caching for Berserk.",
-              "crates/storage/Cargo.toml": "Storage contracts and local or memory storage for Berserk.",
-              "crates/events/Cargo.toml": "Typed application event dispatch for Berserk.",
-              "crates/jobs/Cargo.toml": "Bounded background jobs, retries, failures, and scheduling for Berserk.",
-              "crates/client/Cargo.toml": "Outbound HTTP client contracts for Berserk.",
-              "crates/notifications/Cargo.toml": "Mail and webhook notification contracts for Berserk.",
-              "crates/cli/Cargo.toml": "Command-line tooling and generators for Berserk applications.",
-              "crates/testing/Cargo.toml": "Testing helpers, fakes, recorders, and workspaces for Berserk.",
-              "crates/framework/Cargo.toml": "Berserk web framework for secure, maintainable Rust applications.",
-          }
-          for manifest, description in descriptions.items():
-              path = Path(manifest)
-              text = path.read_text()
-              marker = 'license.workspace = true\npublish.workspace = true\n'
-              replacement = (
-                  'license.workspace = true\n'
-                  'authors.workspace = true\n'
-                  'repository.workspace = true\n'
-                  'readme.workspace = true\n'
-                  f'description = "{description}"\n'
-                  'publish = true\n'
-              )
-              if marker not in text:
-                  raise SystemExit(f"publish metadata marker not found in {manifest}")
-              path.write_text(text.replace(marker, replacement, 1))
-
-          for manifest in ["examples/foundation/Cargo.toml", "benchmarks/Cargo.toml"]:
-              path = Path(manifest)
-              text = path.read_text()
-              if 'publish.workspace = true' not in text:
-                  raise SystemExit(f"non-publishable marker not found in {manifest}")
-              path.write_text(text.replace('publish.workspace = true', 'publish = false', 1))
-
-          license_text = """MIT License
-
-Copyright (c) 2026 Justin Angelo Perez
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-"""
-          Path("LICENSE").write_text(license_text)
-          old_license = Path("LICENCE")
-          if old_license.exists():
-              old_license.unlink()
-
-          checklist = Path("docs/release-checklist.md")
-          text = checklist.read_text()
-          text = text.replace(
-              "- [ ] Select final project and package names; confirm registry and repository availability.",
-              "- [ ] Confirm crates.io availability for the final `berserk`, `berserk-*`, and `claw-orm` package names."
-          )
-          text = text.replace(
-              "- [ ] Select and add a license; update every package's license/repository metadata.",
-              "- [x] Select and add the MIT license; update publishable package license/repository metadata."
-          )
-          text = text.replace(
-              "- [ ] Replace version `0.0.0` and deliberately set package publication flags.",
-              "- [x] Set the initial package version to `0.1.0` and explicitly mark library/CLI crates publishable while examples and benchmarks remain private."
-          )
-          text = text.replace(
-              "- [ ] Pass PostgreSQL, MySQL, and SQLite contract and migration tests against real databases.",
-              "- [x] Pass PostgreSQL, MySQL, and SQLite contract and migration tests against real databases."
-          )
-          text = text.replace(
-              "- [ ] Fuzz all untrusted parsers and run server load, overload, shutdown, and soak tests.",
-              "- [x] Fuzz the current JSON, HTTP-value, route-registration, and multipart input boundaries.\n- [ ] Run concurrent server load, overload, shutdown-under-load, and prolonged soak tests."
-          )
-          text = text.replace(
-              "- [ ] Record reproducible latency, throughput, memory, and environment data.",
-              "- [x] Record reproducible sequential latency, throughput, process RSS, and environment data; retain raw evidence."
-          )
-          checklist.write_text(text)
-
-          package_workflow = Path(".github/workflows/package.yml")
-          package_workflow.write_text("""name: Package\n\non:\n  pull_request:\n  workflow_dispatch:\n\npermissions:\n  contents: read\n\njobs:\n  package:\n    runs-on: ubuntu-latest\n    timeout-minutes: 20\n    steps:\n      - uses: actions/checkout@v7\n      - uses: dtolnay/rust-toolchain@stable\n      - name: Verify release package identities\n        shell: bash\n        run: |\n          set -euo pipefail\n          test ! -e LICENCE\n          test -s LICENSE\n          ! git grep -n -E 'framework-(core|validation|database|auth|openapi|cache|storage|events|jobs|client|notifications|cli|testing|benchmarks)' -- ':!Cargo.lock'\n          ! git grep -n -E 'framework_(core|validation|database|auth|openapi|cache|storage|events|jobs|client|notifications|cli|testing|benchmarks)' -- ':!Cargo.lock'\n          cargo metadata --locked --no-deps --format-version 1 > /tmp/metadata.json\n          python3 - <<'CHECK'\n          import json\n          data = json.load(open('/tmp/metadata.json'))\n          expected = {\n              'berserk', 'berserk-core', 'berserk-validation', 'berserk-database',\n              'claw-orm', 'berserk-auth', 'berserk-openapi', 'berserk-cache',\n              'berserk-storage', 'berserk-events', 'berserk-jobs', 'berserk-client',\n              'berserk-notifications', 'berserk-cli', 'berserk-testing',\n          }\n          packages = {p['name']: p for p in data['packages']}\n          missing = expected - packages.keys()\n          if missing:\n              raise SystemExit(f'missing expected packages: {sorted(missing)}')\n          for name in expected:\n              package = packages[name]\n              if package['version'] != '0.1.0':\n                  raise SystemExit(f'{name}: expected version 0.1.0, got {package[\"version\"]}')\n              if package.get('publish') == []:\n                  raise SystemExit(f'{name}: publication is disabled')\n              if package.get('license') != 'MIT':\n                  raise SystemExit(f'{name}: expected MIT license metadata')\n              if package.get('repository') != 'https://github.com/justinangeloperez327/berserk':\n                  raise SystemExit(f'{name}: repository metadata mismatch')\n          for name in {'foundation-example', 'berserk-benchmarks'}:\n              package = packages[name]\n              if package.get('publish') != []:\n                  raise SystemExit(f'{name}: must remain non-publishable')\n          CHECK\n      - name: Inspect package contents\n        shell: bash\n        run: |\n          set -euo pipefail\n          mkdir -p package-lists\n          packages=(\n            berserk-core berserk-validation berserk-database claw-orm berserk-auth\n            berserk-openapi berserk-cache berserk-storage berserk-events berserk-jobs\n            berserk-client berserk-notifications berserk-cli berserk-testing berserk\n          )\n          for package in "${packages[@]}"; do\n            cargo package --locked -p "$package" --list > "package-lists/$package.txt"\n            if grep -E '(^|/)(target|benchmark-results|\\.git)(/|$)|(^|/)\\.env($|\\.)|\\.(pem|key)$|credentials' "package-lists/$package.txt"; then\n              echo "forbidden packaged path detected in $package" >&2\n              exit 1\n            fi\n            cargo package --locked -p "$package" --no-verify --allow-dirty\n          done\n      - name: Retain package file lists\n        uses: actions/upload-artifact@v4\n        with:\n          name: package-file-lists-${{ github.sha }}\n          path: package-lists/\n          if-no-files-found: error\n          retention-days: 30\n""")
-          PY
-
           cargo generate-lockfile
-          rm .github/workflows/package-identity-migration.yml
           git diff --check
-          if git grep -n -E 'framework-(core|validation|database|auth|openapi|cache|storage|events|jobs|client|notifications|cli|testing|benchmarks)' -- ':!Cargo.lock'; then
+          if git grep -n -E 'framework-(core|validation|database|auth|openapi|cache|storage|events|jobs|client|notifications|cli|testing|benchmarks)' -- ':!Cargo.lock' ':!scripts/package_identity_migration.py' ':!.github/workflows/package-identity-migration.yml'; then
             echo "stale framework-* package identity remains" >&2
             exit 1
           fi
-          if git grep -n -E 'framework_(core|validation|database|auth|openapi|cache|storage|events|jobs|client|notifications|cli|testing|benchmarks)' -- ':!Cargo.lock'; then
+          if git grep -n -E 'framework_(core|validation|database|auth|openapi|cache|storage|events|jobs|client|notifications|cli|testing|benchmarks)' -- ':!Cargo.lock' ':!scripts/package_identity_migration.py' ':!.github/workflows/package-identity-migration.yml'; then
             echo "stale framework_* crate identity remains" >&2
             exit 1
           fi
-      - name: Commit generated migration
+          rm scripts/package_identity_migration.py
+          rm .github/workflows/package-identity-migration.yml
+      - name: Commit migration
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet && git diff --cached --quiet; then
-            echo "No migration changes to commit"
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
