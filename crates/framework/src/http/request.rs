@@ -103,7 +103,7 @@ impl std::fmt::Debug for Request {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Request")
             .field("method", &self.method)
-            .field("path", &self.path())
+            .field("target_bytes", &self.target.len())
             .field("header_count", &self.headers.len())
             .field("body_bytes", &self.body.len())
             .field("parameter_count", &self.params.len())
