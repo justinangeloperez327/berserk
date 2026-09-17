@@ -1,0 +1,132 @@
+name: Concurrent load
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      soak_seconds:
+        description: Prolonged soak duration in seconds
+        required: true
+        default: "300"
+  schedule:
+    - cron: "17 2 * * 0"
+
+permissions:
+  contents: read
+
+jobs:
+  stress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build release load harness
+        run: cargo build --locked --release -p berserk-benchmarks --bin berserk-load
+      - name: Run concurrent, overload, shutdown and short-soak checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p load-results
+          /usr/bin/time -v -o load-results/smoke.memory.txt \
+            target/release/berserk-load smoke 1000 16 > load-results/smoke.csv
+          /usr/bin/time -v -o load-results/soak-smoke.memory.txt \
+            target/release/berserk-load soak 20 16 > load-results/soak-smoke.csv
+      - name: Validate stress evidence
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import csv
+          import math
+          from pathlib import Path
+
+          def rows(path):
+              with open(path, newline='') as handle:
+                  return list(csv.DictReader(handle))
+
+          def validate_metrics(row):
+              if float(row['elapsed_seconds']) <= 0 or not math.isfinite(float(row['requests_per_second'])):
+                  raise SystemExit(f"invalid timing metrics: {row}")
+              latency = [int(row[key]) for key in ('p50_us', 'p95_us', 'p99_us', 'max_us')]
+              if latency != sorted(latency):
+                  raise SystemExit(f"invalid latency ordering: {row}")
+
+          smoke = rows('load-results/smoke.csv')
+          if [row['scenario'] for row in smoke] != [
+              'concurrent_steady', 'overload_bounded_queue', 'shutdown_under_load'
+          ]:
+              raise SystemExit(f"unexpected smoke scenarios: {smoke}")
+          for row in smoke:
+              validate_metrics(row)
+          steady, overload, shutdown = smoke
+          if any(int(steady[key]) != 0 for key in ('client_errors', 'rejected', 'failed')):
+              raise SystemExit(f"steady load was not lossless: {steady}")
+          if int(steady['attempted']) != int(steady['completed']):
+              raise SystemExit(f"steady load accounting mismatch: {steady}")
+          if int(overload['rejected']) < 1 or int(overload['completed']) < 1:
+              raise SystemExit(f"overload did not exercise bounded rejection: {overload}")
+          if int(shutdown['completed']) < 1:
+              raise SystemExit(f"shutdown completed no accepted work: {shutdown}")
+          if int(shutdown['accepted']) != sum(int(shutdown[key]) for key in ('rejected', 'completed', 'failed')):
+              raise SystemExit(f"shutdown did not drain accepted work: {shutdown}")
+
+          soak = rows('load-results/soak-smoke.csv')
+          if len(soak) != 1 or soak[0]['scenario'] != 'concurrent_soak':
+              raise SystemExit(f"unexpected soak result: {soak}")
+          validate_metrics(soak[0])
+          if any(int(soak[0][key]) != 0 for key in ('client_errors', 'rejected', 'failed')):
+              raise SystemExit(f"short soak had errors: {soak[0]}")
+          if int(soak[0]['attempted']) != int(soak[0]['completed']):
+              raise SystemExit(f"short soak accounting mismatch: {soak[0]}")
+
+          for path in ('load-results/smoke.memory.txt', 'load-results/soak-smoke.memory.txt'):
+              if 'Maximum resident set size (kbytes):' not in Path(path).read_text():
+                  raise SystemExit(f"missing RSS evidence: {path}")
+          PY
+      - name: Retain load evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: concurrent-load-${{ github.sha }}
+          path: load-results/
+          if-no-files-found: error
+          retention-days: 30
+
+  prolonged-soak:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SOAK_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.soak_seconds || '900' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build release load harness
+        run: cargo build --locked --release -p berserk-benchmarks --bin berserk-load
+      - name: Run prolonged soak
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p soak-results
+          /usr/bin/time -v -o soak-results/memory.txt \
+            target/release/berserk-load soak "$SOAK_SECONDS" 16 > soak-results/soak.csv
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+          rows = list(csv.DictReader(open('soak-results/soak.csv', newline='')))
+          if len(rows) != 1 or rows[0]['scenario'] != 'concurrent_soak':
+              raise SystemExit(f"unexpected soak result: {rows}")
+          row = rows[0]
+          if any(int(row[key]) != 0 for key in ('client_errors', 'rejected', 'failed')):
+              raise SystemExit(f"prolonged soak had errors: {row}")
+          if int(row['attempted']) != int(row['completed']):
+              raise SystemExit(f"prolonged soak accounting mismatch: {row}")
+          if 'Maximum resident set size (kbytes):' not in Path('soak-results/memory.txt').read_text():
+              raise SystemExit('missing peak RSS evidence')
+          PY
+      - name: Retain prolonged soak evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: prolonged-soak-${{ github.sha }}
+          path: soak-results/
+          if-no-files-found: error
+          retention-days: 30
