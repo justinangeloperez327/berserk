@@ -10,6 +10,8 @@ pub mod prelude;
 
 pub use app::App;
 pub use berserk_core::{ConfigError, ShutdownHandle, State, Validate};
+pub use berserk_support as support;
+pub use berserk_support::Str;
 pub use config::ServerConfig;
 pub use controller::ActionResult;
 pub use error::{Error, Result};
