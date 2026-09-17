@@ -1,9 +1,8 @@
 use crate::{AuthError, ErrorKind, Result};
 use argon2::{
-    password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    password_hash::{phc::PasswordHash, PasswordHasher, PasswordVerifier},
     Argon2,
 };
-use rand_core::OsRng;
 use std::fmt;
 use zeroize::Zeroizing;
 
@@ -34,9 +33,8 @@ pub struct Argon2Passwords;
 
 impl PasswordService for Argon2Passwords {
     fn hash(&self, password: &Secret) -> Result<String> {
-        let salt = SaltString::generate(&mut OsRng);
         Argon2::default()
-            .hash_password(password.expose().as_bytes(), &salt)
+            .hash_password(password.expose().as_bytes())
             .map(|hash| hash.to_string())
             .map_err(crypto_error)
     }
@@ -45,7 +43,7 @@ impl PasswordService for Argon2Passwords {
         let hash = PasswordHash::new(encoded_hash).map_err(crypto_error)?;
         match Argon2::default().verify_password(password.expose().as_bytes(), &hash) {
             Ok(()) => Ok(true),
-            Err(argon2::password_hash::Error::Password) => Ok(false),
+            Err(argon2::password_hash::Error::PasswordInvalid) => Ok(false),
             Err(error) => Err(crypto_error(error)),
         }
     }
