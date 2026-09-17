@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 exclude = ["examples/minimal-api"]
-members = ["crates/core", "crates/support", "crates/validation", "crates/database", "crates/claw", "crates/auth", "crates/openapi", "crates/cache", "crates/storage", "crates/events", "crates/jobs", "crates/client", "crates/notifications", "crates/cli", "crates/testing", "crates/framework", "examples/foundation", "benchmarks"]
+members = ["crates/core", "crates/validation", "crates/database", "crates/claw", "crates/auth", "crates/openapi", "crates/cache", "crates/storage", "crates/events", "crates/jobs", "crates/client", "crates/notifications", "crates/cli", "crates/testing", "crates/framework", "examples/foundation", "benchmarks"]
 
 [workspace.package]
 version = "0.1.0"
@@ -18,7 +18,6 @@ unsafe_code = "forbid"
 
 [workspace.dependencies]
 berserk-core = { path = "crates/core", version = "=0.1.0" }
-berserk-support = { path = "crates/support", version = "=0.1.0" }
 berserk-database = { path = "crates/database", version = "=0.1.0" }
 claw-orm = { path = "crates/claw", version = "=0.1.0" }
 berserk-auth = { path = "crates/auth", version = "=0.1.0" }
