@@ -6,7 +6,7 @@ Publishing is always a manual owner decision. This checklist intentionally conta
 
 - [x] Confirm crates.io availability for the final `berserk`, `berserk-*`, and `claw-orm` package names. The 2026-09-17 check found no existing index entry for any of the 15 intended package names; see `docs/package-name-availability.md`. Re-check immediately before first publication because names are allocated first-come, first-served and this verification does not reserve them.
 - [x] Select and add the MIT license; update publishable package license/repository metadata.
-- [ ] Configure a private vulnerability-reporting channel and maintainer ownership.
+- [ ] Configure a private vulnerability-reporting channel and maintainer ownership. Maintainer ownership is now formalized in `.github/CODEOWNERS`; `SECURITY.md` and `docs/vulnerability-response.md` define intake, severity, triage, response targets, remediation, and disclosure. Keep this gate open until GitHub Private Vulnerability Reporting is enabled and verified for the repository.
 - [ ] Choose supported operating systems and database server versions.
 - [x] Set the initial package version to `0.1.0` and explicitly mark library/CLI crates publishable while examples and benchmarks remain private.
 
