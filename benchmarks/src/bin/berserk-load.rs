@@ -179,8 +179,11 @@ fn run_fixed_load(total: usize, concurrency: usize) -> Result<Metrics> {
     if successes + errors != total {
         return Err("fixed-load accounting mismatch".into());
     }
-    if errors != 0 || snapshot.rejected != 0 || snapshot.failed != 0 || snapshot.completed != total {
-        return Err(format!("steady load was not lossless: {snapshot:?}, client_errors={errors}").into());
+    if errors != 0 || snapshot.rejected != 0 || snapshot.failed != 0 || snapshot.completed != total
+    {
+        return Err(
+            format!("steady load was not lossless: {snapshot:?}, client_errors={errors}").into(),
+        );
     }
     Ok(Metrics {
         scenario: "concurrent_steady",
@@ -366,10 +369,14 @@ fn run_soak(seconds: u64, concurrency: usize) -> Result<Metrics> {
     let snapshot = server.stop()?;
     let attempted = attempted.load(Ordering::Relaxed);
     if errors != 0 || snapshot.rejected != 0 || snapshot.failed != 0 {
-        return Err(format!("soak encountered errors: {snapshot:?}, client_errors={errors}").into());
+        return Err(
+            format!("soak encountered errors: {snapshot:?}, client_errors={errors}").into(),
+        );
     }
     if snapshot.completed != attempted {
-        return Err(format!("soak accounting mismatch: attempted={attempted}, {snapshot:?}").into());
+        return Err(
+            format!("soak accounting mismatch: attempted={attempted}, {snapshot:?}").into(),
+        );
     }
     Ok(Metrics {
         scenario: "concurrent_soak",
