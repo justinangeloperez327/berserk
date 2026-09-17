@@ -6,6 +6,7 @@ on:
       - "Cargo.toml"
       - "Cargo.lock"
       - "crates/**"
+      - "scripts/release_plan.py"
       - ".github/workflows/release-artifacts.yml"
       - "docs/release-provenance.md"
       - "docs/release-checklist.md"
@@ -32,49 +33,20 @@ jobs:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
 
+      - name: Validate publication plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/release_plan.py --format text
+          python3 scripts/release_plan.py --format tsv --output /tmp/release-packages.tsv
+          python3 scripts/release_plan.py --format json --output /tmp/release-plan.json
+          test "$(wc -l < /tmp/release-packages.tsv)" -eq 15
+
       - name: Build pre-publication release evidence
         shell: bash
         run: |
           set -euo pipefail
-
-          cargo metadata --locked --no-deps --format-version 1 > /tmp/metadata.json
           mkdir -p release-artifacts/package-files
-
-          python3 - <<'PYTHON' > /tmp/release-packages.tsv
-          import json
-
-          wanted = [
-              "berserk-core",
-              "berserk-validation",
-              "berserk-database",
-              "claw-orm",
-              "berserk-auth",
-              "berserk-openapi",
-              "berserk-cache",
-              "berserk-storage",
-              "berserk-events",
-              "berserk-jobs",
-              "berserk-client",
-              "berserk-notifications",
-              "berserk-cli",
-              "berserk-testing",
-              "berserk",
-          ]
-
-          with open("/tmp/metadata.json", encoding="utf-8") as handle:
-              metadata = json.load(handle)
-
-          packages = {package["name"]: package for package in metadata["packages"]}
-          missing = [name for name in wanted if name not in packages]
-          if missing:
-              raise SystemExit(f"missing publishable packages: {missing}")
-
-          for name in wanted:
-              package = packages[name]
-              if package.get("publish") == []:
-                  raise SystemExit(f"{name}: publication is disabled")
-              print(f"{name}\t{package['version']}")
-          PYTHON
 
           while IFS=$'\t' read -r package version; do
             cargo package --locked -p "$package" --list \
@@ -99,58 +71,11 @@ jobs:
           import pathlib
           import subprocess
 
-          wanted = [
-              "berserk-core",
-              "berserk-validation",
-              "berserk-database",
-              "claw-orm",
-              "berserk-auth",
-              "berserk-openapi",
-              "berserk-cache",
-              "berserk-storage",
-              "berserk-events",
-              "berserk-jobs",
-              "berserk-client",
-              "berserk-notifications",
-              "berserk-cli",
-              "berserk-testing",
-              "berserk",
-          ]
-          wanted_set = set(wanted)
-
-          metadata = json.loads(
-              subprocess.check_output(
-                  ["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1"],
-                  text=True,
-              )
-          )
-          packages = {package["name"]: package for package in metadata["packages"]}
-
-          internal_dependencies = {}
-          for name in wanted:
-              deps = set()
-              for dependency in packages[name].get("dependencies", []):
-                  if dependency.get("kind") == "dev":
-                      continue
-                  dependency_name = dependency["name"]
-                  if dependency_name in wanted_set:
-                      deps.add(dependency_name)
-              internal_dependencies[name] = sorted(deps)
-
-          remaining = {name: set(deps) for name, deps in internal_dependencies.items()}
-          publish_order = []
-          while remaining:
-              ready = sorted(name for name, deps in remaining.items() if not deps)
-              if not ready:
-                  raise SystemExit(f"internal dependency cycle: {remaining}")
-              publish_order.extend(ready)
-              for name in ready:
-                  remaining.pop(name)
-              for deps in remaining.values():
-                  deps.difference_update(ready)
+          with open("/tmp/release-plan.json", encoding="utf-8") as handle:
+              plan = json.load(handle)
 
           manifest = {
-              "schema_version": 2,
+              "schema_version": 3,
               "artifact_model": "pre-publication-source-evidence",
               "repository": os.environ["GITHUB_REPOSITORY"],
               "source_commit": subprocess.check_output(
@@ -162,15 +87,10 @@ jobs:
                   ["rustc", "--version", "--verbose"], text=True
               ).strip(),
               "cargo": subprocess.check_output(["cargo", "--version"], text=True).strip(),
-              "packages": [
-                  {
-                      "name": name,
-                      "version": packages[name]["version"],
-                      "internal_dependencies": internal_dependencies[name],
-                  }
-                  for name in wanted
-              ],
-              "publish_order": publish_order,
+              "version": plan["version"],
+              "packages": plan["packages"],
+              "publish_layers": plan["publish_layers"],
+              "publish_order": plan["publish_order"],
           }
 
           pathlib.Path("release-artifacts/RELEASE-MANIFEST.json").write_text(
