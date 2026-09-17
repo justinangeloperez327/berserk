@@ -18,14 +18,40 @@ Arguments: scenario, measured iterations, warmup iterations. Successful stdout c
 - json: parses and serializes one fixed small mixed object. Includes allocations and exact output comparison.
 - tcp: one sequential client; new loopback connection for every request; default worker count, queue, polling and deadlines. Includes connect, request, response and close. It is NOT a concurrent capacity benchmark and can be dominated by connection setup and OS networking costs. Large runs may encounter ephemeral-port constraints.
 
+## Concurrent load and soak
+
+`benchmarks/src/bin/berserk-load.rs` is a correctness-oriented network stress harness. It intentionally avoids a fixed throughput threshold because GitHub-hosted runner capacity varies. Instead, the gate fails on crashes, hangs, accounting failures, unexpected server failures, rejected steady-state work, client errors during steady/soak traffic, or failure to reject work when the bounded overload queue is saturated.
+
+Run the short stress suite:
+
+```sh
+cargo run --release -p berserk-benchmarks --bin berserk-load -- smoke 1000 16
+```
+
+The smoke suite records:
+
+- `concurrent_steady`: 1,000 loopback requests across 16 client threads; all work must complete without rejection or failure.
+- `overload_bounded_queue`: a one-worker, two-entry queue is deliberately saturated; the server must complete some work and reject some work rather than grow an unbounded queue.
+- `shutdown_under_load`: shutdown is requested while clients are active; every accepted connection must end as completed, failed, or explicitly rejected before the server exits.
+
+Run a time-based soak:
+
+```sh
+cargo run --release -p berserk-benchmarks --bin berserk-load -- soak 300 16
+```
+
+Arguments are duration in seconds and client concurrency. The soak requires zero client errors, server failures, and queue rejections, and exact attempted/completed accounting. The harness accepts durations up to one hour.
+
+The `Concurrent load` workflow runs the smoke suite plus a short 20-second soak on every pull request. Manual runs default to a 5-minute prolonged soak, and the scheduled main-branch run uses 15 minutes. Raw CSV and GNU `time -v` peak-RSS evidence are retained for 30 days. Throughput and p50/p95/p99/max latency are evidence for comparison, not absolute CI thresholds.
+
 ## Reproducible collection
 
 1. First establish passing builds and correctness tests for the workspace and standalone consumer. These are covered by the main CI workflow.
 2. Record source revision or archive hash, date, Rust version, OS/kernel, CPU, RAM, power mode, build profile and server settings.
 3. Use release mode, stable machine conditions and identical parameters. Avoid unrelated foreground loads.
 4. Run each scenario at least five times. Retain individual CSV rows; compare medians of run-level throughput and latency, plus their spread. Never average percentiles into an aggregate percentile.
-5. Memory: measure the already-built executable with your OS's process resource monitor. On Linux, `/usr/bin/time -v target/release/berserk-benchmarks routing 10000 1000` reports maximum resident set size separately from stdout. Do not time Cargo when measuring process memory. RSS includes the harness, samples (roughly 16 bytes per iteration before allocator overhead) and runtime; it is not framework-only memory. Windows can use process monitoring, but peak working-set definitions differ from Linux RSS.
-6. Archive environment notes and raw output together. The collection workflow records peak process RSS, CPU inventory, and memory inventory; it does not measure CPU utilization.
+5. Memory: measure the already-built executable with your OS's process resource monitor. On Linux, `/usr/bin/time -v target/release/berserk-benchmarks routing 10000 1000` reports maximum resident set size separately from stdout. Do not time Cargo when measuring process memory. RSS includes the harness, samples and runtime; it is not framework-only memory. Windows can use process monitoring, but peak working-set definitions differ from Linux RSS.
+6. Archive environment notes and raw output together. The collection workflows record peak process RSS; they do not measure framework-only memory or normalize CPU utilization.
 
 ## Regression review
 
@@ -33,13 +59,13 @@ Compare the same scenario, machine, profile, settings and iteration counts. A re
 
 ## Remaining measurements
 
-Concurrent closed/open-loop load, keep-alive mixes, large bodies, streaming, overload rejection counts, prolonged slow clients, memory under concurrency, CPU profiling and statistical significance are not covered by this first harness. Sequential workloads suffer coordinated omission when used to infer load behavior. Resource controls have test sources but have not been load-verified.
+Keep-alive mixes, large bodies, streaming, prolonged slow clients, CPU profiling, open-loop arrival-rate testing and statistically controlled cross-version capacity comparisons are not covered. The concurrent harness uses closed-loop clients and therefore must not be interpreted as an open-loop saturation model.
 
-## Automated collection on Linux
+## Automated sequential collection on Linux
 
 ```sh
 cargo build --locked --release -p berserk-benchmarks
 LC_ALL=C python3 benchmarks/collect.py
 ```
 
-Requires Python 3 and GNU `/usr/bin/time`. Run from the repository root. The collector refuses an existing output directory to prevent mixing runs. An optional first argument selects a fresh output directory. CI retains artifacts for 30 days; download evidence before expiry. Each TCP run uses 100 measured requests and 10 warmups; routing and JSON use 10,000 measured operations and 1,000 warmups. No load, overload, shutdown-under-load, or prolonged soak gate is claimed by this workflow.
+Requires Python 3 and GNU `/usr/bin/time`. Run from the repository root. The collector refuses an existing output directory to prevent mixing runs. An optional first argument selects a fresh output directory. CI retains artifacts for 30 days; download evidence before expiry. Each TCP run uses 100 measured requests and 10 warmups; routing and JSON use 10,000 measured operations and 1,000 warmups.
