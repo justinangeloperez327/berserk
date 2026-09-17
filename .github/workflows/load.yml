@@ -2,6 +2,13 @@ name: Concurrent load
 
 on:
   pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/core/**"
+      - "crates/framework/**"
+      - "benchmarks/**"
+      - ".github/workflows/load.yml"
   workflow_dispatch:
     inputs:
       soak_seconds:
@@ -10,6 +17,10 @@ on:
         default: "300"
   schedule:
     - cron: "17 2 * * 0"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
