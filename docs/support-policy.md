@@ -21,7 +21,9 @@ Tier 1 means the release-blocking quality, MSRV, live-database, security, fuzzin
 - **Windows**, validated on the current GitHub-hosted `windows-latest` runner.
 - **macOS**, validated on the current GitHub-hosted `macos-latest` runner.
 
-Tier 2 runs workspace compile/tests and the standalone minimal API example. These platforms are supported for development compatibility, but `0.1.0` does not make the same operational-validation claim as Tier 1 because live database services, load/soak, and fuzzing are not executed there.
+Tier 2 runs workspace compile and test coverage with all features. These platforms are supported for development compatibility, but `0.1.0` does not make the same operational-validation claim as Tier 1 because live database services, fuzzing, package verification, load, and soak testing are not executed there.
+
+The standalone minimal API and fresh external-consumer checks run on the Tier-1 Linux CI path rather than being duplicated on every Tier-2 runner.
 
 Other operating systems, Linux distributions, and architectures may work but are not part of the `0.1.0` support contract unless they are added to CI and this document.
 
@@ -46,7 +48,8 @@ The SQLite feature uses `rusqlite` with its `bundled` feature. Berserk therefore
 ## What CI enforces
 
 - Ubuntu 24.04 runs the main workspace quality and MSRV gates.
-- Windows and macOS run cross-platform workspace compile/tests plus the minimal API example.
+- Windows and macOS run cross-platform workspace compile/tests with all features.
+- The standalone minimal API and fresh external-consumer builds run on Ubuntu.
 - PostgreSQL 15 through 18 run the same live driver/migration contract tests.
 - MySQL 8.4 runs the live driver/migration contract tests.
 - SQLite runs its driver/migration contract tests with the bundled library.
