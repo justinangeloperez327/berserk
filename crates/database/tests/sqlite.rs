@@ -1,5 +1,7 @@
 #![cfg(feature = "sqlite")]
 
+mod common;
+
 use framework_database::{
     drivers::sqlite::SqliteConnection, Connection, Direction, ErrorKind, Query, Statement,
     TransactionOptions, Value,
@@ -93,4 +95,10 @@ fn fluent_queries_execute_against_sqlite() {
         .execute(&mut connection)
         .unwrap();
     assert_eq!(Query::table("users").get(&mut connection).unwrap().len(), 1);
+}
+
+#[test]
+fn sqlite_runs_the_live_migration_contract() {
+    let mut connection = SqliteConnection::in_memory().unwrap();
+    common::run_live_migration_contract(&mut connection);
 }
