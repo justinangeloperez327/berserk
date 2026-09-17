@@ -27,4 +27,4 @@
 25. **Developer Tooling**
 26. **Hardening and Maintenance**
 
-No version numbers are assigned to phases. Every phase includes documentation, tests, and review. Source for all 26 planned phases is prepared. Phase 26 adds the security, compatibility, automation, and release-gate baseline. Compilation, execution, audits, fuzzing, live-driver tests, and measured performance remain pending, so the framework is not release-ready. Publication remains with the user.
+No version numbers are assigned to phases. Every phase includes documentation, tests, and review. Source for all 26 planned phases is prepared. The stable toolchain, Rust 1.88 MSRV, independent consumer, and dependency-policy gates pass in CI. Fuzzing, live PostgreSQL/MySQL testing, load/soak measurements, independent review, final package naming/versioning, and owner approval remain pending, so the framework is not release-ready. Publication remains with the user.

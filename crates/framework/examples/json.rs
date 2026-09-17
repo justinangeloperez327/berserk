@@ -1,4 +1,4 @@
-use framework::{App, FromJson, Json, Request, Response, Result, ValidateInput, ValidationErrors};
+use berserk::{App, FromJson, Json, Request, Response, Result, ValidateInput, ValidationErrors};
 struct CreateUser {
     name: String,
 }

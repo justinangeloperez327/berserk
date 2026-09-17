@@ -1,0 +1,28 @@
+use crate::Model;
+use framework_database::{Connection, DatabaseError, ErrorKind, Execution, Result, Value};
+
+/// Opt-in persistence contract for models that can serialize their fields back to the database.
+///
+/// `Model` is intentionally read-oriented. Implement this trait only when a model has an explicit
+/// mapping from Rust fields to database columns. The primary key must not be included in
+/// `values_for_save`; `save` always uses it as the update filter.
+pub trait PersistableModel: Model {
+    /// Return the non-primary-key columns that should be written by `save`.
+    fn values_for_save(&self) -> Vec<(&'static str, Value)>;
+
+    /// Persist this model's declared values using its primary key as the update filter.
+    fn save(&self, connection: &mut dyn Connection) -> Result<Execution> {
+        let values = self.values_for_save();
+        if values
+            .iter()
+            .any(|(column, _)| *column == Self::PRIMARY_KEY)
+        {
+            return Err(DatabaseError::new(
+                ErrorKind::Query,
+                "save values must not include the model primary key",
+            ));
+        }
+
+        Self::where_(Self::PRIMARY_KEY, "=", self.key()).update(connection, values)
+    }
+}

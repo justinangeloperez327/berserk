@@ -1,4 +1,4 @@
-use framework::{Headers, Method, Request, Response};
+use berserk::{Headers, Method, Request, Response};
 
 #[test]
 fn request_debug_redacts_headers_query_parameters_and_body() {

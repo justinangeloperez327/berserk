@@ -1,6 +1,6 @@
 #![cfg(feature = "openapi")]
 
-use framework::{
+use berserk::{
     openapi::{ApiResponse, HttpMethod, Info, OpenApi, Operation},
     App, Headers, Method, Request, Response,
 };

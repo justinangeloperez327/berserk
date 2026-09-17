@@ -1,4 +1,4 @@
-use framework::{Headers, HttpError, IntoResponse, Method, Request, Response, StatusCode};
+use berserk::{Headers, HttpError, IntoResponse, Method, Request, Response, StatusCode};
 
 #[test]
 fn method_tokens_are_validated_and_case_sensitive() {
@@ -123,6 +123,6 @@ fn framing_headers_and_invalid_statuses_are_rejected() {
         .status(201)
         .into_response()
         .is_ok());
-    let failure: framework::Result<Response> = Err(HttpError::InvalidTarget.into());
+    let failure: berserk::Result<Response> = Err(HttpError::InvalidTarget.into());
     assert!(failure.into_response().is_err());
 }

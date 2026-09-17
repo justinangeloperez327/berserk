@@ -1,4 +1,4 @@
-use framework::{Headers, Json, Method, Request, Response};
+use berserk::{Headers, Json, Method, Request, Response};
 #[test]
 fn syntax_unicode_and_roundtrip() {
     let valid = br#"{"text":"\ud83d\ude00","number":-12.50e+3,"array":[true,false,null]}"#;
@@ -54,7 +54,7 @@ fn request_content_type_query_and_response() {
 }
 #[test]
 fn validation_accumulates() {
-    let mut e = framework::ValidationErrors::default();
+    let mut e = berserk::ValidationErrors::default();
     e.required("name", Some(" "));
     e.range("age", -1, 0, 120);
     assert_eq!(e.finish().unwrap_err().0.len(), 2);

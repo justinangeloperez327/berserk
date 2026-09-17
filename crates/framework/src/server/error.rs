@@ -1,4 +1,5 @@
 use std::{error::Error, fmt, io};
+
 #[derive(Debug)]
 #[non_exhaustive]
 pub enum ProtocolError {
@@ -12,6 +13,7 @@ pub enum ProtocolError {
     InvalidConfiguration(crate::ConfigError),
     InvalidResponse(crate::HttpError),
 }
+
 impl ProtocolError {
     pub fn status_code(&self) -> u16 {
         match self {
@@ -33,11 +35,23 @@ impl ProtocolError {
         }
     }
 }
-impl From<io::Error> for ProtocolError {
-    fn from(e: io::Error) -> Self {
-        Self::Io(e)
+
+pub(super) fn application_error_response(error: crate::Error) -> crate::Response {
+    match error {
+        crate::Error::Input(error) => error.response(),
+        crate::Error::Http(crate::HttpError::InvalidUtf8(_)) => {
+            crate::Response::text("Bad Request").status(400)
+        }
+        _ => crate::Response::text("Internal Server Error").status(500),
     }
 }
+
+impl From<io::Error> for ProtocolError {
+    fn from(error: io::Error) -> Self {
+        Self::Io(error)
+    }
+}
+
 impl fmt::Display for ProtocolError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(match self {
@@ -53,12 +67,13 @@ impl fmt::Display for ProtocolError {
         })
     }
 }
+
 impl Error for ProtocolError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
-            Self::Io(e) => Some(e),
-            Self::InvalidConfiguration(e) => Some(e),
-            Self::InvalidResponse(e) => Some(e),
+            Self::Io(error) => Some(error),
+            Self::InvalidConfiguration(error) => Some(error),
+            Self::InvalidResponse(error) => Some(error),
             _ => None,
         }
     }

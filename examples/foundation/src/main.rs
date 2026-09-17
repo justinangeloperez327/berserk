@@ -1,4 +1,4 @@
-use framework::{App, Request, Response, Result};
+use berserk::{App, Request, Response, Result};
 fn main() -> Result<()> {
     let mut app = App::new();
     app.get("/", || Response::text("Hello, world!"))?;

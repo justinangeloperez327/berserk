@@ -7,4 +7,4 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-framework.workspace = true
+berserk.workspace = true

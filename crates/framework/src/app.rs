@@ -1,6 +1,6 @@
 use crate::{Result, ServerConfig, Validate};
 
-/// Validated application configuration. Supports in-memory routing and synchronous TCP serving.
+/// Validated application configuration for in-memory routing and Tokio/Hyper HTTP serving.
 #[derive(Debug)]
 pub struct App {
     config: ServerConfig,
@@ -85,6 +85,11 @@ impl App {
         crate::routing::Route::new(&mut self.router)
     }
 
+    /// Builds a path for a named route, percent-encoding route parameter values.
+    pub fn path_for(&self, name: &str, params: &[(&str, &str)]) -> Result<String> {
+        self.router.path_for(name, params)
+    }
+
     /// Dispatch without network I/O. Handler errors propagate; panics are not caught here.
     pub fn handle(&self, request: crate::Request) -> Result<crate::Response> {
         let mut request = request;
@@ -162,6 +167,11 @@ impl App {
             return Err(crate::ConfigError::new("state", "type already registered").into());
         }
         Ok(())
+    }
+
+    #[cfg(feature = "database")]
+    pub fn database(&mut self, database: framework_database::Database) -> Result<()> {
+        self.state(database)
     }
 
     /// Build routes transactionally. The child application's config and state are not inherited.

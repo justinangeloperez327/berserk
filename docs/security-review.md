@@ -28,7 +28,7 @@ Scope: cumulative Phase 1–26 source, manifests, examples, tests, documentation
 
 | Risk | Required gate |
 |---|---|
-| Source has never compiled in this environment | Run format, check, Clippy, tests, and docs on stable and Rust 1.82 |
+| Stable/MSRV regressions | Keep format, check, Clippy, tests, docs, consumer, security-policy, and Rust 1.88 CI gates required |
 | Dependencies have not been audited | Run `cargo audit` and `cargo deny check`; review every exception |
 | Protocol parser has not been fuzzed | Add sustained fuzzing for HTTP, JSON, multipart, URL, and query parsers |
 | Database behavior is source-only | Run isolated and cross-driver tests against supported server versions |

@@ -1,6 +1,6 @@
 #![cfg(feature = "auth")]
 
-use framework::{
+use berserk::{
     auth::{Guard, Principal, Result as AuthResult},
     App, Authenticated, Headers, Method, Request, Response,
 };

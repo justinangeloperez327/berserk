@@ -1,4 +1,4 @@
-use framework::{App, Error, ServerConfig, Validate};
+use berserk::{App, Error, ServerConfig, Validate};
 use std::{error::Error as _, time::Duration};
 
 #[test]

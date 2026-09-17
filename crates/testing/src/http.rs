@@ -1,4 +1,4 @@
-use framework::{App, Headers, Json, Method, Request, Response, Result};
+use berserk::{App, Headers, Json, Method, Request, Response, Result};
 
 pub struct TestClient<'a> {
     app: &'a App,

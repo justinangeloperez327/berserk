@@ -1,4 +1,4 @@
-use framework::{App, Next, Request, RequestId, Response, Result};
+use berserk::{App, Next, Request, RequestId, Response, Result};
 fn main() -> Result<()> {
     let mut app = App::new();
     app.state(String::from("Example API"))?;

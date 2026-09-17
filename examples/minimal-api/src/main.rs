@@ -1,4 +1,4 @@
-use framework::{App, Request, Response, Result};
+use berserk::{App, Request, Response, Result};
 
 fn build_app() -> Result<App> {
     let mut app = App::new();
@@ -65,7 +65,7 @@ mod tests {
     fn consumer_http_contract() {
         let server = build_app().unwrap().bind("127.0.0.1:0").unwrap();
         let address = server.local_addr().unwrap();
-        struct Cleanup(framework::ShutdownHandle);
+        struct Cleanup(berserk::ShutdownHandle);
         impl Drop for Cleanup {
             fn drop(&mut self) {
                 self.0.shutdown();

@@ -1,18 +1,24 @@
 //! Deterministic synchronous routing without network I/O.
 mod error;
 mod facade;
+mod resource;
 mod route;
 
 use crate::{controller::Handler, Method, Request, Response, Result};
 pub use error::RouteError;
-pub use facade::Route;
+pub use facade::{NamedRoute, Route};
+pub use resource::{ApiResourceController, ResourceController};
 use route::Pattern;
-use std::{collections::BTreeSet, fmt};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt,
+};
 
 type BoxedHandler = Box<dyn Fn(Request) -> Result<Response> + Send + Sync + 'static>;
 struct RegisteredRoute {
     method: Method,
     pattern: Pattern,
+    name: Option<String>,
     handler: BoxedHandler,
 }
 
@@ -35,7 +41,23 @@ impl Router {
     where
         H: Handler<A>,
     {
+        self.add_named(method, path, handler, None)
+    }
+
+    pub(crate) fn add_named<H, A>(
+        &mut self,
+        method: Method,
+        path: &str,
+        handler: H,
+        name: Option<String>,
+    ) -> Result<()>
+    where
+        H: Handler<A>,
+    {
         let pattern = Pattern::parse(path)?;
+        if let Some(name) = name.as_deref() {
+            validate_name(name)?;
+        }
         if let Some(expected) = H::expected_route_params() {
             let actual = pattern.parameter_count();
             if expected != actual {
@@ -49,9 +71,21 @@ impl Router {
         {
             return Err(RouteError::DuplicateRoute.into());
         }
+        if let Some(name) = name.as_deref() {
+            if let Some(existing) = self
+                .routes
+                .iter()
+                .find(|route| route.name.as_deref() == Some(name))
+            {
+                if !existing.pattern.same_template(&pattern) {
+                    return Err(RouteError::DuplicateRouteName(name.to_owned()).into());
+                }
+            }
+        }
         self.routes.push(RegisteredRoute {
             method,
             pattern,
+            name,
             handler: Box::new(move |request| handler.call(request)),
         });
         Ok(())
@@ -75,6 +109,19 @@ impl Router {
         }
         self.fallback = Some(Box::new(move |request| handler.call(request)));
         Ok(())
+    }
+
+    pub(crate) fn path_for(&self, name: &str, params: &[(&str, &str)]) -> Result<String> {
+        let route = self
+            .routes
+            .iter()
+            .find(|route| route.name.as_deref() == Some(name))
+            .ok_or_else(|| RouteError::UnknownRouteName(name.to_owned()))?;
+        let values = params
+            .iter()
+            .map(|(key, value)| ((*key).to_owned(), (*value).to_owned()))
+            .collect::<BTreeMap<_, _>>();
+        route.pattern.build(&values).map_err(Into::into)
     }
 
     pub(crate) fn dispatch(&self, mut request: Request) -> Result<Response> {
@@ -155,16 +202,29 @@ impl Router {
         let mut pending = Vec::new();
         for route in routes {
             let pattern = route.pattern.prefixed(prefix)?;
-            if self.routes.iter().any(|existing| {
+            if self.routes.iter().chain(pending.iter()).any(|existing| {
                 existing.method == route.method && existing.pattern.equivalent(&pattern)
             }) {
                 return Err(RouteError::DuplicateRoute.into());
+            }
+            if let Some(name) = route.name.as_deref() {
+                if let Some(existing) = self
+                    .routes
+                    .iter()
+                    .chain(pending.iter())
+                    .find(|existing| existing.name.as_deref() == Some(name))
+                {
+                    if !existing.pattern.same_template(&pattern) {
+                        return Err(RouteError::DuplicateRouteName(name.to_owned()).into());
+                    }
+                }
             }
             let layers = layers.clone();
             let handler = route.handler;
             pending.push(RegisteredRoute {
                 method: route.method,
                 pattern,
+                name: route.name,
                 handler: Box::new(move |request| layers.run(request, handler.as_ref())),
             });
         }
@@ -180,4 +240,15 @@ impl Router {
         }
         Ok(())
     }
+}
+
+fn validate_name(name: &str) -> std::result::Result<(), RouteError> {
+    if name.is_empty()
+        || !name
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-'))
+    {
+        return Err(RouteError::InvalidRouteName);
+    }
+    Ok(())
 }

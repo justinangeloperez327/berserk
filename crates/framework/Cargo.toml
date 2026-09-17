@@ -1,5 +1,5 @@
 [package]
-name = "framework"
+name = "berserk"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -38,3 +38,9 @@ framework-jobs = { workspace = true, optional = true }
 framework-client = { workspace = true, optional = true }
 framework-notifications = { workspace = true, optional = true }
 framework-cli = { workspace = true, optional = true }
+bytes = "1.12"
+http = "1.5"
+http-body-util = { version = "0.1.5", features = ["channel"] }
+hyper = { version = "1.11", features = ["http1", "server"] }
+hyper-util = { version = "0.1.20", features = ["http1", "server", "tokio"] }
+tokio = { version = "1.53", features = ["net", "rt-multi-thread", "sync", "time"] }

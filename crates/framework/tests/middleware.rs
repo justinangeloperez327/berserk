@@ -1,4 +1,4 @@
-use framework::{App, Headers, Method, Next, Request, RequestId, Response, Result};
+use berserk::{App, Headers, Method, Next, Request, RequestId, Response, Result};
 use std::sync::{Arc, Mutex};
 fn req(path: &str) -> Request {
     Request::new(

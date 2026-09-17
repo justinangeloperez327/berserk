@@ -9,6 +9,15 @@ pub trait Model: Sized {
     fn from_row(row: &Row) -> Result<Self>;
     fn key(&self) -> Value;
 
+    /// Convert a raw route parameter into this model's lookup key.
+    ///
+    /// Numeric `u64` keys are the default. Models using strings, UUIDs, or
+    /// another key representation can override this method without changing
+    /// the router or controller signature.
+    fn parse_route_key(value: &str) -> Option<Value> {
+        value.parse::<u64>().ok().map(Value::from)
+    }
+
     fn query() -> ModelQuery<Self> {
         ModelQuery::new()
     }
@@ -89,6 +98,24 @@ pub trait Model: Sized {
         Self::where_in(Self::PRIMARY_KEY, keys).get(connection)
     }
 
+    /// Fetch a new instance of this model's current database row.
+    fn fresh(&self, connection: &mut dyn Connection) -> Result<Option<Self>> {
+        Self::find(connection, self.key())
+    }
+
+    /// Replace this model with its current database row.
+    ///
+    /// Returns `false` when the row no longer exists.
+    fn refresh(&mut self, connection: &mut dyn Connection) -> Result<bool> {
+        match self.fresh(connection)? {
+            Some(fresh) => {
+                *self = fresh;
+                Ok(true)
+            }
+            None => Ok(false),
+        }
+    }
+
     fn create<I, S, V>(connection: &mut dyn Connection, values: I) -> Result<Execution>
     where
         I: IntoIterator<Item = (S, V)>,
@@ -100,5 +127,24 @@ pub trait Model: Sized {
 
     fn destroy(connection: &mut dyn Connection, key: impl Into<Value>) -> Result<Execution> {
         Self::where_(Self::PRIMARY_KEY, "=", key).delete(connection)
+    }
+
+    /// Persist explicit values for this model's primary-key row.
+    ///
+    /// This does not mutate the in-memory model because Claw does not yet
+    /// assume a generic mapping from database column names back to struct
+    /// fields.
+    fn update<I, S, V>(&self, connection: &mut dyn Connection, values: I) -> Result<Execution>
+    where
+        I: IntoIterator<Item = (S, V)>,
+        S: Into<String>,
+        V: Into<Value>,
+    {
+        Self::where_(Self::PRIMARY_KEY, "=", self.key()).update(connection, values)
+    }
+
+    /// Delete this model's primary-key row.
+    fn delete(&self, connection: &mut dyn Connection) -> Result<Execution> {
+        Self::where_(Self::PRIMARY_KEY, "=", self.key()).delete(connection)
     }
 }

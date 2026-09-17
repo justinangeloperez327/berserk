@@ -1,4 +1,4 @@
-//! Framework assembly. Synchronous HTTP serving with bounded workers.
+//! BERSERK application assembly with bounded Tokio/Hyper HTTP serving.
 #![forbid(unsafe_code)]
 
 mod app;
@@ -37,10 +37,12 @@ pub use framework_openapi as openapi;
 #[cfg(feature = "storage")]
 pub use framework_storage as storage;
 
+#[cfg(feature = "database")]
+pub use http::RequestConnection;
 pub use http::{Headers, HttpError, IntoResponse, Method, Request, Response, StatusCode};
 
 pub mod routing;
-pub use routing::{Route, RouteError};
+pub use routing::{ApiResourceController, NamedRoute, ResourceController, Route, RouteError};
 
 pub mod server;
 pub use server::Server;

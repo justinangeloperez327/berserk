@@ -1,5 +1,5 @@
 // Phase 1 design example. Not runnable until the framework is implemented.
-use framework::{App, Request, Response, Result};
+use berserk::{App, Request, Response, Result};
 
 fn main() -> Result<()> {
     let mut app = App::new();
