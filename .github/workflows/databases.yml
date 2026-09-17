@@ -1,0 +1,59 @@
+name: Live databases
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: berserk
+          POSTGRES_PASSWORD: berserk
+          POSTGRES_USER: berserk
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U berserk -d berserk"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      BERSERK_REQUIRE_LIVE_DATABASES: "1"
+      FRAMEWORK_POSTGRES_TEST_URL: postgres://berserk:berserk@127.0.0.1:5432/berserk
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test -p framework-database --features postgres --test postgres
+
+  mysql:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: berserk
+          MYSQL_PASSWORD: berserk
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: berserk
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping --host=127.0.0.1 --user=root --password=root"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      BERSERK_REQUIRE_LIVE_DATABASES: "1"
+      FRAMEWORK_MYSQL_TEST_URL: mysql://berserk:berserk@127.0.0.1:3306/berserk
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test -p framework-database --features mysql --test mysql
