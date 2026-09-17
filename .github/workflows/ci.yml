@@ -8,6 +8,24 @@ permissions:
   contents: read
 
 jobs:
+  repository-hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Reject tracked Cargo build output
+        shell: bash
+        run: |
+          python3 - <<'PYTHON'
+          import subprocess
+          import sys
+
+          paths = subprocess.check_output(["git", "ls-files", "-z"]).split(b"\0")
+          generated = [path for path in paths if b"target" in path.split(b"/")[:-1]]
+          for path in generated:
+              print("Tracked Cargo build output:", repr(path))
+          sys.exit(bool(generated))
+          PYTHON
+
   feature-matrix:
     runs-on: ubuntu-latest
     strategy:

@@ -1,4 +1,3 @@
-/target/
-/fuzz/target/
+target/
 **/*.rs.bk
 .env
