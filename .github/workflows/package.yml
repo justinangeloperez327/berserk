@@ -100,3 +100,89 @@ jobs:
           path: package-lists/
           if-no-files-found: error
           retention-days: 30
+
+  clean-consumer:
+    name: clean-consumer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Compile README quick start from a fresh external project
+        shell: bash
+        run: |
+          set -euo pipefail
+          consumer="$(mktemp -d)"
+          trap 'rm -rf "$consumer"' EXIT
+          mkdir -p "$consumer/src"
+
+          cat > "$consumer/Cargo.toml" <<EOF
+          [package]
+          name = "berserk-clean-consumer"
+          version = "0.1.0"
+          edition = "2021"
+          rust-version = "1.88"
+          publish = false
+
+          [workspace]
+
+          [dependencies]
+          berserk = { path = "${GITHUB_WORKSPACE}/crates/framework" }
+          EOF
+
+          cat > "$consumer/src/main.rs" <<'RUST'
+          use berserk::{App, Response, Result};
+
+          fn main() -> Result<()> {
+              let mut app = App::new();
+
+              {
+                  let mut route = app.route();
+                  route.get("/", || Response::text("Hello from Berserk!"))?;
+                  route.get("/users/{id}", show_user)?;
+              }
+
+              app.listen("127.0.0.1:3000")
+          }
+
+          fn show_user(id: u64) -> Response {
+              Response::text(format!("User {id}"))
+          }
+          RUST
+
+          cargo check --manifest-path "$consumer/Cargo.toml"
+
+      - name: Compile documented optional feature combination externally
+        shell: bash
+        run: |
+          set -euo pipefail
+          consumer="$(mktemp -d)"
+          trap 'rm -rf "$consumer"' EXIT
+          mkdir -p "$consumer/src"
+
+          cat > "$consumer/Cargo.toml" <<EOF
+          [package]
+          name = "berserk-feature-consumer"
+          version = "0.1.0"
+          edition = "2021"
+          rust-version = "1.88"
+          publish = false
+
+          [workspace]
+
+          [dependencies]
+          berserk = { path = "${GITHUB_WORKSPACE}/crates/framework", features = ["sqlite", "claw", "auth", "openapi"] }
+          EOF
+
+          cat > "$consumer/src/main.rs" <<'RUST'
+          use berserk::{App, Response, Result};
+
+          fn main() -> Result<()> {
+              let mut app = App::new();
+              let mut route = app.route();
+              route.get("/health", || Response::text("OK"))?;
+              Ok(())
+          }
+          RUST
+
+          cargo check --manifest-path "$consumer/Cargo.toml"
