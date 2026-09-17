@@ -78,6 +78,21 @@ fn request_preserves_raw_components_and_owns_body() {
 }
 
 #[test]
+fn request_debug_redacts_target_values() {
+    let request = Request::new(
+        Method::new("GET").unwrap(),
+        "/users/secret-route-value?token=secret-query-value",
+        Headers::new(),
+        Vec::new(),
+    )
+    .unwrap();
+    let debug = format!("{request:?}");
+    assert!(!debug.contains("secret-route-value"));
+    assert!(!debug.contains("secret-query-value"));
+    assert!(debug.contains("target_bytes"));
+}
+
+#[test]
 fn text_response_outlives_request_and_counts_bytes() {
     let response = {
         let req = Request::new(
