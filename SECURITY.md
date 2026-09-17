@@ -1,6 +1,6 @@
 # Security policy
 
-Berserk is a pre-release framework. The repository has completed a dedicated release security/API review pass, but it has not received a third-party security audit or penetration test. Do not describe it as production-certified.
+Berserk is a pre-release framework. The repository has completed a dedicated internal release security/API review pass, but it has not yet completed the independent external security/API review required by the release checklist, nor has it received a third-party penetration test or security certification. Do not describe it as production-certified.
 
 ## Reporting a vulnerability
 
