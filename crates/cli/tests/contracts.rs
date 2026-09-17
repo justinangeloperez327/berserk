@@ -2,11 +2,16 @@ use berserk_cli::{
     execute, CliError, Command, ErrorKind, Generator, MigrationCommand, MigrationExecutor,
 };
 use std::{
+    collections::HashSet,
     fs,
     path::PathBuf,
     process,
+    sync::atomic::{AtomicU64, Ordering},
+    thread,
     time::{SystemTime, UNIX_EPOCH},
 };
+
+static NEXT_TEMP_DIRECTORY_ID: AtomicU64 = AtomicU64::new(0);
 
 #[test]
 fn command_parser_supports_laravel_style_and_spaced_forms() {
@@ -98,6 +103,23 @@ fn migration_template_matches_database_contract_and_commands_delegate() {
     );
 }
 
+#[test]
+fn temporary_directories_are_unique_under_concurrent_creation() {
+    let directories = (0..32)
+        .map(|_| thread::spawn(TemporaryDirectory::new))
+        .collect::<Vec<_>>()
+        .into_iter()
+        .map(|handle| handle.join().unwrap())
+        .collect::<Vec<_>>();
+
+    let unique_paths = directories
+        .iter()
+        .map(|directory| directory.path().to_path_buf())
+        .collect::<HashSet<_>>();
+
+    assert_eq!(unique_paths.len(), directories.len());
+}
+
 struct MigrationFake;
 impl MigrationExecutor for MigrationFake {
     fn execute(&self, command: MigrationCommand) -> berserk_cli::Result<String> {
@@ -113,11 +135,15 @@ impl MigrationExecutor for MigrationFake {
 struct TemporaryDirectory(PathBuf);
 impl TemporaryDirectory {
     fn new() -> Self {
-        let time = SystemTime::now()
+        let nonce = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path = std::env::temp_dir().join(format!("berserk-cli-{}-{time}", process::id()));
+        let sequence = NEXT_TEMP_DIRECTORY_ID.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "berserk-cli-{}-{nonce}-{sequence}",
+            process::id()
+        ));
         fs::create_dir(&path).unwrap();
         Self(path)
     }
