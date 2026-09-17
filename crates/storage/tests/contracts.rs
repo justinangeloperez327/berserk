@@ -1,11 +1,16 @@
 use berserk_storage::{ErrorKind, LocalStorage, MemoryStorage, Storage, StoragePath};
 use std::{
+    collections::HashSet,
     fs,
     io::{Cursor, Read},
     path::PathBuf,
     process,
+    sync::atomic::{AtomicU64, Ordering},
+    thread,
     time::{SystemTime, UNIX_EPOCH},
 };
+
+static NEXT_TEMP_DIRECTORY_ID: AtomicU64 = AtomicU64::new(0);
 
 #[test]
 fn paths_reject_traversal_and_ambiguous_forms() {
@@ -97,6 +102,23 @@ fn failed_oversized_local_write_preserves_existing_object() {
     assert_eq!(body, "old");
 }
 
+#[test]
+fn temporary_directories_are_unique_under_concurrent_creation() {
+    let directories = (0..32)
+        .map(|_| thread::spawn(TemporaryDirectory::new))
+        .collect::<Vec<_>>()
+        .into_iter()
+        .map(|handle| handle.join().unwrap())
+        .collect::<Vec<_>>();
+
+    let unique_paths = directories
+        .iter()
+        .map(|directory| directory.path().clone())
+        .collect::<HashSet<_>>();
+
+    assert_eq!(unique_paths.len(), directories.len());
+}
+
 struct TemporaryDirectory(PathBuf);
 impl TemporaryDirectory {
     fn new() -> Self {
@@ -104,7 +126,11 @@ impl TemporaryDirectory {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path = std::env::temp_dir().join(format!("berserk-storage-{}-{nonce}", process::id()));
+        let sequence = NEXT_TEMP_DIRECTORY_ID.fetch_add(1, Ordering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "berserk-storage-{}-{nonce}-{sequence}",
+            process::id()
+        ));
         fs::create_dir(&path).unwrap();
         Self(path)
     }
