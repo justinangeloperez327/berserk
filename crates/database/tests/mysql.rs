@@ -1,5 +1,7 @@
 #![cfg(feature = "mysql")]
 
+mod common;
+
 use framework_database::{drivers::mysql::MySqlConnection, Connection, Statement, Value};
 
 fn connection() -> Option<MySqlConnection> {
@@ -51,4 +53,12 @@ fn mysql_rolls_back_transactions() {
     let value = rows[0].get("value");
     assert!(value == Some(&Value::I64(7)) || value == Some(&Value::U64(7)));
     transaction.rollback().unwrap();
+}
+
+#[test]
+fn mysql_runs_the_live_migration_contract() {
+    let Some(mut connection) = connection() else {
+        return;
+    };
+    common::run_live_migration_contract(&mut connection);
 }

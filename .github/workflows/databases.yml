@@ -9,6 +9,13 @@ permissions:
   contents: read
 
 jobs:
+  sqlite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo test -p framework-database --features sqlite --test sqlite
+
   postgres:
     runs-on: ubuntu-latest
     services:

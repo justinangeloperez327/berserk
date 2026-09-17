@@ -1,5 +1,7 @@
 #![cfg(feature = "postgres")]
 
+mod common;
+
 use framework_database::{drivers::postgres::PostgresConnection, Connection, Statement, Value};
 
 fn connection() -> Option<PostgresConnection> {
@@ -53,4 +55,12 @@ fn postgres_executes_and_rolls_back_transactions() {
         .unwrap();
     assert_eq!(rows[0].get("value"), Some(&Value::I64(7)));
     transaction.rollback().unwrap();
+}
+
+#[test]
+fn postgres_runs_the_live_migration_contract() {
+    let Some(mut connection) = connection() else {
+        return;
+    };
+    common::run_live_migration_contract(&mut connection);
 }
