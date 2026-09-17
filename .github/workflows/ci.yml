@@ -31,51 +31,69 @@ jobs:
           sys.exit(bool(generated))
           PYTHON
 
-  feature-matrix:
+  feature-core:
+    name: feature-core
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: no-default-features
-            args: --no-default-features
-          - name: database
-            args: --no-default-features --features database
-          - name: claw
-            args: --no-default-features --features claw
-          - name: postgres
-            args: --no-default-features --features postgres
-          - name: mysql
-            args: --no-default-features --features mysql
-          - name: sqlite
-            args: --no-default-features --features sqlite
-          - name: auth
-            args: --no-default-features --features auth
-          - name: openapi
-            args: --no-default-features --features openapi
-          - name: cache
-            args: --no-default-features --features cache
-          - name: storage
-            args: --no-default-features --features storage
-          - name: events
-            args: --no-default-features --features events
-          - name: jobs
-            args: --no-default-features --features jobs
-          - name: client
-            args: --no-default-features --features client
-          - name: notifications
-            args: --no-default-features --features notifications
-          - name: cli
-            args: --no-default-features --features cli
-          - name: api-with-auth
-            args: --no-default-features --features auth,openapi
-          - name: claw-with-sqlite
-            args: --no-default-features --features claw,sqlite
-    name: feature-${{ matrix.name }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo check -p berserk --all-targets ${{ matrix.args }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: feature-core
+      - name: Check no default features
+        run: cargo check -p berserk --all-targets --no-default-features
+      - name: Check database feature
+        run: cargo check -p berserk --all-targets --no-default-features --features database
+      - name: Check Claw ORM feature
+        run: cargo check -p berserk --all-targets --no-default-features --features claw
+      - name: Check PostgreSQL feature
+        run: cargo check -p berserk --all-targets --no-default-features --features postgres
+      - name: Check MySQL feature
+        run: cargo check -p berserk --all-targets --no-default-features --features mysql
+      - name: Check SQLite feature
+        run: cargo check -p berserk --all-targets --no-default-features --features sqlite
+
+  feature-services:
+    name: feature-services
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: feature-services
+      - name: Check auth feature
+        run: cargo check -p berserk --all-targets --no-default-features --features auth
+      - name: Check OpenAPI feature
+        run: cargo check -p berserk --all-targets --no-default-features --features openapi
+      - name: Check cache feature
+        run: cargo check -p berserk --all-targets --no-default-features --features cache
+      - name: Check storage feature
+        run: cargo check -p berserk --all-targets --no-default-features --features storage
+      - name: Check events feature
+        run: cargo check -p berserk --all-targets --no-default-features --features events
+      - name: Check jobs feature
+        run: cargo check -p berserk --all-targets --no-default-features --features jobs
+
+  feature-integrations:
+    name: feature-integrations
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: feature-integrations
+      - name: Check client feature
+        run: cargo check -p berserk --all-targets --no-default-features --features client
+      - name: Check notifications feature
+        run: cargo check -p berserk --all-targets --no-default-features --features notifications
+      - name: Check CLI feature
+        run: cargo check -p berserk --all-targets --no-default-features --features cli
+      - name: Check auth and OpenAPI combination
+        run: cargo check -p berserk --all-targets --no-default-features --features auth,openapi
+      - name: Check Claw ORM and SQLite combination
+        run: cargo check -p berserk --all-targets --no-default-features --features claw,sqlite
 
   quality:
     runs-on: ubuntu-24.04
