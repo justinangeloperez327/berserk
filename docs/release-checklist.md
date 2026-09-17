@@ -20,7 +20,7 @@ Publishing is always a manual owner decision. This checklist intentionally conta
 - [x] Fuzz the current JSON, HTTP-value, route-registration, and multipart input boundaries.
 - [x] Run concurrent server load, overload, shutdown-under-load, and prolonged soak tests. `Concurrent load` run 5 on `main` completed a 900-second soak with 16,676,335 attempted/completed requests, zero client errors, zero rejections, and zero server failures.
 - [x] Record reproducible sequential latency, throughput, process RSS, and environment data; retain raw evidence.
-- [x] Complete an independent security and API review; resolve or document every finding. The 2026-09-17 release review fixed outbound HTTP client header control-byte validation and records residual deployment/release boundaries in `docs/security-review.md`; this is not a third-party audit or penetration test.
+- [ ] Complete an independent security and API review; resolve or document every finding. An internal 2026-09-17 review fixed outbound HTTP header validation and request-debug target redaction, and refreshed the security/public-API records, but an independent external review is still required before this gate is complete.
 
 ## Release artifacts
 
