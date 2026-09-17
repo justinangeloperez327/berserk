@@ -1,0 +1,192 @@
+name: Release artifacts
+
+on:
+  pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/**/Cargo.toml"
+      - ".github/workflows/release-artifacts.yml"
+      - "docs/release-provenance.md"
+      - "docs/release-checklist.md"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  release-artifacts:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Build release package archives
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          packages=(
+            berserk-core
+            berserk-validation
+            berserk-database
+            claw-orm
+            berserk-auth
+            berserk-openapi
+            berserk-cache
+            berserk-storage
+            berserk-events
+            berserk-jobs
+            berserk-client
+            berserk-notifications
+            berserk-cli
+            berserk-testing
+            berserk
+          )
+
+          cargo metadata --locked --no-deps --format-version 1 > /tmp/metadata.json
+
+          python3 - <<'PYTHON' > /tmp/release-packages.tsv
+          import json
+
+          wanted = [
+              "berserk-core",
+              "berserk-validation",
+              "berserk-database",
+              "claw-orm",
+              "berserk-auth",
+              "berserk-openapi",
+              "berserk-cache",
+              "berserk-storage",
+              "berserk-events",
+              "berserk-jobs",
+              "berserk-client",
+              "berserk-notifications",
+              "berserk-cli",
+              "berserk-testing",
+              "berserk",
+          ]
+
+          with open("/tmp/metadata.json", encoding="utf-8") as handle:
+              metadata = json.load(handle)
+
+          versions = {package["name"]: package["version"] for package in metadata["packages"]}
+          missing = [name for name in wanted if name not in versions]
+          if missing:
+              raise SystemExit(f"missing publishable packages: {missing}")
+
+          for name in wanted:
+              print(f"{name}\t{versions[name]}")
+          PYTHON
+
+          mkdir -p release-artifacts
+
+          while IFS=$'\t' read -r package version; do
+            cargo package --locked --no-verify -p "$package"
+            archive="target/package/${package}-${version}.crate"
+            test -f "$archive"
+            cp "$archive" release-artifacts/
+          done < /tmp/release-packages.tsv
+
+          test "$(find release-artifacts -maxdepth 1 -name '*.crate' -type f | wc -l)" -eq 15
+
+      - name: Record release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PYTHON'
+          import json
+          import os
+          import pathlib
+          import subprocess
+
+          wanted = [
+              "berserk-core",
+              "berserk-validation",
+              "berserk-database",
+              "claw-orm",
+              "berserk-auth",
+              "berserk-openapi",
+              "berserk-cache",
+              "berserk-storage",
+              "berserk-events",
+              "berserk-jobs",
+              "berserk-client",
+              "berserk-notifications",
+              "berserk-cli",
+              "berserk-testing",
+              "berserk",
+          ]
+
+          metadata = json.loads(
+              subprocess.check_output(
+                  ["cargo", "metadata", "--locked", "--no-deps", "--format-version", "1"],
+                  text=True,
+              )
+          )
+          versions = {package["name"]: package["version"] for package in metadata["packages"]}
+
+          manifest = {
+              "schema_version": 1,
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "source_commit": subprocess.check_output(
+                  ["git", "rev-parse", "HEAD"], text=True
+              ).strip(),
+              "source_ref": os.environ.get("GITHUB_REF", ""),
+              "workflow_run_id": os.environ.get("GITHUB_RUN_ID", ""),
+              "rustc": subprocess.check_output(
+                  ["rustc", "--version", "--verbose"], text=True
+              ).strip(),
+              "cargo": subprocess.check_output(["cargo", "--version"], text=True).strip(),
+              "packages": [
+                  {"name": name, "version": versions[name]} for name in wanted
+              ],
+          }
+
+          pathlib.Path("release-artifacts/RELEASE-MANIFEST.json").write_text(
+              json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          PYTHON
+
+      - name: Generate and verify SHA-256 checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-artifacts
+          sha256sum *.crate RELEASE-MANIFEST.json | LC_ALL=C sort -k2 > SHA256SUMS
+          test "$(wc -l < SHA256SUMS)" -eq 16
+          sha256sum -c SHA256SUMS
+
+      - name: Generate GitHub build provenance
+        if: github.event_name == 'workflow_dispatch'
+        id: attest
+        uses: actions/attest@v4
+        with:
+          subject-checksums: release-artifacts/SHA256SUMS
+
+      - name: Retain provenance bundle
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp "${{ steps.attest.outputs.bundle-path }}" release-artifacts/provenance.sigstore.json
+
+      - name: Upload release-candidate artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: berserk-release-artifacts-${{ github.sha }}
+          path: release-artifacts/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
