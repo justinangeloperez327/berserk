@@ -1,5 +1,5 @@
 use crate::{Model, Page};
-use framework_database::{
+use berserk_database::{
     Connection, DatabaseError, Direction, Driver, ErrorKind, Execution, Query, Result, Statement,
     Value,
 };

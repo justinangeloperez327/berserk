@@ -1,4 +1,4 @@
-use framework_validation::{sanitize, ValidateInput, ValidationErrors};
+use berserk_validation::{sanitize, ValidateInput, ValidationErrors};
 
 #[derive(Debug)]
 struct Input {

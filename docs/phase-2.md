@@ -3,7 +3,7 @@
 ## Implemented
 
 1. A virtual Cargo workspace with short crate folder names and explicit members.
-2. `framework-core` has no dependencies; `framework` depends only on core; the example depends only on framework.
+2. `berserk-core` has no dependencies; `framework` depends only on core; the example depends only on framework.
 3. Validate checks configuration before App accepts custom settings. Read-only config access prevents unchecked mutation afterwards.
 4. State<T> wraps Arc<T>, accepts only Send + Sync + 'static types, and clones without requiring T: Clone. Request extraction and state registries remain Phase 9 work.
 5. ShutdownHandle is a shared atomic flag. It does not terminate threads, register signals, wake a listener or imply an implemented server.

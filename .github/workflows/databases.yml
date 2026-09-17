@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test -p framework-database --features sqlite --test sqlite
+      - run: cargo test -p berserk-database --features sqlite --test sqlite
 
   postgres:
     runs-on: ubuntu-latest
@@ -38,7 +38,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test -p framework-database --features postgres --test postgres
+      - run: cargo test -p berserk-database --features postgres --test postgres
 
   mysql:
     runs-on: ubuntu-latest
@@ -63,4 +63,4 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test -p framework-database --features mysql --test mysql
+      - run: cargo test -p berserk-database --features mysql --test mysql

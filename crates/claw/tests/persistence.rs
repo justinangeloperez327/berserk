@@ -1,5 +1,5 @@
 use claw_orm::{field, Model, PersistableModel, Result, Row, Statement, Value};
-use framework_database::{
+use berserk_database::{
     Capabilities, Column, Connection, DatabaseError, Driver, ErrorKind, Execution, Transaction,
     TransactionOptions,
 };

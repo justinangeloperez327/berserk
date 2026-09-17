@@ -12,30 +12,30 @@ pub use app::App;
 pub use config::ServerConfig;
 pub use controller::ActionResult;
 pub use error::{Error, Result};
-pub use framework_core::{ConfigError, ShutdownHandle, State, Validate};
+pub use berserk_core::{ConfigError, ShutdownHandle, State, Validate};
 
 #[cfg(feature = "claw")]
 pub use claw_orm as claw;
 #[cfg(feature = "auth")]
-pub use framework_auth as auth;
+pub use berserk_auth as auth;
 #[cfg(feature = "cache")]
-pub use framework_cache as cache;
+pub use berserk_cache as cache;
 #[cfg(feature = "cli")]
-pub use framework_cli as cli;
+pub use berserk_cli as cli;
 #[cfg(feature = "client")]
-pub use framework_client as client;
+pub use berserk_client as client;
 #[cfg(feature = "database")]
-pub use framework_database as database;
+pub use berserk_database as database;
 #[cfg(feature = "events")]
-pub use framework_events as events;
+pub use berserk_events as events;
 #[cfg(feature = "jobs")]
-pub use framework_jobs as jobs;
+pub use berserk_jobs as jobs;
 #[cfg(feature = "notifications")]
-pub use framework_notifications as notifications;
+pub use berserk_notifications as notifications;
 #[cfg(feature = "openapi")]
-pub use framework_openapi as openapi;
+pub use berserk_openapi as openapi;
 #[cfg(feature = "storage")]
-pub use framework_storage as storage;
+pub use berserk_storage as storage;
 
 #[cfg(feature = "database")]
 pub use http::RequestConnection;

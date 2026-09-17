@@ -1,5 +1,5 @@
 use crate::Model;
-use framework_database::{Connection, DatabaseError, ErrorKind, Execution, Result, Value};
+use berserk_database::{Connection, DatabaseError, ErrorKind, Execution, Result, Value};
 
 /// Opt-in persistence contract for models that can serialize their fields back to the database.
 ///

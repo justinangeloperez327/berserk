@@ -1,4 +1,4 @@
-use framework_core::ConfigError;
+use berserk_core::ConfigError;
 use std::{error::Error as StdError, fmt};
 
 /// Errors currently implemented by the framework.
@@ -11,11 +11,11 @@ pub enum Error {
     Server(std::io::Error),
     Routing(crate::RouteError),
     #[cfg(feature = "database")]
-    Database(framework_database::DatabaseError),
+    Database(berserk_database::DatabaseError),
     #[cfg(feature = "auth")]
-    Auth(framework_auth::AuthError),
+    Auth(berserk_auth::AuthError),
     #[cfg(feature = "openapi")]
-    OpenApi(framework_openapi::OpenApiError),
+    OpenApi(berserk_openapi::OpenApiError),
     Operational(crate::operational::OperationalError),
 }
 
@@ -90,22 +90,22 @@ impl From<crate::input::InputError> for Error {
 }
 
 #[cfg(feature = "database")]
-impl From<framework_database::DatabaseError> for Error {
-    fn from(error: framework_database::DatabaseError) -> Self {
+impl From<berserk_database::DatabaseError> for Error {
+    fn from(error: berserk_database::DatabaseError) -> Self {
         Self::Database(error)
     }
 }
 
 #[cfg(feature = "auth")]
-impl From<framework_auth::AuthError> for Error {
-    fn from(error: framework_auth::AuthError) -> Self {
+impl From<berserk_auth::AuthError> for Error {
+    fn from(error: berserk_auth::AuthError) -> Self {
         Self::Auth(error)
     }
 }
 
 #[cfg(feature = "openapi")]
-impl From<framework_openapi::OpenApiError> for Error {
-    fn from(error: framework_openapi::OpenApiError) -> Self {
+impl From<berserk_openapi::OpenApiError> for Error {
+    fn from(error: berserk_openapi::OpenApiError) -> Self {
         Self::OpenApi(error)
     }
 }

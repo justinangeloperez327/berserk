@@ -1,5 +1,5 @@
-use framework_client::{ClientError, HttpClient, Response, Result as ClientResult, Url};
-use framework_notifications::{
+use berserk_client::{ClientError, HttpClient, Response, Result as ClientResult, Url};
+use berserk_notifications::{
     Channel, DeliveryOutcome, DeliveryPolicy, EmailAddress, MailMessage, MemoryMailTransport,
     Notification, Notifier, NotifierConfig, Recipient, WebhookMessage,
 };
@@ -10,7 +10,7 @@ struct Welcome {
     from: EmailAddress,
 }
 impl Notification for Welcome {
-    fn mail(&self, recipient: &Recipient) -> framework_notifications::Result<Option<MailMessage>> {
+    fn mail(&self, recipient: &Recipient) -> berserk_notifications::Result<Option<MailMessage>> {
         recipient
             .email_address()
             .map(|to| MailMessage::text(self.from.clone(), to.clone(), "Welcome", "Hello"))
@@ -19,7 +19,7 @@ impl Notification for Welcome {
     fn webhook(
         &self,
         recipient: &Recipient,
-    ) -> framework_notifications::Result<Option<WebhookMessage>> {
+    ) -> berserk_notifications::Result<Option<WebhookMessage>> {
         recipient
             .webhook_url()
             .map(|url| {
@@ -140,10 +140,10 @@ impl SequenceClient {
     }
 }
 impl HttpClient for SequenceClient {
-    fn send(&self, _request: framework_client::Request) -> ClientResult<Response> {
+    fn send(&self, _request: berserk_client::Request) -> ClientResult<Response> {
         *self.calls.lock().unwrap() += 1;
         let status = self.statuses.lock().unwrap().pop().ok_or_else(|| {
-            ClientError::new(framework_client::ErrorKind::Transport, "no response")
+            ClientError::new(berserk_client::ErrorKind::Transport, "no response")
         })?;
         Response::new(status, Vec::new(), Vec::new())
     }

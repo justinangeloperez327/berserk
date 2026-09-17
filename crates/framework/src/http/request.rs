@@ -10,12 +10,12 @@ use std::{
 /// A mutable borrow of the database connection owned by one request.
 #[cfg(feature = "database")]
 pub struct RequestConnection<'a> {
-    inner: RefMut<'a, Option<Box<dyn framework_database::Connection + Send>>>,
+    inner: RefMut<'a, Option<Box<dyn berserk_database::Connection + Send>>>,
 }
 
 #[cfg(feature = "database")]
 impl Deref for RequestConnection<'_> {
-    type Target = dyn framework_database::Connection;
+    type Target = dyn berserk_database::Connection;
 
     fn deref(&self) -> &Self::Target {
         self.inner
@@ -35,48 +35,48 @@ impl DerefMut for RequestConnection<'_> {
 
 #[cfg(feature = "database")]
 struct RequestTransactionConnection<'a> {
-    transaction: &'a mut dyn framework_database::Transaction,
-    driver: framework_database::Driver,
-    capabilities: framework_database::Capabilities,
+    transaction: &'a mut dyn berserk_database::Transaction,
+    driver: berserk_database::Driver,
+    capabilities: berserk_database::Capabilities,
 }
 
 #[cfg(feature = "database")]
-impl framework_database::Connection for RequestTransactionConnection<'_> {
-    fn driver(&self) -> framework_database::Driver {
+impl berserk_database::Connection for RequestTransactionConnection<'_> {
+    fn driver(&self) -> berserk_database::Driver {
         self.driver
     }
 
-    fn capabilities(&self) -> framework_database::Capabilities {
+    fn capabilities(&self) -> berserk_database::Capabilities {
         self.capabilities
     }
 
     fn execute(
         &mut self,
-        statement: &framework_database::Statement,
-    ) -> framework_database::Result<framework_database::Execution> {
+        statement: &berserk_database::Statement,
+    ) -> berserk_database::Result<berserk_database::Execution> {
         self.transaction.execute(statement)
     }
 
     fn query(
         &mut self,
-        statement: &framework_database::Statement,
-    ) -> framework_database::Result<Vec<framework_database::Row>> {
+        statement: &berserk_database::Statement,
+    ) -> berserk_database::Result<Vec<berserk_database::Row>> {
         self.transaction.query(statement)
     }
 
     fn begin(
         &mut self,
-        _options: framework_database::TransactionOptions,
-    ) -> framework_database::Result<Box<dyn framework_database::Transaction + '_>> {
-        Err(framework_database::DatabaseError::new(
-            framework_database::ErrorKind::Transaction,
+        _options: berserk_database::TransactionOptions,
+    ) -> berserk_database::Result<Box<dyn berserk_database::Transaction + '_>> {
+        Err(berserk_database::DatabaseError::new(
+            berserk_database::ErrorKind::Transaction,
             "nested transactions are not supported by request transactions",
         ))
     }
 
-    fn ping(&mut self) -> framework_database::Result<()> {
-        Err(framework_database::DatabaseError::new(
-            framework_database::ErrorKind::Transaction,
+    fn ping(&mut self) -> berserk_database::Result<()> {
+        Err(berserk_database::DatabaseError::new(
+            berserk_database::ErrorKind::Transaction,
             "ping is not available inside a request transaction",
         ))
     }
@@ -94,9 +94,9 @@ pub struct Request {
     params: HashMap<String, String>,
     param_values: Vec<String>,
     #[cfg(feature = "database")]
-    connection: RefCell<Option<Box<dyn framework_database::Connection + Send>>>,
+    connection: RefCell<Option<Box<dyn berserk_database::Connection + Send>>>,
     #[cfg(feature = "auth")]
-    principal: Option<framework_auth::Principal>,
+    principal: Option<berserk_auth::Principal>,
 }
 
 impl std::fmt::Debug for Request {
@@ -183,8 +183,8 @@ impl Request {
     }
 
     #[cfg(feature = "database")]
-    pub fn database(&self) -> crate::Result<&framework_database::Database> {
-        self.state::<framework_database::Database>().ok_or_else(|| {
+    pub fn database(&self) -> crate::Result<&berserk_database::Database> {
+        self.state::<berserk_database::Database>().ok_or_else(|| {
             crate::ConfigError::new("database", "database state is not configured").into()
         })
     }
@@ -192,8 +192,8 @@ impl Request {
     #[cfg(feature = "database")]
     pub fn connection(&self) -> crate::Result<RequestConnection<'_>> {
         let mut connection = self.connection.try_borrow_mut().map_err(|_| {
-            framework_database::DatabaseError::new(
-                framework_database::ErrorKind::Connection,
+            berserk_database::DatabaseError::new(
+                berserk_database::ErrorKind::Connection,
                 "request database connection is already borrowed",
             )
         })?;
@@ -206,8 +206,8 @@ impl Request {
     #[cfg(feature = "database")]
     pub fn transaction<T>(
         &self,
-        options: framework_database::TransactionOptions,
-        operation: impl FnOnce(&mut dyn framework_database::Connection) -> crate::Result<T>,
+        options: berserk_database::TransactionOptions,
+        operation: impl FnOnce(&mut dyn berserk_database::Connection) -> crate::Result<T>,
     ) -> crate::Result<T> {
         let mut connection = self.connection()?;
         let driver = connection.driver();
@@ -251,12 +251,12 @@ impl Request {
     }
 
     #[cfg(feature = "auth")]
-    pub fn principal(&self) -> Option<&framework_auth::Principal> {
+    pub fn principal(&self) -> Option<&berserk_auth::Principal> {
         self.principal.as_ref()
     }
 
     #[cfg(feature = "auth")]
-    pub(crate) fn set_principal(&mut self, principal: framework_auth::Principal) {
+    pub(crate) fn set_principal(&mut self, principal: berserk_auth::Principal) {
         self.principal = Some(principal);
     }
 

@@ -1,4 +1,4 @@
-use framework_openapi::{
+use berserk_openapi::{
     ApiResponse, HttpMethod, Info, OpenApi, Operation, Parameter, ParameterLocation, RequestBody,
     Schema, SchemaRef, SecurityScheme,
 };

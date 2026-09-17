@@ -1,14 +1,18 @@
 [package]
-name = "framework-testing"
+name = "berserk-testing"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-publish.workspace = true
+authors.workspace = true
+repository.workspace = true
+readme.workspace = true
+description = "Testing helpers, fakes, recorders, and workspaces for Berserk."
+publish = true
 
 [dependencies]
 berserk.workspace = true
-framework-client.workspace = true
-framework-events.workspace = true
-framework-jobs.workspace = true
-framework-notifications.workspace = true
+berserk-client.workspace = true
+berserk-events.workspace = true
+berserk-jobs.workspace = true
+berserk-notifications.workspace = true

@@ -1,7 +1,7 @@
 use crate::{Json, Request, Response, Result};
 use std::ops::Deref;
 
-pub use framework_validation::{FieldError, ValidateInput, ValidationErrors};
+pub use berserk_validation::{FieldError, ValidateInput, ValidationErrors};
 
 /// A typed request body that has already been decoded, sanitized, and validated.
 #[derive(Debug, Clone, PartialEq, Eq)]

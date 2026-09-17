@@ -91,7 +91,7 @@ fn route_param<T: FromStr>(request: &Request, index: usize) -> Extracted<T> {
 fn route_model_key<M: claw_orm::Model>(
     request: &Request,
     index: usize,
-) -> Extracted<framework_database::Value> {
+) -> Extracted<berserk_database::Value> {
     let raw = match request.param_at(index) {
         Some(value) => value,
         None => return Err(Response::text("Invalid route parameter").status(400)),

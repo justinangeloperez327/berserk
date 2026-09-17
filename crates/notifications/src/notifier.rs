@@ -2,13 +2,13 @@ use crate::{
     Channel, EmailAddress, ErrorKind, MailMessage, MailTransport, NotificationError, Result,
     WebhookMessage,
 };
-use framework_client::{ErrorKind as ClientErrorKind, HttpClient};
+use berserk_client::{ErrorKind as ClientErrorKind, HttpClient};
 use std::{sync::Arc, thread, time::Duration};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct Recipient {
     email: Option<EmailAddress>,
-    webhook: Option<framework_client::Url>,
+    webhook: Option<berserk_client::Url>,
 }
 impl Recipient {
     pub fn new() -> Self {
@@ -18,14 +18,14 @@ impl Recipient {
         self.email = Some(email);
         self
     }
-    pub fn webhook(mut self, webhook: framework_client::Url) -> Self {
+    pub fn webhook(mut self, webhook: berserk_client::Url) -> Self {
         self.webhook = Some(webhook);
         self
     }
     pub fn email_address(&self) -> Option<&EmailAddress> {
         self.email.as_ref()
     }
-    pub fn webhook_url(&self) -> Option<&framework_client::Url> {
+    pub fn webhook_url(&self) -> Option<&berserk_client::Url> {
         self.webhook.as_ref()
     }
 }

@@ -1,5 +1,5 @@
 use crate::{Model, ModelQuery};
-use framework_database::Value;
+use berserk_database::Value;
 
 /// A model that can be safely bound beneath a parent model in a nested route.
 ///

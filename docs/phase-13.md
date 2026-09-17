@@ -23,7 +23,7 @@ Phase 13 adds the `database` crate and defines stable, driver-neutral boundaries
 ## Feature use
 
 ```toml
-framework-database = { version = "0.1", features = ["postgres"] }
+berserk-database = { version = "0.1", features = ["postgres"] }
 ```
 
 One or several driver features may be enabled. Phase 13 exposes only their compile-time boundaries. Phase 14 implements PostgreSQL; Phase 15 implements MySQL and SQLite.

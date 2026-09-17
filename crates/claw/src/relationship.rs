@@ -1,5 +1,5 @@
 use crate::Model;
-use framework_database::{Connection, DatabaseError, ErrorKind, Result, Value};
+use berserk_database::{Connection, DatabaseError, ErrorKind, Result, Value};
 use std::marker::PhantomData;
 
 /// Eager-loaded related records grouped by their linking key.

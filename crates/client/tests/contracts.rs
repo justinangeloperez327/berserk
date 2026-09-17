@@ -1,4 +1,4 @@
-use framework_client::{
+use berserk_client::{
     ErrorKind, Header, HttpClient, Method, Request, TcpClientConfig, TcpHttpClient, Url,
 };
 use std::{

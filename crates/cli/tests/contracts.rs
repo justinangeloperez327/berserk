@@ -1,4 +1,4 @@
-use framework_cli::{
+use berserk_cli::{
     execute, CliError, Command, ErrorKind, Generator, MigrationCommand, MigrationExecutor,
 };
 use std::{
@@ -100,7 +100,7 @@ fn migration_template_matches_database_contract_and_commands_delegate() {
 
 struct MigrationFake;
 impl MigrationExecutor for MigrationFake {
-    fn execute(&self, command: MigrationCommand) -> framework_cli::Result<String> {
+    fn execute(&self, command: MigrationCommand) -> berserk_cli::Result<String> {
         Ok(match command {
             MigrationCommand::Up => "up",
             MigrationCommand::Rollback => "rollback",
@@ -117,7 +117,7 @@ impl TemporaryDirectory {
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        let path = std::env::temp_dir().join(format!("framework-cli-{}-{time}", process::id()));
+        let path = std::env::temp_dir().join(format!("berserk-cli-{}-{time}", process::id()));
         fs::create_dir(&path).unwrap();
         Self(path)
     }

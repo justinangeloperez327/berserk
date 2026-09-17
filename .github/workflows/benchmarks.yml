@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
       - name: Build release benchmark
-        run: cargo build --locked --release -p framework-benchmarks
+        run: cargo build --locked --release -p berserk-benchmarks
       - name: Collect checked samples and process memory
         run: python3 benchmarks/collect.py
       - name: Retain measurements and environment

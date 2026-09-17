@@ -1,4 +1,4 @@
-use framework_jobs::{
+use berserk_jobs::{
     ErrorKind, Job, JobContext, JobError, MemoryFailedJobs, QueueConfig, RetryPolicy, Scheduler,
     WorkerPool,
 };
@@ -15,7 +15,7 @@ impl Job for CountJob {
     fn name(&self) -> &'static str {
         "count"
     }
-    fn handle(&mut self, _context: &JobContext) -> framework_jobs::Result<()> {
+    fn handle(&mut self, _context: &JobContext) -> berserk_jobs::Result<()> {
         self.0.fetch_add(1, Ordering::SeqCst);
         Ok(())
     }
@@ -26,7 +26,7 @@ impl Job for RetryJob {
     fn name(&self) -> &'static str {
         "retry"
     }
-    fn handle(&mut self, context: &JobContext) -> framework_jobs::Result<()> {
+    fn handle(&mut self, context: &JobContext) -> berserk_jobs::Result<()> {
         self.0.fetch_add(1, Ordering::SeqCst);
         if context.attempt() < 3 {
             Err(JobError::new(ErrorKind::Handler, "try again"))
@@ -71,7 +71,7 @@ impl Job for FailJob {
     fn name(&self) -> &'static str {
         "fail"
     }
-    fn handle(&mut self, _context: &JobContext) -> framework_jobs::Result<()> {
+    fn handle(&mut self, _context: &JobContext) -> berserk_jobs::Result<()> {
         Err(JobError::new(ErrorKind::Handler, "failed"))
     }
 }
@@ -114,7 +114,7 @@ impl Job for BlockingJob {
     fn name(&self) -> &'static str {
         "blocking"
     }
-    fn handle(&mut self, _context: &JobContext) -> framework_jobs::Result<()> {
+    fn handle(&mut self, _context: &JobContext) -> berserk_jobs::Result<()> {
         self.started.take().unwrap().send(()).unwrap();
         self.release.recv().unwrap();
         Ok(())

@@ -2,7 +2,7 @@ use berserk::{
     App, Error, FromJson, Headers, Json, Method, Request, Response, ValidateInput, Validated,
     ValidationErrors,
 };
-use framework_validation::sanitize;
+use berserk_validation::sanitize;
 
 #[derive(Debug, PartialEq, Eq)]
 struct UserInput {

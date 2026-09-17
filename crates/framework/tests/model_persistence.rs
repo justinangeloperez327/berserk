@@ -9,7 +9,7 @@ use berserk::{
     App, FromJson, Headers, Json, Method, Request, Response, Result, ValidateInput, Validated,
     ValidationErrors,
 };
-use framework_validation::sanitize;
+use berserk_validation::sanitize;
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc, Mutex,

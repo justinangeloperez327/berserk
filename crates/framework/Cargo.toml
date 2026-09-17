@@ -4,40 +4,44 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-publish.workspace = true
+authors.workspace = true
+repository.workspace = true
+readme.workspace = true
+description = "Berserk web framework for secure, maintainable Rust applications."
+publish = true
 
 [features]
 default = []
-database = ["dep:framework-database"]
+database = ["dep:berserk-database"]
 claw = ["database", "dep:claw-orm"]
-postgres = ["database", "framework-database/postgres"]
-mysql = ["database", "framework-database/mysql"]
-sqlite = ["database", "framework-database/sqlite"]
-auth = ["dep:framework-auth"]
-openapi = ["dep:framework-openapi"]
-cache = ["dep:framework-cache"]
-storage = ["dep:framework-storage"]
-events = ["dep:framework-events"]
-jobs = ["dep:framework-jobs"]
-client = ["dep:framework-client"]
-notifications = ["client", "dep:framework-notifications"]
-cli = ["dep:framework-cli"]
+postgres = ["database", "berserk-database/postgres"]
+mysql = ["database", "berserk-database/mysql"]
+sqlite = ["database", "berserk-database/sqlite"]
+auth = ["dep:berserk-auth"]
+openapi = ["dep:berserk-openapi"]
+cache = ["dep:berserk-cache"]
+storage = ["dep:berserk-storage"]
+events = ["dep:berserk-events"]
+jobs = ["dep:berserk-jobs"]
+client = ["dep:berserk-client"]
+notifications = ["client", "dep:berserk-notifications"]
+cli = ["dep:berserk-cli"]
 
 [dependencies]
-framework-core.workspace = true
-framework-validation = { path = "../validation", version = "=0.0.0" }
-framework-database = { workspace = true, optional = true }
+berserk-core.workspace = true
+berserk-validation = { path = "../validation", version = "=0.1.0" }
+berserk-database = { workspace = true, optional = true }
 claw-orm = { workspace = true, optional = true }
-framework-auth = { workspace = true, optional = true }
-framework-openapi = { workspace = true, optional = true }
+berserk-auth = { workspace = true, optional = true }
+berserk-openapi = { workspace = true, optional = true }
 rand_core = { version = "0.6", features = ["getrandom"] }
-framework-cache = { workspace = true, optional = true }
-framework-storage = { workspace = true, optional = true }
-framework-events = { workspace = true, optional = true }
-framework-jobs = { workspace = true, optional = true }
-framework-client = { workspace = true, optional = true }
-framework-notifications = { workspace = true, optional = true }
-framework-cli = { workspace = true, optional = true }
+berserk-cache = { workspace = true, optional = true }
+berserk-storage = { workspace = true, optional = true }
+berserk-events = { workspace = true, optional = true }
+berserk-jobs = { workspace = true, optional = true }
+berserk-client = { workspace = true, optional = true }
+berserk-notifications = { workspace = true, optional = true }
+berserk-cli = { workspace = true, optional = true }
 bytes = "1.12"
 http = "1.5"
 http-body-util = { version = "0.1.5", features = ["channel"] }

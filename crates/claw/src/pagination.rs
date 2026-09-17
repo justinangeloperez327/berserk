@@ -1,4 +1,4 @@
-use framework_database::{DatabaseError, ErrorKind, Result};
+use berserk_database::{DatabaseError, ErrorKind, Result};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Page<T> {

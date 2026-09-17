@@ -1,4 +1,4 @@
-use framework_storage::{ErrorKind, LocalStorage, MemoryStorage, Storage, StoragePath};
+use berserk_storage::{ErrorKind, LocalStorage, MemoryStorage, Storage, StoragePath};
 use std::{
     fs,
     io::{Cursor, Read},
@@ -105,7 +105,7 @@ impl TemporaryDirectory {
             .unwrap()
             .as_nanos();
         let path =
-            std::env::temp_dir().join(format!("framework-storage-{}-{nonce}", process::id()));
+            std::env::temp_dir().join(format!("berserk-storage-{}-{nonce}", process::id()));
         fs::create_dir(&path).unwrap();
         Self(path)
     }

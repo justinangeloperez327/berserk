@@ -2,7 +2,7 @@
 
 mod common;
 
-use framework_database::{
+use berserk_database::{
     drivers::sqlite::SqliteConnection, Connection, Direction, ErrorKind, Query, Statement,
     TransactionOptions, Value,
 };

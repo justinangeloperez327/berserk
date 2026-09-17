@@ -1,4 +1,4 @@
-use framework_client::{ClientError, ErrorKind, HttpClient, Request, Response, Result};
+use berserk_client::{ClientError, ErrorKind, HttpClient, Request, Response, Result};
 use std::{collections::VecDeque, sync::Mutex};
 
 pub struct FakeHttpClient {

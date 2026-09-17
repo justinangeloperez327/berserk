@@ -1,4 +1,4 @@
-use framework_cache::{Cache, MemoryCache};
+use berserk_cache::{Cache, MemoryCache};
 
 #[test]
 fn cache_debug_output_redacts_keys_and_values() {
