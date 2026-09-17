@@ -233,12 +233,7 @@ impl Str {
         let missing = length - current;
         let left = missing / 2;
         let right = missing - left;
-        format!(
-            "{}{}{}",
-            pad_chars(pad, left),
-            value,
-            pad_chars(pad, right)
-        )
+        format!("{}{}{}", pad_chars(pad, left), value, pad_chars(pad, right))
     }
 
     pub fn position(value: &str, needle: &str) -> Option<usize> {
@@ -458,10 +453,10 @@ fn case_words(value: &str) -> Vec<String> {
         if !current.is_empty() && character.is_uppercase() {
             let previous = chars.get(index.wrapping_sub(1)).copied();
             let next = chars.get(index + 1).copied();
-            let follows_lower_or_digit = previous
-                .is_some_and(|previous| previous.is_lowercase() || previous.is_numeric());
-            let acronym_boundary = previous.is_some_and(char::is_uppercase)
-                && next.is_some_and(char::is_lowercase);
+            let follows_lower_or_digit =
+                previous.is_some_and(|previous| previous.is_lowercase() || previous.is_numeric());
+            let acronym_boundary =
+                previous.is_some_and(char::is_uppercase) && next.is_some_and(char::is_lowercase);
             if follows_lower_or_digit || acronym_boundary {
                 push_word(&mut words, &mut current);
             }
@@ -511,10 +506,7 @@ mod tests {
             Str::headline("EmailNotificationSent"),
             "Email Notification Sent"
         );
-        assert_eq!(
-            Str::title("berserk WEB framework"),
-            "Berserk Web Framework"
-        );
+        assert_eq!(Str::title("berserk WEB framework"), "Berserk Web Framework");
         assert_eq!(Str::lower("BERSERK"), "berserk");
         assert_eq!(Str::upper("berserk"), "BERSERK");
         assert_eq!(Str::ucfirst("berserk"), "Berserk");
@@ -523,10 +515,7 @@ mod tests {
 
     #[test]
     fn normalizes_strings() {
-        assert_eq!(
-            Str::slug("Berserk Web Framework"),
-            "berserk-web-framework"
-        );
+        assert_eq!(Str::slug("Berserk Web Framework"), "berserk-web-framework");
         assert_eq!(
             Str::slug_with("Berserk Web Framework", "_"),
             "berserk_web_framework"
@@ -557,10 +546,7 @@ mod tests {
         assert_eq!(Str::position("Café Berserk", "Berserk"), Some(5));
         assert_eq!(Str::replace_first("foo foo", "foo", "bar"), "bar foo");
         assert_eq!(Str::replace_last("foo foo", "foo", "bar"), "foo bar");
-        assert_eq!(
-            Str::remove("Berserk Framework", " Framework"),
-            "Berserk"
-        );
+        assert_eq!(Str::remove("Berserk Framework", " Framework"), "Berserk");
     }
 
     #[test]

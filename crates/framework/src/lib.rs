@@ -14,7 +14,7 @@ pub use berserk_core::{ConfigError, ShutdownHandle, State, Validate};
 pub use config::ServerConfig;
 pub use controller::ActionResult;
 pub use error::{Error, Result};
-pub use support::Str;
+pub use support::{Arr, Str};
 
 #[cfg(feature = "auth")]
 pub use berserk_auth as auth;
