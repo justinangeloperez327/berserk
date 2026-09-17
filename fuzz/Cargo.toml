@@ -1,0 +1,43 @@
+[package]
+name = "berserk-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+berserk = { path = "../crates/framework" }
+
+[[bin]]
+name = "json"
+path = "fuzz_targets/json.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "http_values"
+path = "fuzz_targets/http_values.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "routes"
+path = "fuzz_targets/routes.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "multipart"
+path = "fuzz_targets/multipart.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]
+members = ["."]
