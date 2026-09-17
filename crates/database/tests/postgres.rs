@@ -3,7 +3,19 @@
 use framework_database::{drivers::postgres::PostgresConnection, Connection, Statement, Value};
 
 fn connection() -> Option<PostgresConnection> {
-    let url = std::env::var("FRAMEWORK_POSTGRES_TEST_URL").ok()?;
+    let url = match std::env::var("FRAMEWORK_POSTGRES_TEST_URL") {
+        Ok(url) => url,
+        Err(error) => {
+            assert!(
+                !matches!(
+                    std::env::var("BERSERK_REQUIRE_LIVE_DATABASES").as_deref(),
+                    Ok("1")
+                ),
+                "FRAMEWORK_POSTGRES_TEST_URL is required for live database tests: {error}"
+            );
+            return None;
+        }
+    };
     Some(
         PostgresConnection::connect_no_tls(&url).expect("test database must accept the connection"),
     )
