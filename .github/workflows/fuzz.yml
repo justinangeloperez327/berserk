@@ -2,9 +2,21 @@ name: Fuzz smoke
 
 on:
   pull_request:
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/core/**"
+      - "crates/framework/**"
+      - "crates/validation/**"
+      - "fuzz/**"
+      - ".github/workflows/fuzz.yml"
   schedule:
     - cron: "41 3 * * 1"
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
