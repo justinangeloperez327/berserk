@@ -4,7 +4,7 @@ Publishing is always a manual owner decision. This checklist intentionally conta
 
 ## Identity and policy
 
-- [ ] Confirm crates.io availability for the final `berserk`, `berserk-*`, and `claw-orm` package names.
+- [x] Confirm crates.io availability for the final `berserk`, `berserk-*`, and `claw-orm` package names. The 2026-09-17 check found no existing index entry for any of the 15 intended package names; see `docs/package-name-availability.md`. Re-check immediately before first publication because names are allocated first-come, first-served and this verification does not reserve them.
 - [x] Select and add the MIT license; update publishable package license/repository metadata.
 - [ ] Configure a private vulnerability-reporting channel and maintainer ownership.
 - [ ] Choose supported operating systems and database server versions.
