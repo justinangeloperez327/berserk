@@ -2,11 +2,21 @@
 
 Berserk is a pre-release framework. The repository has completed a dedicated internal release security/API review pass, but it has not yet completed the independent external security/API review required by the release checklist, nor has it received a third-party penetration test or security certification. Do not describe it as production-certified.
 
+## Security maintainer
+
+The repository owner, `@justinangeloperez327`, is the security maintainer and release-security owner until additional maintainers are explicitly added to `.github/CODEOWNERS` and `docs/vulnerability-response.md`.
+
 ## Reporting a vulnerability
 
-Do not open a public issue containing exploit details, credentials, or private data. Before public package release, the maintainer must enable a private vulnerability-reporting channel or publish a private security contact. A complete report should include the affected component, impact, reproduction steps, and suggested mitigation when known.
+Do not disclose exploit details, credentials, private data, or proof-of-concept material in a public issue, discussion, or pull request.
 
-No response-time commitment exists until a maintainer and private reporting channel are named.
+The intended primary private channel is **GitHub Private Vulnerability Reporting** for this repository. Once the repository setting is enabled, use **Security and quality -> Report a vulnerability** to submit the report privately to the maintainer.
+
+Until that setting is confirmed enabled, the release gate for private vulnerability reporting remains open. If a private form is not available, a reporter may open a public issue only to request a private contact method; the issue must contain no vulnerability details.
+
+A complete report should include the affected component/version or commit, impact, attacker prerequisites, reproduction steps or proof of concept, affected configuration, and suggested mitigation when known.
+
+The maintainer targets acknowledgement within 3 business days and initial triage within 7 business days when sufficient reproduction information is available. These are project targets, not contractual service-level agreements. See `docs/vulnerability-response.md` for the full triage, severity, remediation, and disclosure process.
 
 ## Supported versions
 
