@@ -10,7 +10,9 @@ fn passwords_use_phc_encoded_argon2_and_verify_without_exposing_secrets() {
     let passwords = Argon2Passwords;
     let secret = Secret::new("correct horse battery staple");
     let encoded = passwords.hash(&secret).unwrap();
+    let second = passwords.hash(&secret).unwrap();
     assert!(encoded.starts_with("$argon2"));
+    assert_ne!(encoded, second);
     assert!(passwords.verify(&secret, &encoded).unwrap());
     assert!(!passwords.verify(&Secret::new("wrong"), &encoded).unwrap());
     assert_eq!(format!("{secret:?}"), "Secret([REDACTED])");
