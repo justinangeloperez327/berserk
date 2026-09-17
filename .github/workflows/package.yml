@@ -51,7 +51,7 @@ jobs:
               if package.get('publish') != []:
                   raise SystemExit(f'{name}: must remain non-publishable')
           CHECK
-      - name: Inspect package contents
+      - name: Inspect every package file list
         shell: bash
         run: |
           set -euo pipefail
@@ -67,6 +67,15 @@ jobs:
               echo "forbidden packaged path detected in $package" >&2
               exit 1
             fi
+          done
+      - name: Build first-publication foundation archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Packages that depend on another not-yet-published Berserk crate cannot
+          # be fully archived against crates.io before the first release sequence.
+          # These three are registry-independent foundations and must package now.
+          for package in berserk-core berserk-validation berserk-database; do
             cargo package --locked -p "$package" --no-verify --allow-dirty
           done
       - name: Retain package file lists
