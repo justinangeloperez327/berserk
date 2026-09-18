@@ -102,7 +102,7 @@ After all 15 publishes are recorded as successful, verify every exact version fr
 cd /tmp
 cargo info berserk@VERSION --registry crates-io
 cargo info berserk-core@VERSION --registry crates-io
-cargo info claw-orm@0.2.0 --registry crates-io
+cargo info claw-orm@VERSION --registry crates-io
 ```
 
 The publication record should contain remote-verification status for all 15 packages, not only these examples.
