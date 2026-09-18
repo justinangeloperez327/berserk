@@ -62,3 +62,11 @@ required-features = ["server"]
 [[test]]
 name = "http_expansion"
 required-features = ["server"]
+
+[[example]]
+name = "json"
+required-features = ["server"]
+
+[[example]]
+name = "middleware"
+required-features = ["server"]

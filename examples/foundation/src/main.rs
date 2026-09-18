@@ -65,10 +65,7 @@ mod tests {
         );
         assert_eq!(created.status_code(), 201);
         let json = Json::parse(created.body()).unwrap();
-        assert_eq!(
-            json.get("name").and_then(Json::as_str),
-            Some("Ada")
-        );
+        assert_eq!(json.get("name").and_then(Json::as_str), Some("Ada"));
         assert_eq!(
             send(
                 "POST",

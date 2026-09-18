@@ -119,7 +119,8 @@ impl Request {
         self.state::<crate::config::Configuration<T>>()
             .map(|configuration| &configuration.0)
             .ok_or_else(|| {
-                crate::ConfigError::new("config", "requested configuration is not registered").into()
+                crate::ConfigError::new("config", "requested configuration is not registered")
+                    .into()
             })
     }
 

@@ -149,7 +149,7 @@ impl<T: IntoResponse> IntoResponse for crate::Result<T> {
 pub(crate) struct StreamBody(
     // Only the optional network transport consumes the stored reader.
     #[cfg_attr(not(feature = "server"), allow(dead_code))]
-    pub(crate) std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::io::Read + Send>>>>,
+    pub(crate)  std::sync::Arc<std::sync::Mutex<Option<Box<dyn std::io::Read + Send>>>>,
 );
 
 impl std::fmt::Debug for StreamBody {
