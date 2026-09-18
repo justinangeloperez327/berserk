@@ -1,64 +1,65 @@
 # Changelog
 
-## 0.2.0 — release candidate
-
-- Direct FormRequest parameters: sanitize, validate, request-aware checks, and authorize before actions.
-- Request-scoped Claw terminals, guarded IntoInsert/IntoUpdate writes, model-returning create, refreshed update, and explicit `_on` escape hatches.
-- Typed eager loading, scoped transactions, request pagination, and paginated resource metadata.
-- Unified JSON errors, response helpers, request-local Auth, duplicate credential rejection, and authorization middleware.
-- Typed CrudController routes; explicit HEAD/OPTIONS; optional async actions with matching extraction and named-route support.
-- Public-error test client assertions; compiling controller/request/model/resource/policy generators.
-- SQLite foundation application, migration guide, release review, coordinated 0.2.0 versions, and CI coverage.
-
-See docs/upgrade-notes.md for breaking API and response changes. Rust 1.88 remains the MSRV.
-
-
 Berserk follows the spirit of Keep a Changelog. Versioning and compatibility policy are defined in `docs/compatibility.md`.
 
 ## Unreleased
 
-No changes have been recorded after the `0.1.0` release candidate.
+No documented changes after v0.3.0.
 
-## 0.1.0 - release candidate
-
-Initial public release candidate. No Berserk package has been published to crates.io yet.
+## 0.3.0
 
 ### Added
 
-- Instance-based `App` assembly with bounded Tokio/Hyper HTTP serving while keeping synchronous public request handlers.
-- Routing with typed path parameters, named routes, reverse routing, scoped prefixes and middleware, REST resource registration, fallbacks, 404/405 handling, and `HEAD` fallback behavior.
-- Request decoding for JSON, query strings, text, and bounded multipart input, including sanitize-then-validate controller input through `Validated<T>`.
-- Driver-neutral database contracts, PostgreSQL/MySQL/SQLite adapters, migrations, bound query construction, request-scoped connections, and request transactions.
-- Claw ORM model/query APIs including `where_`, `or_where`, `where_in`, `where_not_null`, `order_by`, terminal query operations, persistence helpers, and route-model binding.
-- Optional auth, OpenAPI, cache, storage, events, jobs, outbound client, notifications, CLI, and testing components.
-- Operational middleware and helpers for request IDs, logging, tracing, metrics, health checks, and rate limiting.
-- Independent consumer example and clean external-consumer compilation checks.
+- Concise response factory APIs for JSON, text, empty responses, status/header composition, and redirects.
+- Request helpers for named input, query values, typed JSON decoding, and FormRequest validation.
+- Developer-facing controller signatures with typed route parameters.
+- Resource and API-resource routing improvements.
+- Middleware ergonomics for routes and groups.
+- Typed application state and configuration access.
+- CLI application skeleton improvements and middleware generation.
+- Updated foundation CRUD example and v0.3.0 developer documentation.
 
-### Security and reliability
+### Changed
 
-- Bound SQL values remain separate from generated SQL text; raw SQL remains an explicit escape hatch.
-- HTTP header validation rejects control bytes and non-ASCII/obs-text values outside the framework's documented strict text subset.
-- Default diagnostics redact sensitive request targets, SQL/bindings, secrets, session tokens, and other protected values where documented.
-- Storage paths reject traversal and ambiguous path forms; local storage uses bounded operations and collision-safe temporary writes.
-- CI includes stable/MSRV builds, feature combinations, Windows/macOS compatibility, live PostgreSQL/MySQL/SQLite testing, dependency policy checks, fuzzing, package inspection, load/overload/shutdown testing, and prolonged soak evidence.
+- Network serving is isolated behind the `server` feature while in-memory application handling remains available without it.
+- Response factory terminals return `Result<Response>` so completed responses can be validated.
+- Generated applications target the v0.3 API surface.
 
 ### Compatibility
 
-- Candidate package version: `0.1.0`.
-- MSRV: Rust 1.88.
-- Tier-1 host: Linux x86_64 validated on Ubuntu 24.04 LTS.
-- Development compatibility: Windows and macOS.
-- Database support: PostgreSQL 15-18, MySQL 8.4 LTS, and bundled SQLite through the supported `rusqlite` path.
-- Optional features are disabled by default.
+- MSRV remains Rust 1.88.
+- Berserk remains pre-1.0; breaking changes may occur in later minor releases with migration guidance.
 
-### Known limitations
+See `docs/v0.3.0.md` and `docs/upgrade-notes.md`.
 
-See `docs/known-limitations.md` for the release-candidate boundaries, including TLS, outbound HTTPS/SSRF policy, synchronous-handler shutdown behavior, session-store limits, cookie/CSRF policy, local-storage trust assumptions, request-transaction nesting, and platform/database scope.
+## 0.2.0
 
-### Upgrade notes
+### Added
 
-This is the first planned public release, so there is no migration path from an earlier published Berserk version. Existing path/git consumers should review `docs/upgrade-notes.md` because pre-release APIs and package identities were not previously compatibility-stable.
+- Direct FormRequest parameters with sanitize, validation, request-aware checks, and authorization.
+- Request-scoped Claw terminals and explicit `_on` connection escape hatches.
+- Typed eager loading, scoped transactions, pagination, and paginated resource metadata.
+- Unified JSON application errors and request-local authentication context.
+- Typed `CrudController` routes and optional async actions.
+- Controller, request, model, resource, and policy generators.
+- SQLite foundation application and coordinated workspace release metadata.
 
-### Release status
+### Compatibility
 
-The independent external security/API review, provenance/checksum preparation, rollback/yank planning, and explicit owner publication authorization remain separate release gates. No version has been released or published yet.
+Rust 1.88 remains the MSRV. See `docs/v0.2.0.md` and `docs/upgrade-notes.md`.
+
+## 0.1.0
+
+Initial Berserk release-candidate baseline.
+
+### Added
+
+- Instance-based `App` assembly and HTTP serving.
+- Typed routing, named routes, reverse routing, middleware, resources, fallbacks, and 404/405 handling.
+- Request decoding, JSON, multipart input, validation, and `Validated<T>`.
+- Driver-neutral database contracts and PostgreSQL/MySQL/SQLite adapters.
+- Claw ORM query, model, relationship, persistence, and route-model-binding APIs.
+- Auth, OpenAPI, cache, storage, events, jobs, outbound client, notifications, CLI, and testing components.
+- Operational middleware, CI, package checks, fuzzing, and load-test infrastructure.
+
+See `docs/known-limitations.md` for current boundaries.
