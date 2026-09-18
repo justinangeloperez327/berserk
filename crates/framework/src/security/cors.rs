@@ -50,7 +50,9 @@ impl Cors {
     pub fn allow_origin(mut self, origin: &str) -> Result<Self> {
         if origin == "*" {
             if self.credentials || !self.origins.is_empty() {
-                return Err(config("wildcard origins cannot be mixed with credentials or exact origins"));
+                return Err(config(
+                    "wildcard origins cannot be mixed with credentials or exact origins",
+                ));
             }
             self.any_origin = true;
         } else {
@@ -101,7 +103,9 @@ impl Cors {
     {
         self.exposed = header_list(headers)?;
         if self.exposed.contains("set-cookie") || self.exposed.contains("set-cookie2") {
-            return Err(config("cookie headers cannot be exposed to browser scripts"));
+            return Err(config(
+                "cookie headers cannot be exposed to browser scripts",
+            ));
         }
         Ok(self)
     }
@@ -121,7 +125,8 @@ impl Cors {
         if age.subsec_nanos() != 0 {
             return Err(config("CORS max age must use whole seconds"));
         }
-        self.max_age = Some(u32::try_from(age.as_secs()).map_err(|_| config("CORS max age is too large"))?);
+        self.max_age =
+            Some(u32::try_from(age.as_secs()).map_err(|_| config("CORS max age is too large"))?);
         Ok(self)
     }
 
@@ -163,7 +168,10 @@ impl Cors {
                 }
             }
         }
-        Ok(Some((if self.any_origin { "*" } else { origin }.to_owned(), preflight)))
+        Ok(Some((
+            if self.any_origin { "*" } else { origin }.to_owned(),
+            preflight,
+        )))
     }
 
     fn decorate(&self, mut response: Response, origin: &str, preflight: bool) -> Result<Response> {
@@ -174,7 +182,8 @@ impl Cors {
         if preflight {
             response = response.header("access-control-allow-methods", &joined(&self.methods))?;
             if !self.headers.is_empty() {
-                response = response.header("access-control-allow-headers", &joined(&self.headers))?;
+                response =
+                    response.header("access-control-allow-headers", &joined(&self.headers))?;
             }
             if let Some(age) = self.max_age {
                 response = response.header("access-control-max-age", &age.to_string())?;
@@ -207,7 +216,7 @@ impl Middleware for Cors {
     }
 }
 
-fn config(message: &str) -> crate::Error {
+fn config(message: &'static str) -> crate::Error {
     ConfigError::new("cors", message).into()
 }
 
@@ -231,7 +240,9 @@ fn single<'a>(headers: &'a Headers, name: &'a str) -> Result<Option<&'a str>> {
 fn valid_method(method: &str) -> bool {
     method.len() <= 64
         && Method::new(method).is_ok()
-        && !["*", "CONNECT", "TRACE", "TRACK"].iter().any(|name| method.eq_ignore_ascii_case(name))
+        && !["*", "CONNECT", "TRACE", "TRACK"]
+            .iter()
+            .any(|name| method.eq_ignore_ascii_case(name))
 }
 
 fn valid_header(name: &str) -> bool {
@@ -255,11 +266,17 @@ where
 }
 
 fn joined(values: &BTreeSet<String>) -> String {
-    values.iter().map(String::as_str).collect::<Vec<_>>().join(", ")
+    values
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .join(", ")
 }
 
 fn vary(response: Response, preflight: bool) -> Result<Response> {
-    let mut values: Vec<String> = response.headers().get_all("vary")
+    let mut values: Vec<String> = response
+        .headers()
+        .get_all("vary")
         .flat_map(|value| value.split(','))
         .map(|value| value.trim().to_owned())
         .filter(|value| !value.is_empty())
@@ -268,7 +285,11 @@ fn vary(response: Response, preflight: bool) -> Result<Response> {
         return Ok(response);
     }
     let names: &[&str] = if preflight {
-        &["Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"]
+        &[
+            "Origin",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers",
+        ]
     } else {
         &["Origin"]
     };
@@ -286,30 +307,47 @@ fn valid_origin(origin: &str) -> bool {
     if origin.len() > 2048 {
         return false;
     }
-    let Some(authority) = origin.strip_prefix("https://").or_else(|| origin.strip_prefix("http://")) else {
+    let Some(authority) = origin
+        .strip_prefix("https://")
+        .or_else(|| origin.strip_prefix("http://"))
+    else {
         return false;
     };
     let (host, port) = if let Some(ipv6) = authority.strip_prefix('[') {
-        let Some((address, rest)) = ipv6.split_once(']') else { return false; };
+        let Some((address, rest)) = ipv6.split_once(']') else {
+            return false;
+        };
         if address.parse::<Ipv6Addr>().is_err() {
             return false;
         }
         (None, rest)
     } else {
-        let (host, rest) = authority.find(':').map_or((authority, ""), |index| authority.split_at(index));
+        let (host, rest) = authority
+            .find(':')
+            .map_or((authority, ""), |index| authority.split_at(index));
         (Some(host), rest)
     };
     if let Some(host) = host {
-        if host.is_empty() || host.len() > 253 || !host.split('.').all(|label| {
-            !label.is_empty() && label.len() <= 63
-                && !label.starts_with('-') && !label.ends_with('-')
-                && label.bytes().all(|byte| byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-')
-        }) {
+        if host.is_empty()
+            || host.len() > 253
+            || !host.split('.').all(|label| {
+                !label.is_empty()
+                    && label.len() <= 63
+                    && !label.starts_with('-')
+                    && !label.ends_with('-')
+                    && label.bytes().all(|byte| {
+                        byte.is_ascii_lowercase() || byte.is_ascii_digit() || byte == b'-'
+                    })
+            })
+        {
             return false;
         }
     }
-    port.is_empty() || port.strip_prefix(':').is_some_and(|port| {
-        !port.is_empty() && (port == "0" || !port.starts_with('0'))
-            && port.bytes().all(|byte| byte.is_ascii_digit()) && port.parse::<u16>().is_ok()
-    })
+    port.is_empty()
+        || port.strip_prefix(':').is_some_and(|port| {
+            !port.is_empty()
+                && (port == "0" || !port.starts_with('0'))
+                && port.bytes().all(|byte| byte.is_ascii_digit())
+                && port.parse::<u16>().is_ok()
+        })
 }

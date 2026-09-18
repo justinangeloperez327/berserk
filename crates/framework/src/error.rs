@@ -231,7 +231,10 @@ mod tests {
             assert!(!String::from_utf8_lossy(response.body()).contains("private detail"));
         }
         for (kind, status) in [(ErrorKind::Forbidden, 403), (ErrorKind::Store, 500)] {
-            assert_eq!(Error::from(AuthError::new(kind, "private detail")).status_code(), status);
+            assert_eq!(
+                Error::from(AuthError::new(kind, "private detail")).status_code(),
+                status
+            );
         }
     }
 }
