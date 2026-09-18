@@ -37,10 +37,16 @@ impl SecurityHeaders {
     }
 
     pub fn referrer_policy(self, value: &str) -> Result<Self> {
-        if !matches!(value,
-            "no-referrer" | "no-referrer-when-downgrade" | "same-origin" | "origin"
-            | "strict-origin" | "origin-when-cross-origin" | "strict-origin-when-cross-origin"
-            | "unsafe-url"
+        if !matches!(
+            value,
+            "no-referrer"
+                | "no-referrer-when-downgrade"
+                | "same-origin"
+                | "origin"
+                | "strict-origin"
+                | "origin-when-cross-origin"
+                | "strict-origin-when-cross-origin"
+                | "unsafe-url"
         ) {
             return Err(config("invalid referrer policy"));
         }
@@ -64,7 +70,15 @@ impl SecurityHeaders {
         if age.subsec_nanos() != 0 || age.as_secs() > u32::MAX as u64 {
             return Err(config("HSTS max age must be whole seconds within u32::MAX"));
         }
-        let value = format!("max-age={}{}", age.as_secs(), if include_subdomains { "; includeSubDomains" } else { "" });
+        let value = format!(
+            "max-age={}{}",
+            age.as_secs(),
+            if include_subdomains {
+                "; includeSubDomains"
+            } else {
+                ""
+            }
+        );
         self.header("strict-transport-security", &value)
     }
 
@@ -72,7 +86,9 @@ impl SecurityHeaders {
         if value.trim().is_empty() || value.len() > 8192 {
             return Err(config("security header must contain 1 to 8192 bytes"));
         }
-        self.headers.insert(name, value).map_err(|_| config("invalid security header value"))?;
+        self.headers
+            .insert(name, value)
+            .map_err(|_| config("invalid security header value"))?;
         Ok(self)
     }
 }
