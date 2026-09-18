@@ -207,7 +207,7 @@ impl Middleware for Cors {
     }
 }
 
-fn config(message: &str) -> crate::Error {
+fn config(message: &'static str) -> crate::Error {
     ConfigError::new("cors", message).into()
 }
 
