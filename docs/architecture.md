@@ -40,7 +40,7 @@ The main framework assembles components. Core must not depend on the main framew
 
 ## Request execution
 
-The current release contract is [v0.2.0](v0.2.0.md). App installs a fresh lazy DatabaseScope around middleware and routing. The router installs the authenticated principal immediately around handler extraction and execution. Typed parameters resolve models, decode/validate/authorize forms, and call the action. Errors remain typed until an explicit response boundary.
+The current release contract is [v0.3.0](v0.3.0.md). App installs a fresh lazy DatabaseScope around middleware and routing. The router installs the authenticated principal immediately around handler extraction and execution. Typed parameters resolve models, decode/validate/authorize forms, and call the action. Errors remain typed until an explicit response boundary.
 
 DatabaseScope uses checked exclusive connection borrowing through scoped-tls-hkt. Transactions install a borrowed connection view lexically and restore it during unwinding. No local unsafe code is required. Claw remains independent of HTTP: the framework supplies pagination context through database scope and maps domain errors at the HTTP boundary.
 
