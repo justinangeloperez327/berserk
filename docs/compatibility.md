@@ -2,24 +2,30 @@
 
 ## Current status
 
-The workspace is prepared as the unpublished `0.2.0` release candidate. Rust 1.88 is the declared minimum supported Rust version (MSRV). CI checks the complete workspace on Rust 1.88 and on the current stable Rust toolchain, with platform and database coverage defined in `docs/support-policy.md`.
+Berserk v0.3.0 is the current pre-1.0 baseline. Rust 1.88 is the minimum supported Rust version (MSRV). CI and release workflows define the tested feature, platform, and database combinations; the support matrix is documented in [support-policy.md](support-policy.md).
 
-Berserk is still pre-1.0. Public APIs may change before a stable compatibility commitment is made, but release-candidate changes must be documented rather than introduced silently.
+Public APIs may still change before 1.0, but compatibility-affecting changes should be documented rather than introduced silently.
 
 ## Versioning policy
 
 - Follow semantic versioning for published packages.
-- Before 1.0, document breaking API or behavior changes in the changelog and provide migration guidance when practical.
-- Raising the MSRV is a compatibility change and must be called out in release notes, workspace metadata, CI, and the support policy.
-- Optional features are additive: default builds do not pull database, Claw ORM, auth, OpenAPI, cache, storage, events, jobs, outbound client, notifications, or CLI components.
-- Feature combinations must compile independently and under `--all-features`.
-- Common database contracts have shared tests; backend-specific behavior stays explicit through capabilities and driver tests.
-- Serialized API and database formats require their own compatibility notes when introduced; Rust type compatibility alone is insufficient.
+- Before 1.0, document breaking API or behavior changes in `CHANGELOG.md` and provide migration guidance when practical.
+- Raising the MSRV is a compatibility change and must be reflected in release notes, workspace metadata, CI, and the support policy.
+- Optional components remain feature-gated so applications can avoid subsystems they do not use.
+- Supported feature combinations must compile independently and under the repository's all-feature quality gate.
+- Database behavior that differs by backend remains explicit through capabilities and driver-specific tests.
+- Serialized API, configuration, storage, and database formats require compatibility consideration independently of Rust type compatibility.
 - Removing a supported platform or database line requires an explicit support-policy update and release note.
+
+## Pre-1.0 policy
+
+Minor releases may contain breaking changes while Berserk is below 1.0. Such changes should be deliberate, documented, and accompanied by migration guidance when practical.
+
+Security, correctness, or unsoundness fixes may require faster changes than the normal deprecation path.
 
 ## Deprecation
 
-After the first public release, deprecated APIs should remain available long enough for a documented transition when that is practical. Security, correctness, or unsoundness issues may require faster removal, in which case the release notes should explain the reason and migration path.
+As the framework approaches 1.0, deprecated APIs should remain available long enough for a documented transition when practical. After 1.0, Berserk should use a more conservative compatibility and deprecation policy appropriate for a stable framework.
 
 ## Release ownership
 
