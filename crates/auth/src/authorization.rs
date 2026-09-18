@@ -8,6 +8,7 @@ impl Ability {
     pub fn new(value: impl Into<String>) -> Result<Self> {
         let value = value.into();
         if value.is_empty()
+            || value.len() > 128
             || !value.bytes().all(|byte| {
                 byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b':' | b'-' | b'_')
             })
@@ -21,6 +22,12 @@ impl Ability {
     }
     pub fn as_str(&self) -> &str {
         &self.0
+    }
+}
+
+impl AsRef<str> for Ability {
+    fn as_ref(&self) -> &str {
+        self.as_str()
     }
 }
 
@@ -53,10 +60,11 @@ impl Gate {
         Ok(())
     }
     pub fn allows(&self, principal: &Principal, ability: &Ability) -> bool {
-        matches!(
-            self.rules.get(ability).map(|rule| rule(principal)),
-            Some(Decision::Allow)
-        )
+        principal.permits(ability.as_str())
+            && matches!(
+                self.rules.get(ability).map(|rule| rule(principal)),
+                Some(Decision::Allow)
+            )
     }
     pub fn authorize(&self, principal: &Principal, ability: &Ability) -> Result<()> {
         if self.allows(principal, ability) {
