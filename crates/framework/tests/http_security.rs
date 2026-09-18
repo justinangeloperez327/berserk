@@ -171,7 +171,10 @@ fn ambiguous_or_malformed_cors_inputs_fail_closed() {
     ] {
         let response = app.respond(request("OPTIONS", &headers));
         assert_eq!(response.status_code(), 400, "{headers:?}");
-        assert!(response.headers().get("access-control-allow-origin").is_none());
+        assert!(response
+            .headers()
+            .get("access-control-allow-origin")
+            .is_none());
     }
 }
 
@@ -217,7 +220,10 @@ fn credentials_and_wildcards_are_mutually_exclusive_in_both_builder_orders() {
             response.headers().get("access-control-allow-origin"),
             Some("*")
         );
-        assert!(response.headers().get("access-control-allow-credentials").is_none());
+        assert!(response
+            .headers()
+            .get("access-control-allow-credentials")
+            .is_none());
     }
 }
 
@@ -290,7 +296,10 @@ fn cors_replaces_downstream_headers_and_preserves_vary_star() {
                 .count(),
             headers.len()
         );
-        assert!(response.headers().get("access-control-allow-credentials").is_none());
+        assert!(response
+            .headers()
+            .get("access-control-allow-credentials")
+            .is_none());
         assert_eq!(response.headers().get("vary"), Some("*"));
     }
 }
