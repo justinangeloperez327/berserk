@@ -11,7 +11,12 @@ impl Auth {
     pub fn check() -> bool {
         Self::user().is_some()
     }
-    pub fn authorize<R>(policy: &impl Policy<R>, ability: &Ability, resource: &R) -> Result<()> {
+    /// For synchronous controller execution. In async code use `Request::authorize`.
+    pub fn authorize<R>(
+        policy: &impl Policy<R>,
+        ability: impl AsRef<str>,
+        resource: &R,
+    ) -> Result<()> {
         authorize(Self::user().as_ref(), policy, ability, resource)
     }
     pub fn gate(gate: &Gate, ability: &Ability) -> Result<()> {
@@ -22,11 +27,15 @@ impl Auth {
 fn authorize<R>(
     principal: Option<&Principal>,
     policy: &impl Policy<R>,
-    ability: &Ability,
+    ability: impl AsRef<str>,
     resource: &R,
 ) -> Result<()> {
     let principal = principal.ok_or_else(Error::unauthorized)?;
-    match policy.authorize(principal, ability, resource) {
+    let ability = Ability::new(ability.as_ref())?;
+    if !principal.permits(ability.as_str()) {
+        return Err(Error::forbidden());
+    }
+    match policy.authorize(principal, &ability, resource) {
         Decision::Allow => Ok(()),
         Decision::Deny => Err(Error::forbidden()),
     }
@@ -35,7 +44,7 @@ impl Request {
     pub fn authorize<R>(
         &self,
         policy: &impl Policy<R>,
-        ability: &Ability,
+        ability: impl AsRef<str>,
         resource: &R,
     ) -> Result<()> {
         authorize(self.principal(), policy, ability, resource)

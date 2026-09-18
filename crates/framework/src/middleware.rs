@@ -83,42 +83,88 @@ impl<G> Authenticated<G> {
 #[cfg(feature = "auth")]
 impl<G: berserk_auth::Guard> Middleware for Authenticated<G> {
     fn handle(&self, mut request: Request, next: Next<'_>) -> Result<Response> {
-        let mut headers = request.headers().get_all("authorization");
-        let first = headers.next();
-        if headers.next().is_some() {
-            return Ok(crate::Error::unauthorized().response());
-        }
-        let token = first.and_then(bearer_token);
-        let now = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .map_err(|_| {
-                berserk_auth::AuthError::new(
-                    berserk_auth::ErrorKind::Configuration,
-                    "system clock is before the Unix epoch",
-                )
-            })?
-            .as_secs();
-        let principal = match token {
-            Some(token) => self.guard.authenticate(token, now)?,
-            None => None,
-        };
-        drop(headers);
-        match principal {
-            Some(principal) => {
+        match authenticate_request(&request, &self.guard) {
+            Ok(Some(principal)) => {
                 request.set_principal(principal);
                 next.run(request)
             }
-            None => Ok(crate::Error::unauthorized().response()),
+            Ok(None) => Ok(crate::Error::unauthorized().response()),
+            Err(error) if error.status_code() == 401 => Ok(error.response()),
+            Err(error) => Err(error),
+        }
+    }
+}
+
+/// Allows guests and rejects authenticated identities with 403.
+/// Invalid credentials are guests; malformed or ambiguous headers are rejected with 401.
+#[cfg(feature = "auth")]
+pub struct Guest<G> {
+    guard: G,
+}
+
+#[cfg(feature = "auth")]
+impl<G> Guest<G> {
+    pub fn new(guard: G) -> Self {
+        Self { guard }
+    }
+}
+
+#[cfg(feature = "auth")]
+impl<G: berserk_auth::Guard> Middleware for Guest<G> {
+    fn handle(&self, request: Request, next: Next<'_>) -> Result<Response> {
+        match authenticate_request(&request, &self.guard) {
+            Ok(None) if request.user().is_none() => next.run(request),
+            Ok(_) => Ok(crate::Error::forbidden().response()),
+            Err(error) if error.status_code() == 401 => Ok(error.response()),
+            Err(error) => Err(error),
         }
     }
 }
 
 #[cfg(feature = "auth")]
+fn authenticate_request<G: berserk_auth::Guard>(
+    request: &Request,
+    guard: &G,
+) -> Result<Option<berserk_auth::Principal>> {
+    let mut headers = request.headers().get_all("authorization");
+    let first = headers.next();
+    if headers.next().is_some() {
+        return Err(crate::Error::unauthorized());
+    }
+    let Some(header) = first else {
+        return Ok(None);
+    };
+    let token = bearer_token(header).ok_or_else(crate::Error::unauthorized)?;
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|_| {
+            berserk_auth::AuthError::new(
+                berserk_auth::ErrorKind::Configuration,
+                "system clock is before the Unix epoch",
+            )
+        })?
+        .as_secs();
+    match guard.authenticate(token, now) {
+        Ok(principal) => Ok(principal),
+        Err(error) if error.is_authentication_failure() => Ok(None),
+        Err(error) => Err(error.into()),
+    }
+}
+
+#[cfg(feature = "auth")]
 fn bearer_token(value: &str) -> Option<&str> {
-    let mut parts = value.split_ascii_whitespace();
-    let scheme = parts.next()?;
-    let token = parts.next()?;
-    if !scheme.eq_ignore_ascii_case("Bearer") || token.is_empty() || parts.next().is_some() {
+    if value.len() > 8192 {
+        return None;
+    }
+    let (scheme, token) = value.split_once(' ')?;
+    let token = token.trim_start_matches(' ');
+    let unpadded = token.trim_end_matches('=');
+    if !scheme.eq_ignore_ascii_case("Bearer")
+        || unpadded.is_empty()
+        || !unpadded.bytes().all(|byte| {
+            byte.is_ascii_alphanumeric() || b"-._~+/".contains(&byte)
+        })
+    {
         return None;
     }
     Some(token)
@@ -134,13 +180,150 @@ impl Middleware for HandleErrors {
 #[cfg(feature = "auth")]
 pub struct RequireAbility(pub berserk_auth::Ability);
 #[cfg(feature = "auth")]
+impl RequireAbility {
+    pub fn new(ability: impl Into<String>) -> Result<Self> {
+        Ok(Self(berserk_auth::Ability::new(ability)?))
+    }
+}
+#[cfg(feature = "auth")]
 impl Middleware for RequireAbility {
     fn handle(&self, request: Request, next: Next<'_>) -> Result<Response> {
-        let principal = request.principal().ok_or_else(crate::Error::unauthorized)?;
-        let gate = request
-            .state::<berserk_auth::Gate>()
-            .ok_or_else(|| crate::ConfigError::new("auth", "no gate configured"))?;
-        gate.authorize(principal, &self.0)?;
+        let principal = request.user().ok_or_else(crate::Error::unauthorized)?;
+        if let Some(gate) = request.state::<berserk_auth::Gate>() {
+            gate.authorize(principal, &self.0)?;
+        } else if !principal.can(self.0.as_str()) {
+            return Err(crate::Error::forbidden());
+        }
         next.run(request)
+    }
+}
+
+#[cfg(all(test, feature = "auth"))]
+mod auth_tests {
+    use super::*;
+    use berserk_auth::{Ability, AuthError, Decision, ErrorKind, Guard, MemoryTokenStore, Policy, Principal, TokenManager};
+    use crate::{App, Headers, Method};
+
+    struct TestGuard;
+    impl Guard for TestGuard {
+        fn authenticate(&self, token: &str, _: u64) -> berserk_auth::Result<Option<Principal>> {
+            match token {
+                "accepted" => Ok(Some(Principal::new("user:1").unwrap()
+                    .with_abilities(["posts.update"]).unwrap())),
+                "expired" => Err(AuthError::new(ErrorKind::ExpiredToken, "private detail")),
+                "store-error" => Err(AuthError::new(ErrorKind::Store, "private detail")),
+                _ => Ok(None),
+            }
+        }
+    }
+
+    fn request(path: &str, values: &[&str]) -> Request {
+        let mut headers = Headers::new();
+        for value in values {
+            headers.append("Authorization", value).unwrap();
+        }
+        Request::new(Method::new("GET").unwrap(), path, headers, vec![]).unwrap()
+    }
+
+    #[test]
+    fn authentication_rejects_ambiguous_or_malformed_credentials() {
+        let mut app = App::new();
+        app.route().middleware(Authenticated::new(TestGuard))
+            .get("/private", |req: Request| {
+                assert_eq!(req.user(), req.principal());
+                assert!(req.can("posts.update"));
+                Response::text(req.user().unwrap().subject())
+            }).unwrap();
+        for values in [
+            vec![], vec![""], vec!["Bearer"], vec!["Bearer "],
+            vec!["Basic accepted"], vec!["Bearer accepted extra"],
+            vec!["Bearer accepted,accepted"],
+            vec!["Bearer\taccepted"], vec!["Bearer accepted\textra"],
+            vec!["Bearer ="], vec!["Bearer a=b"],
+            vec!["Bearer rejected"], vec!["Bearer expired"],
+            vec!["Bearer accepted", "Bearer accepted"],
+            vec!["Bearer accepted", "Basic ignored"],
+        ] {
+            let response = app.respond(request("/private", &values));
+            assert_eq!(response.status_code(), 401, "{values:?}");
+            assert_eq!(response.headers().get("www-authenticate"), Some("Bearer"));
+            assert!(!String::from_utf8_lossy(response.body()).contains("private detail"));
+        }
+        for value in ["Bearer accepted", "bEaReR accepted", "Bearer   accepted", "Bearer accepted "] {
+            assert_eq!(app.respond(request("/private", &[value])).body(), b"user:1");
+        }
+        let failure = app.respond(request("/private", &["Bearer store-error"]));
+        assert_eq!(failure.status_code(), 500);
+        assert!(!String::from_utf8_lossy(failure.body()).contains("private detail"));
+        assert!(bearer_token(&format!("Bearer {}", "a".repeat(8192))).is_none());
+    }
+
+    #[test]
+    fn guest_routes_allow_absent_or_invalid_credentials_and_reject_authenticated_users() {
+        let mut app = App::new();
+        app.route().middleware(Guest::new(TestGuard))
+            .get("/login", |req: Request| {
+                assert!(req.user().is_none());
+                assert!(!req.can("posts.update"));
+                Response::text("guest")
+            }).unwrap();
+        for values in [vec![], vec!["Bearer rejected"], vec!["Bearer expired"]] {
+            assert_eq!(app.respond(request("/login", &values)).status_code(), 200);
+        }
+        assert_eq!(app.respond(request("/login", &["Bearer accepted"])).status_code(), 403);
+        for values in [vec!["Basic accepted"], vec!["Bearer accepted", "Bearer rejected"]] {
+            assert_eq!(app.respond(request("/login", &values)).status_code(), 401);
+        }
+        let response = app.respond(request("/login", &["Bearer store-error"]));
+        assert_eq!(response.status_code(), 500);
+        assert!(!String::from_utf8_lossy(response.body()).contains("private detail"));
+    }
+
+    struct PostPolicy;
+    impl Policy<String> for PostPolicy {
+        fn authorize(&self, principal: &Principal, _: &Ability, owner: &String) -> Decision {
+            if principal.subject() == owner { Decision::Allow } else { Decision::Deny }
+        }
+    }
+
+    #[test]
+    fn controller_authorization_requires_identity_scope_and_policy() {
+        let guest = request("/", &[]);
+        assert_eq!(guest.authorize(&PostPolicy, "posts.update", &"user:1".to_owned())
+            .unwrap_err().status_code(), 401);
+        let mut app = App::new();
+        for (path, ability, owner) in [
+            ("/allowed", "posts.update", "user:1"),
+            ("/denied", "posts.update", "user:2"),
+            ("/scope", "posts.delete", "user:1"),
+        ] {
+            app.route().middleware(Authenticated::new(TestGuard))
+                .get(path, move |req: Request| -> Result<Response> {
+                    req.authorize(&PostPolicy, ability, &owner.to_owned())?;
+                    Ok(Response::text("allowed"))
+                }).unwrap();
+        }
+        for (path, status) in [("/allowed", 200), ("/denied", 403), ("/scope", 403)] {
+            assert_eq!(app.respond(request(path, &["Bearer accepted"])).status_code(), status);
+        }
+    }
+
+    #[test]
+    fn real_tokens_support_route_abilities_and_revocation() {
+        let tokens = Arc::new(TokenManager::new(MemoryTokenStore::default()));
+        let token = tokens.issue(Principal::new("user:1").unwrap(), ["posts.update"], 0).unwrap();
+        let header = format!("Bearer {}", token.expose());
+        let mut app = App::new();
+        app.route().middleware(Authenticated::new(tokens.clone()))
+            .middleware(RequireAbility::new("posts.update").unwrap())
+            .get("/private", || Response::text("allowed")).unwrap();
+        assert_eq!(app.respond(request("/private", &[&header])).status_code(), 200);
+        let read_only = tokens.issue(Principal::new("user:2").unwrap(), ["posts.read"], 0).unwrap();
+        assert_eq!(app.respond(request("/private", &[&format!("Bearer {}", read_only.expose())])).status_code(), 403);
+        tokens.revoke(&token.digest(), 1).unwrap();
+        assert_eq!(app.respond(request("/private", &[&header])).status_code(), 401);
+        app.route().middleware(RequireAbility::new("posts.update").unwrap())
+            .get("/guest", || Response::text("unreachable")).unwrap();
+        assert_eq!(app.respond(request("/guest", &[])).status_code(), 401);
     }
 }

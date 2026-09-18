@@ -7,6 +7,9 @@ pub enum ErrorKind {
     Configuration,
     Crypto,
     InvalidCredentials,
+    InvalidToken,
+    ExpiredToken,
+    RevokedToken,
     Unauthorized,
     Forbidden,
     Store,
@@ -27,6 +30,19 @@ impl AuthError {
     }
     pub const fn kind(&self) -> ErrorKind {
         self.kind
+    }
+
+    /// Credential failures should share one public 401 response.
+    /// Store, configuration, and cryptographic failures remain server errors.
+    pub const fn is_authentication_failure(&self) -> bool {
+        matches!(
+            self.kind,
+            ErrorKind::InvalidCredentials
+                | ErrorKind::InvalidToken
+                | ErrorKind::ExpiredToken
+                | ErrorKind::RevokedToken
+                | ErrorKind::Unauthorized
+        )
     }
 }
 

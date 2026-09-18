@@ -7,6 +7,7 @@ mod identity;
 mod password;
 mod principal;
 mod session;
+mod token;
 
 pub use authorization::{Ability, Decision, Gate, Policy};
 pub use error::{AuthError, ErrorKind, Result};
@@ -17,3 +18,4 @@ pub use session::{
     Guard, MemorySessionStore, SessionManager, SessionRecord, SessionStore, SessionToken,
     TokenDigest,
 };
+pub use token::{ApiToken, MemoryTokenStore, TokenManager, TokenRecord, TokenStore};

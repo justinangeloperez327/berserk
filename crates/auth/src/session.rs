@@ -1,28 +1,37 @@
 use crate::{AuthError, ErrorKind, Principal, Result};
 use rand_core::{OsRng, RngCore};
 use sha2::{Digest, Sha256};
-use std::{collections::HashMap, fmt, sync::Mutex, time::Duration};
-use zeroize::{Zeroize, Zeroizing};
+use std::{
+    collections::HashMap,
+    fmt,
+    sync::{Arc, Mutex},
+    time::Duration,
+};
+use zeroize::Zeroizing;
 
 pub struct SessionToken(Zeroizing<String>);
 
 impl SessionToken {
     pub fn generate() -> Self {
-        let mut bytes = [0_u8; 32];
-        OsRng.fill_bytes(&mut bytes);
-        let token = hex(&bytes);
-        bytes.zeroize();
-        Self(Zeroizing::new(token))
+        Self::try_generate().expect("operating system randomness unavailable")
     }
-    pub fn parse(value: impl Into<String>) -> Result<Self> {
-        let value = value.into();
+    /// Fallible generation for servers, without panicking on entropy failure.
+    pub fn try_generate() -> Result<Self> {
+        let mut bytes = Zeroizing::new([0_u8; 32]);
+        OsRng.try_fill_bytes(bytes.as_mut()).map_err(|_| {
+            AuthError::new(ErrorKind::Crypto, "operating system randomness unavailable")
+        })?;
+        Ok(Self(Zeroizing::new(hex(bytes.as_ref()))))
+    }
+    pub fn parse(value: impl AsRef<str>) -> Result<Self> {
+        let value = value.as_ref();
         if value.len() != 64 || !value.bytes().all(|byte| byte.is_ascii_hexdigit()) {
             return Err(AuthError::new(
                 ErrorKind::InvalidCredentials,
                 "invalid bearer token format",
             ));
         }
-        Ok(Self(Zeroizing::new(value)))
+        Ok(Self(Zeroizing::new(value.to_owned())))
     }
     pub fn expose(&self) -> &str {
         &self.0
@@ -71,13 +80,44 @@ pub trait SessionStore: Send {
     fn remove_expired(&mut self, now: u64) -> Result<u64>;
 }
 
-#[derive(Default)]
 pub struct MemorySessionStore {
     sessions: HashMap<TokenDigest, SessionRecord>,
+    max_records: usize,
+}
+
+impl MemorySessionStore {
+    /// Bounded development storage. Call `SessionManager::prune` to reclaim expired entries.
+    pub fn new(max_records: usize) -> Result<Self> {
+        if max_records == 0 {
+            return Err(AuthError::new(
+                ErrorKind::Configuration,
+                "session capacity must be positive",
+            ));
+        }
+        Ok(Self {
+            sessions: HashMap::new(),
+            max_records,
+        })
+    }
+}
+
+impl Default for MemorySessionStore {
+    fn default() -> Self {
+        Self {
+            sessions: HashMap::new(),
+            max_records: 10_000,
+        }
+    }
 }
 
 impl SessionStore for MemorySessionStore {
     fn put(&mut self, digest: TokenDigest, session: SessionRecord) -> Result<()> {
+        if self.sessions.len() >= self.max_records || self.sessions.contains_key(&digest) {
+            return Err(AuthError::new(
+                ErrorKind::Store,
+                "session store capacity or key conflict",
+            ));
+        }
         self.sessions.insert(digest, session);
         Ok(())
     }
@@ -99,6 +139,12 @@ pub trait Guard: Send + Sync + 'static {
     fn authenticate(&self, bearer_token: &str, now: u64) -> Result<Option<Principal>>;
 }
 
+impl<G: Guard + ?Sized> Guard for Arc<G> {
+    fn authenticate(&self, bearer_token: &str, now: u64) -> Result<Option<Principal>> {
+        (**self).authenticate(bearer_token, now)
+    }
+}
+
 pub struct SessionManager<S> {
     store: Mutex<S>,
     ttl: Duration,
@@ -106,10 +152,10 @@ pub struct SessionManager<S> {
 
 impl<S: SessionStore> SessionManager<S> {
     pub fn new(store: S, ttl: Duration) -> Result<Self> {
-        if ttl.is_zero() {
+        if ttl.as_secs() == 0 {
             return Err(AuthError::new(
                 ErrorKind::Configuration,
-                "session TTL must be greater than zero",
+                "session TTL must be at least one second",
             ));
         }
         Ok(Self {
@@ -121,7 +167,7 @@ impl<S: SessionStore> SessionManager<S> {
         let expires_at = now
             .checked_add(self.ttl.as_secs())
             .ok_or_else(|| AuthError::new(ErrorKind::Configuration, "session expiry overflow"))?;
-        let token = SessionToken::generate();
+        let token = SessionToken::try_generate()?;
         self.lock()?.put(
             token.digest(),
             SessionRecord {
@@ -152,11 +198,15 @@ impl<S: SessionStore + 'static> Guard for SessionManager<S> {
             Err(_) => return Ok(None),
         };
         let digest = token.digest();
-        let Some(session) = self.lock()?.get(&digest)? else {
+        let mut store = self.lock()?;
+        let Some(session) = store.get(&digest)? else {
             return Ok(None);
         };
         if session.expires_at <= now {
-            self.lock()?.remove(&digest)?;
+            store.remove(&digest)?;
+            return Ok(None);
+        }
+        if now < session.issued_at {
             return Ok(None);
         }
         Ok(Some(session.principal))

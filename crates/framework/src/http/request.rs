@@ -172,8 +172,20 @@ impl Request {
     }
 
     #[cfg(feature = "auth")]
-    pub fn principal(&self) -> Option<&berserk_auth::Principal> {
+    /// The identity attached by authentication middleware, or `None` for a guest.
+    pub fn user(&self) -> Option<&berserk_auth::Principal> {
         self.principal.as_ref()
+    }
+
+    #[cfg(feature = "auth")]
+    pub fn principal(&self) -> Option<&berserk_auth::Principal> {
+        self.user()
+    }
+
+    /// Check an explicit ability; guests and unscoped identities return false.
+    #[cfg(feature = "auth")]
+    pub fn can(&self, ability: &str) -> bool {
+        self.user().is_some_and(|user| user.can(ability))
     }
 
     #[cfg(feature = "auth")]

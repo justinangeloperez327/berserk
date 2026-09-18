@@ -109,6 +109,21 @@ pub struct RateLimitLayer {
     metrics: Option<Arc<Metrics>>,
 }
 impl RateLimitLayer {
+    /// Put this after authentication middleware. Guests share one bucket.
+    /// Subjects are hashed to fit the key bound without exposing identity in keys.
+    #[cfg(feature = "auth")]
+    pub fn per_user(limiter: Arc<RateLimiter>) -> Self {
+        use std::{collections::hash_map::RandomState, hash::BuildHasher, sync::OnceLock};
+        static USER_KEYS: OnceLock<RandomState> = OnceLock::new();
+        let hasher = USER_KEYS.get_or_init(RandomState::new);
+        Self::keyed(limiter, move |request| {
+            request.user().map_or_else(
+                || "guest".to_owned(),
+                |user| format!("user:{:016x}", hasher.hash_one(user.subject())),
+            )
+        })
+    }
+
     pub fn global(limiter: Arc<RateLimiter>) -> Self {
         Self {
             limiter,
@@ -131,6 +146,7 @@ impl RateLimitLayer {
         self
     }
 }
+
 impl Middleware for RateLimitLayer {
     fn handle(&self, request: Request, next: Next<'_>) -> Result<Response> {
         let now = SystemTime::now()
@@ -153,5 +169,58 @@ impl Middleware for RateLimitLayer {
             .header("x-ratelimit-limit", &decision.limit.to_string())?
             .header("x-ratelimit-remaining", &decision.remaining.to_string())?
             .header("x-ratelimit-reset", &decision.reset_at.to_string())
+    }
+}
+
+#[cfg(all(test, feature = "auth"))]
+mod auth_tests {
+    use super::*;
+    use crate::{App, Authenticated, Headers, Method};
+    use berserk_auth::{Guard, Principal};
+
+    struct Users;
+    impl Guard for Users {
+        fn authenticate(&self, token: &str, _: u64) -> berserk_auth::Result<Option<Principal>> {
+            // Two different credentials deliberately resolve to the same user.
+            Ok(Principal::new(if token == "one" || token == "one-again" { "user:1" } else { "user:2" }))
+        }
+    }
+
+    fn request(token: &str) -> Request {
+        let mut headers = Headers::new();
+        headers.insert("authorization", &format!("Bearer {token}")).unwrap();
+        Request::new(Method::new("GET").unwrap(), "/", headers, vec![]).unwrap()
+    }
+
+    #[test]
+    fn per_user_buckets_follow_authenticated_identity() {
+        let limiter = Arc::new(RateLimiter::new(1, Duration::from_secs(3600), 10).unwrap());
+        let mut app = App::new();
+        app.route().middleware(Authenticated::new(Users))
+            .middleware(RateLimitLayer::per_user(limiter))
+            .get("/", || Response::text("ok")).unwrap();
+        assert_eq!(app.respond(request("one")).status_code(), 200);
+        let limited = app.respond(request("one-again"));
+        assert_eq!(limited.status_code(), 429);
+        assert!(limited.headers().get("retry-after").is_some());
+        assert_eq!(app.respond(request("two")).status_code(), 200);
+    }
+
+    #[test]
+    fn guest_and_long_subject_keys_are_bounded_and_distinct() {
+        let limiter = Arc::new(RateLimiter::new(1, Duration::from_secs(3600), 10).unwrap());
+        let layer = RateLimitLayer::per_user(limiter.clone());
+        let mut request = request("one");
+        let guest_key = (layer.keyer)(&request);
+        request.set_principal(Principal::new("guest").unwrap());
+        assert_ne!(guest_key, (layer.keyer)(&request));
+        request.set_principal(Principal::new("u".repeat(1024)).unwrap());
+        let key = (layer.keyer)(&request);
+        let another_layer = RateLimitLayer::per_user(limiter.clone());
+        assert_eq!(key, (another_layer.keyer)(&request));
+        assert!(key.len() <= 128);
+        assert!(limiter.check(&key, 0).unwrap().allowed);
+        assert!(!limiter.check(&key, 0).unwrap().allowed);
+        assert!(limiter.check(&guest_key, 0).unwrap().allowed);
     }
 }

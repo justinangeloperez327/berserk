@@ -40,12 +40,14 @@ impl<P: IdentityProvider, H: PasswordService> PasswordAuthenticator<P, H> {
     }
 
     pub fn authenticate(&self, identifier: &str, password: &Secret) -> Result<Principal> {
-        if identifier.trim().is_empty() {
-            return Err(invalid_credentials());
-        }
-        let identity = self.provider.find_by_identifier(identifier)?;
+        let identity = if identifier.trim().is_empty() {
+            None
+        } else {
+            self.provider.find_by_identifier(identifier)?
+        };
         let hash = identity
             .as_ref()
+            .filter(|record| record.enabled)
             .map_or(self.dummy_hash.as_str(), |record| {
                 record.password_hash.as_str()
             });
