@@ -138,8 +138,13 @@ fn token_scopes_limit_role_based_gates() {
     let update = Ability::new("users.update").unwrap();
     let mut gate = Gate::default();
     gate.define(update.clone(), |principal| {
-        if principal.has_role("admin") { Decision::Allow } else { Decision::Deny }
-    }).unwrap();
+        if principal.has_role("admin") {
+            Decision::Allow
+        } else {
+            Decision::Deny
+        }
+    })
+    .unwrap();
     let admin = Principal::new("user:1").unwrap().with_role("admin");
     assert!(gate.allows(&admin, &update));
     assert!(!admin.can("users.update"));
@@ -147,7 +152,14 @@ fn token_scopes_limit_role_based_gates() {
     assert!(scoped.can("users.read"));
     assert!(!scoped.can("users.update"));
     assert!(!gate.allows(&scoped, &update));
-    assert_eq!(scoped.clone().with_abilities(["users.update"]).unwrap_err().kind(), ErrorKind::Forbidden);
+    assert_eq!(
+        scoped
+            .clone()
+            .with_abilities(["users.update"])
+            .unwrap_err()
+            .kind(),
+        ErrorKind::Forbidden
+    );
     let empty = scoped.with_abilities([] as [&str; 0]).unwrap();
     assert!(!empty.can("users.read"));
     assert!(!empty.permits("users.read"));
@@ -155,16 +167,22 @@ fn token_scopes_limit_role_based_gates() {
 
 #[test]
 fn disabled_and_blank_identities_return_generic_credential_failures() {
-    let auth = PasswordAuthenticator::new(Users {
-        identity: IdentityRecord {
-            principal: Principal::new("user:1").unwrap(),
-            // A disabled identity must use the dummy hash, even when this is invalid.
-            password_hash: "invalid-hash".to_owned(),
-            enabled: false,
+    let auth = PasswordAuthenticator::new(
+        Users {
+            identity: IdentityRecord {
+                principal: Principal::new("user:1").unwrap(),
+                // A disabled identity must use the dummy hash, even when this is invalid.
+                password_hash: "invalid-hash".to_owned(),
+                enabled: false,
+            },
         },
-    }, Argon2Passwords).unwrap();
+        Argon2Passwords,
+    )
+    .unwrap();
     for identifier in ["", "   ", "ada@example.test", "unknown@example.test"] {
-        let error = auth.authenticate(identifier, &Secret::new("secret")).unwrap_err();
+        let error = auth
+            .authenticate(identifier, &Secret::new("secret"))
+            .unwrap_err();
         assert_eq!(error.kind(), ErrorKind::InvalidCredentials);
         assert_eq!(error.to_string(), "credentials are invalid");
     }
@@ -172,8 +190,12 @@ fn disabled_and_blank_identities_return_generic_credential_failures() {
 
 #[test]
 fn principal_roles_abilities_and_claim_debug_fail_safely() {
-    let principal = Principal::new("private-identity").unwrap()
-        .with_role("admin").with_role("").with_role(" admin").with_role("admin\n")
+    let principal = Principal::new("private-identity")
+        .unwrap()
+        .with_role("admin")
+        .with_role("")
+        .with_role(" admin")
+        .with_role("admin\n")
         .with_claim("access_token", "private-secret");
     assert!(principal.has_role("admin"));
     assert_eq!(principal.roles().collect::<Vec<_>>(), vec!["admin"]);
@@ -195,16 +217,22 @@ fn session_time_bounds_capacity_and_shared_guards_are_preserved() {
     assert!(SessionManager::new(MemorySessionStore::default(), Duration::ZERO).is_err());
     assert!(SessionManager::new(MemorySessionStore::default(), Duration::from_nanos(1)).is_err());
     assert!(MemorySessionStore::new(0).is_err());
-    let sessions = std::sync::Arc::new(SessionManager::new(
-        MemorySessionStore::new(1).unwrap(), Duration::from_secs(10)
-    ).unwrap());
+    let sessions = std::sync::Arc::new(
+        SessionManager::new(MemorySessionStore::new(1).unwrap(), Duration::from_secs(10)).unwrap(),
+    );
     let user = Principal::new("user:1").unwrap();
-    assert_eq!(sessions.issue(user.clone(), u64::MAX).unwrap_err().kind(), ErrorKind::Configuration);
+    assert_eq!(
+        sessions.issue(user.clone(), u64::MAX).unwrap_err().kind(),
+        ErrorKind::Configuration
+    );
     let token = sessions.issue(user.clone(), 10).unwrap();
     let shared: std::sync::Arc<dyn Guard> = sessions.clone();
     assert!(shared.authenticate(token.expose(), 9).unwrap().is_none());
     assert!(shared.authenticate(token.expose(), 10).unwrap().is_some());
-    assert_eq!(sessions.issue(user.clone(), 11).unwrap_err().kind(), ErrorKind::Store);
+    assert_eq!(
+        sessions.issue(user.clone(), 11).unwrap_err().kind(),
+        ErrorKind::Store
+    );
     assert_eq!(sessions.prune(20).unwrap(), 1);
     assert!(sessions.issue(user, 20).is_ok());
 }

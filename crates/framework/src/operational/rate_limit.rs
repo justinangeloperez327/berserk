@@ -182,13 +182,19 @@ mod auth_tests {
     impl Guard for Users {
         fn authenticate(&self, token: &str, _: u64) -> berserk_auth::Result<Option<Principal>> {
             // Two different credentials deliberately resolve to the same user.
-            Ok(Principal::new(if token == "one" || token == "one-again" { "user:1" } else { "user:2" }))
+            Ok(Principal::new(if token == "one" || token == "one-again" {
+                "user:1"
+            } else {
+                "user:2"
+            }))
         }
     }
 
     fn request(token: &str) -> Request {
         let mut headers = Headers::new();
-        headers.insert("authorization", &format!("Bearer {token}")).unwrap();
+        headers
+            .insert("authorization", &format!("Bearer {token}"))
+            .unwrap();
         Request::new(Method::new("GET").unwrap(), "/", headers, vec![]).unwrap()
     }
 
@@ -196,9 +202,11 @@ mod auth_tests {
     fn per_user_buckets_follow_authenticated_identity() {
         let limiter = Arc::new(RateLimiter::new(1, Duration::from_secs(3600), 10).unwrap());
         let mut app = App::new();
-        app.route().middleware(Authenticated::new(Users))
+        app.route()
+            .middleware(Authenticated::new(Users))
             .middleware(RateLimitLayer::per_user(limiter))
-            .get("/", || Response::text("ok")).unwrap();
+            .get("/", || Response::text("ok"))
+            .unwrap();
         assert_eq!(app.respond(request("one")).status_code(), 200);
         let limited = app.respond(request("one-again"));
         assert_eq!(limited.status_code(), 429);

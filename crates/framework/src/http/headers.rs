@@ -73,6 +73,11 @@ impl Headers {
             .map(|(_, value)| value.as_str())
     }
 
+    /// Remove every value for a header name, ignoring ASCII case.
+    pub fn remove(&mut self, name: &str) {
+        self.0.retain(|(key, _)| !key.eq_ignore_ascii_case(name));
+    }
+
     pub fn get_all<'a>(&'a self, name: &'a str) -> impl Iterator<Item = &'a str> + 'a {
         self.0
             .iter()
