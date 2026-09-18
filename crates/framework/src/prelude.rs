@@ -1,6 +1,8 @@
 //! Common framework imports.
 #[cfg(feature = "auth")]
-pub use crate::Authenticated;
+pub use crate::{Authenticated, Guest};
+#[cfg(feature = "auth")]
+pub use berserk_auth::{Ability, Decision, Policy, Principal};
 pub use crate::{
     ActionResult, ApiResource, ApiResourceController, App, Arr, Error, IntoResponse, Request,
     Resource, ResourceCollection, ResourceController, Response, Result, Route, ServerConfig, State,
