@@ -1,99 +1,45 @@
 # Upgrade notes
 
-## 0.3.0 development API
+## v0.2.0 → v0.3.0
 
-The [v0.3.0 guide](v0.3.0.md) describes this unvalidated developer-experience pass. Package versions remain unchanged until release preparation.
+v0.3.0 focuses on developer experience while preserving Berserk's instance-based application architecture, request-scoped state, Claw ORM model, and sync-first design.
 
 | v0.2.0 usage | v0.3.0 usage |
 | --- | --- |
 | `request.json()` for a raw value | `request.json_value()` or `request.json::<Json>()` |
 | `request.query()` for all pairs | `request.query_pairs()` |
-| Manual lookup in query pairs | `request.query("page")?`; duplicate named values are rejected |
+| Manual lookup in query pairs | `request.query("page")?` |
 | `Ok(response().text("OK"))` | `response().text("OK")` |
 | `Ok(response().no_content())` | `response().no_content()` |
 | `response().json(&json)?.status(201)` | `response().status(201).json(json)?` |
 
-All response-factory terminals now return `Result<Response>` and validate the completed response. Direct `Response::text` and `Response::no_content` constructors remain infallible. Construct factories with `response()`, rather than a unit `ResponseFactory` value. JSON accepts explicit `ApiResource` mappings without a data envelope; use `resource` or `collection` to preserve existing envelopes.
+Response-factory terminals return `Result<Response>` so the completed response can be validated. Direct `Response` constructors remain available where documented.
 
-`request.validate::<T>()` is the concise FormRequest entry point; existing `form_request` and typed action extraction continue to work. `App::configure`/`Request::config` register and borrow validated typed configuration. `Request::shared` returns an owned service handle from existing state.
+`request.validate::<T>()` is the concise FormRequest entry point. Existing typed FormRequest extraction remains available. Typed application configuration is registered with `App::configure` and accessed with `Request::config`; shared services can be accessed through request state/shared handles.
 
-Network serving now requires the default-enabled `server` feature. Consumers using `default-features = false` must add `server` if they call `bind` or `listen`. `async` remains independently optional. No ORM, transaction, model-binding, or middleware pipeline migration is required.
+Network serving is controlled by the `server` feature. Consumers that disable default features must explicitly enable `server` if they call `bind` or `listen`. Async application actions remain independently optional.
 
-New scaffolds declare controller/model/request/middleware folders and provide explicit routes and typed configuration. `serve` invokes `cargo run`; `make:middleware` uses the same safe generator rules. For local development before publication, replace the generated `version = "0.3"` dependency with this branch's framework path while retaining the `claw` feature.
+The CLI/application skeleton now exposes controllers, models, requests, middleware, configuration, and routes explicitly. See [v0.3.0.md](v0.3.0.md) for the detailed v0.3 API.
 
-## 0.2.0 release candidate
+## v0.1.0 → v0.2.0
 
-Rust 1.88 remains supported. This is one coordinated change across the 15 publishable crates. Use the [release guide](v0.2.0.md) and the runnable foundation example for the current API.
+v0.2.0 introduced request-scoped Claw operations and retained explicit connection escape hatches:
 
-| Previous explicit-connection API | v0.2.0 request-scoped API | Explicit escape hatch |
+| Explicit connection API | Request-scoped API | Explicit escape hatch |
 | --- | --- | --- |
 | `User::find(connection, key)` | `User::find(key)` | `User::find_on(connection, key)` |
 | `query.get(connection)` | `query.get()` | `query.get_on(connection)` |
 | `user.save(connection)` | `user.save()` | `user.save_on(connection)` |
-| `User::create(connection, columns)` | `User::create(input)` returns model | `User::create_on(connection, columns)` returns Execution |
-| `user.update(connection, columns)` | `user.update(input)` reloads model | `user.update_on(connection, columns)` returns Execution |
+| `User::create(connection, columns)` | `User::create(input)` | `User::create_on(connection, columns)` |
+| `user.update(connection, columns)` | `user.update(input)` | `user.update_on(connection, columns)` |
 | `user.delete(connection)` | `user.delete()` | `user.delete_on(connection)` |
-| `query.paginate(connection, page, size)` | `query.paginate(size)` reads request page | `query.paginate_on(connection, page, size)` |
-| `where_(column, operator, value)` on Claw | `where_(column, value)` means equality | `where_op(column, operator, value)` |
+| `query.paginate(connection, page, size)` | `query.paginate(size)` | `query.paginate_on(connection, page, size)` |
+| `where_(column, operator, value)` | `where_(column, value)` | `where_op(column, operator, value)` |
 
-Other Claw connection-taking terminals and lifecycle helpers likewise gain `_on`. Low-level database::Query is unchanged. Raw `_on` writes accept trusted values directly; typed create/update require FILLABLE plus IntoInsert/IntoUpdate. PersistableModel::save uses its existing explicit values_for_save mapping.
+FormRequest gained direct input parameters and authorization after validation. `Validated<T>` remained supported. Application errors, including router and authentication errors, moved toward the unified JSON error surface. Optional async actions were added behind the appropriate feature.
 
-FormRequest supports direct input parameters and adds authorization after validation; Validated<T> remains supported. Existing routes/resources continue working; typed CrudController is additive. Application error responses, including router 404/405 and authentication failures, are now JSON. Update tests that compare plain-text error bodies. TestClient renders errors through App::respond; use App::handle to inspect Error values directly.
+## Pre-release consumers
 
-Enable `async` explicitly for async actions. Use Arc<App>::handle_async from Tokio callers; the scope does not propagate into separately spawned tasks. Cancellation of the waiting caller does not cancel a started worker. DatabaseScope::run and Transaction::run take synchronous closures.
+Berserk is still below 1.0. Applications consuming git/path snapshots should treat the documented API for the selected release as the source of truth rather than examples copied from older commits.
 
-The previous release record below is historical evidence, not validation of this candidate.
-
-
-## 0.1.0 release candidate
-
-`0.1.0` is Berserk's planned first public release. There is no supported migration path from an earlier crates.io release because no Berserk package has been published yet.
-
-These notes are for developers who have already been consuming the repository through local path or git dependencies during development.
-
-### Package identity
-
-The release-candidate package family uses the final Berserk names, including `berserk`, `berserk-*`, and `claw-orm`, all prepared at version `0.1.0`.
-
-If an application still references older experimental `framework-*` package identities or workspace-local names, update those dependencies before testing against the release candidate.
-
-### Rust version
-
-The minimum supported Rust version is Rust 1.88. Applications using an older compiler must upgrade their toolchain before adopting `0.1.0`.
-
-### Public API stability
-
-Pre-release path/git consumers should not assume source compatibility with earlier repository snapshots. The documented `0.1.0` contract is the current baseline:
-
-- application assembly is instance-based through `App`;
-- routing is registered through `app.route()`;
-- handler signatures declare typed route parameters, validated input, and request access;
-- database and Claw functionality is feature-gated;
-- `User::query()` is the canonical general query-builder entry point, with convenience predicate entry points such as `User::where_(...)`;
-- request-scoped database access is explicit through `request.connection()` and `request.transaction(...)`;
-- optional components are disabled by default.
-
-Use `README.md` and `docs/public-api.md` as the source of truth for the candidate API instead of examples copied from older commits.
-
-### Feature selection
-
-No optional feature is enabled by default. Applications must explicitly enable the components they use, for example:
-
-```toml
-[dependencies]
-berserk = { version = "0.1.0", features = ["sqlite", "claw", "auth", "openapi"] }
-```
-
-Before publication, repository consumers should use the equivalent path dependency against `crates/framework`.
-
-### Database compatibility
-
-Review `docs/support-policy.md` before upgrading database-backed applications. The `0.1.0` support contract is PostgreSQL 15-18, MySQL 8.4 LTS, and the bundled SQLite path used by Berserk's supported `rusqlite` dependency.
-
-### Security and operational behavior
-
-Applications should review `SECURITY.md` and `docs/known-limitations.md` before deployment. In particular, `0.1.0` does not provide built-in TLS termination, automatic SSRF destination policy, browser-cookie/CSRF policy, or a bounded persistent session store.
-
-### Future upgrades
-
-Once public releases begin, breaking changes, MSRV increases, support-policy changes, and migration guidance will be recorded in `CHANGELOG.md` and this document.
+Rust 1.88 remains the MSRV for the current baseline. Review [compatibility.md](compatibility.md), [known-limitations.md](known-limitations.md), and the release-specific guide before upgrading.
