@@ -15,7 +15,10 @@ pub struct Principal {
 impl Principal {
     pub fn new(subject: impl Into<String>) -> Option<Self> {
         let subject = subject.into();
-        if subject.trim().is_empty() || subject.len() > 1024 || subject.chars().any(char::is_control) {
+        if subject.trim().is_empty()
+            || subject.len() > 1024
+            || subject.chars().any(char::is_control)
+        {
             return None;
         }
         Some(Self {
@@ -103,9 +106,9 @@ impl Principal {
 fn valid_role(role: &str) -> bool {
     !role.is_empty()
         && role.len() <= 128
-        && role.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b':' | b'-' | b'_')
-        })
+        && role
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b':' | b'-' | b'_'))
 }
 
 impl fmt::Debug for Principal {
