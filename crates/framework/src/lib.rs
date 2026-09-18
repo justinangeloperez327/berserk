@@ -54,7 +54,7 @@ pub use server::Server;
 pub mod middleware;
 mod state;
 #[cfg(feature = "auth")]
-pub use middleware::Authenticated;
+pub use middleware::{Authenticated, Guest};
 pub use middleware::{Middleware, Next, RequestId};
 
 pub mod input;
