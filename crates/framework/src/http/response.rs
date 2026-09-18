@@ -118,6 +118,12 @@ impl Response {
         Ok(self)
     }
 
+    /// Remove all values for a header, for example before enforcing a CORS policy.
+    pub fn without_header(mut self, name: &str) -> Self {
+        self.headers.remove(name);
+        self
+    }
+
     pub fn validate(&self) -> Result<(), HttpError> {
         let status = StatusCode::new(self.status)?;
         if !status.allows_body() && (!self.body.is_empty() || self.stream.is_some()) {
