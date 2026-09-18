@@ -1,5 +1,26 @@
 # Upgrade notes
 
+## 0.3.0 development API
+
+The [v0.3.0 guide](v0.3.0.md) describes this unvalidated developer-experience pass. Package versions remain unchanged until release preparation.
+
+| v0.2.0 usage | v0.3.0 usage |
+| --- | --- |
+| `request.json()` for a raw value | `request.json_value()` or `request.json::<Json>()` |
+| `request.query()` for all pairs | `request.query_pairs()` |
+| Manual lookup in query pairs | `request.query("page")?`; duplicate named values are rejected |
+| `Ok(response().text("OK"))` | `response().text("OK")` |
+| `Ok(response().no_content())` | `response().no_content()` |
+| `response().json(&json)?.status(201)` | `response().status(201).json(json)?` |
+
+All response-factory terminals now return `Result<Response>` and validate the completed response. Direct `Response::text` and `Response::no_content` constructors remain infallible. Construct factories with `response()`, rather than a unit `ResponseFactory` value. JSON accepts explicit `ApiResource` mappings without a data envelope; use `resource` or `collection` to preserve existing envelopes.
+
+`request.validate::<T>()` is the concise FormRequest entry point; existing `form_request` and typed action extraction continue to work. `App::configure`/`Request::config` register and borrow validated typed configuration. `Request::shared` returns an owned service handle from existing state.
+
+Network serving now requires the default-enabled `server` feature. Consumers using `default-features = false` must add `server` if they call `bind` or `listen`. `async` remains independently optional. No ORM, transaction, model-binding, or middleware pipeline migration is required.
+
+New scaffolds declare controller/model/request/middleware folders and provide explicit routes and typed configuration. `serve` invokes `cargo run`; `make:middleware` uses the same safe generator rules. For local development before publication, replace the generated `version = "0.3"` dependency with this branch's framework path while retaining the `claw` feature.
+
 ## 0.2.0 release candidate
 
 Rust 1.88 remains supported. This is one coordinated change across the 15 publishable crates. Use the [release guide](v0.2.0.md) and the runnable foundation example for the current API.

@@ -27,4 +27,8 @@ impl StateMap {
     pub(crate) fn get<T: Send + Sync + 'static>(&self) -> Option<&T> {
         self.0.get(&TypeId::of::<T>())?.as_ref().downcast_ref()
     }
+
+    pub(crate) fn shared<T: Send + Sync + 'static>(&self) -> Option<Arc<T>> {
+        self.0.get(&TypeId::of::<T>())?.clone().downcast().ok()
+    }
 }

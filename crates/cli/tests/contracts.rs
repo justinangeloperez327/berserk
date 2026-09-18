@@ -50,7 +50,7 @@ fn project_and_model_generation_refuse_overwrites() {
     let files = generator
         .new_project(PathBuf::from("demo-api").as_path())
         .unwrap();
-    assert_eq!(files.len(), 2);
+    assert_eq!(files.len(), 8);
     assert!(
         fs::read_to_string(temporary.path().join("demo-api/src/main.rs"))
             .unwrap()

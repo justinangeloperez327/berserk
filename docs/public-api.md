@@ -1,16 +1,18 @@
 # Public API contract
 
-The [v0.2.0 release guide](v0.2.0.md) defines typed FormRequest, scoped Claw, async actions, resources, and migration behavior.
+The [v0.3.0 developer-experience guide](v0.3.0.md) extends the [v0.2.0 contracts](v0.2.0.md) for typed FormRequest, scoped Claw, async actions, and resources.
 
-Status: current pre-release contract for the `0.2.0` candidate. The API is implemented and tested, but it is not yet stable and may change before the first stable release.
+Status: v0.3.0 development API. The new changes have not been validated in this pass. The API is not stable and may change before the first stable release.
 
 ## Application
 
 - `App::new() -> App`: create an application with default server configuration.
 - `App::with_config(ServerConfig) -> Result<App>`: validate and use custom server limits.
 - `app.route() -> Route<'_>`: borrow the instance route registrar.
-- `app.listen(address) -> Result<()>`: bind and run the server.
-- `app.bind(address) -> Result<Server>`: bind without immediately entering the run loop.
+- `app.listen(address) -> Result<()>`: bind and run the server (default-enabled `server` feature).
+- `app.bind(address) -> Result<Server>`: bind without immediately entering the run loop (`server`).
+- `app.state(value)`: register one shared service per Rust type.
+- `app.configure(value)`: validate and register typed application configuration.
 - `app.path_for(name, params) -> Result<String>`: reverse a named route and percent-encode supplied path-segment values.
 - Feature-gated subsystems such as database access are registered explicitly on the application rather than discovered from folders.
 
@@ -26,6 +28,7 @@ The registrar also supports:
 - `middleware(...)` for scoped middleware;
 - `group(...)` for atomic grouped registration;
 - `name(...)` for named routes;
+- `crud(...)` for the five model-bound API actions with Claw and FormRequest;
 - `resource(...)` and `api_resource(...)` for conventional REST resources;
 - one root-scoped fallback.
 
@@ -66,10 +69,12 @@ Core request access includes method, raw path, path parameters, query string, he
 
 Higher-level input APIs include:
 
-- `Request::json()` for `application/json` bodies;
-- `Request::query()` for form-style query decoding, preserving repeated keys and decoding `+`/percent escapes;
+- `Request::json::<T>()` for typed `FromJson` decoding of `application/json` bodies, and `json_value()` for raw JSON;
+- `Request::input(name)` for JSON-object fields with query-string fallback;
+- `Request::query(name)` for one decoded value, rejecting duplicates, and `query_pairs()` for all decoded pairs;
+- `Request::config::<T>()` for validated configuration and `shared::<T>()` for an owned service `Arc<T>`;
 - `Request::multipart(max_parts, max_part_headers)` for the bounded buffered multipart subset;
-- `Request::form_request<T>()` and direct FormRequest extraction, including authorization after validation;
+- `Request::validate::<T>()`, existing `form_request::<T>()`, and direct FormRequest extraction, including authorization after validation;
 - handler-level `Validated<T>` extraction.
 
 Validated controller input follows one fixed order:
@@ -91,7 +96,8 @@ Responses provide:
 - `Response::bytes(...)`;
 - `Response::empty()`;
 - `Response::json(...)`, `created(...)`, and `no_content()`;
-- `response()` factory and Resource/ResourceCollection outputs;
+- fluent `response().status(...).header(...).json(...)`, text, empty, and Resource/ResourceCollection outputs, all returning `Result<Response>`;
+- `redirect(path)` or `response().status(303).redirect(path)` for validated same-origin absolute paths;
 - `.status(...)`;
 - validated header insertion/appending.
 
@@ -105,7 +111,7 @@ These components are explicit layers. Applications remain responsible for choosi
 
 ## Server, concurrency, and shutdown
 
-The current server is implemented on bounded Tokio/Hyper infrastructure while preserving synchronous handlers by default, with opt-in async actions on blocking workers.
+The default-enabled `server` feature provides the existing bounded Tokio/Hyper transport while preserving synchronous handlers, with opt-in async actions on blocking workers. Disabling default features without enabling `async` removes the Tokio dependency from the facade; in-memory routing remains available.
 
 `ServerConfig` bounds server resources including worker/queue behavior, request metadata/body sizes, and network deadlines. Deliberate overload is rejected rather than silently corrupting accepted work.
 
@@ -166,11 +172,11 @@ Webhook notifications build on these client contracts and expose optional idempo
 
 ## Optional features
 
-The main `berserk` facade can expose the following optional subsystems: async actions, database, Claw ORM, PostgreSQL, MySQL, SQLite, auth, OpenAPI, cache, storage, events, jobs, outbound client, notifications, and CLI tooling. Optional components are feature-gated rather than enabled implicitly.
+The main `berserk` facade enables `server` by default; it can be disabled for in-memory use. Async actions, database, Claw ORM, PostgreSQL, MySQL, SQLite, auth, OpenAPI, cache, storage, events, jobs, outbound client, notifications, and CLI tooling remain opt-in.
 
 ## Stability and compatibility
 
-- Candidate package version: `0.2.0`.
+- Package manifests retain `0.2.0` pending separate v0.3.0 release preparation.
 - Minimum supported Rust version: 1.88.
 - No crates.io publication has occurred yet.
 - The `0.2.x` API is pre-release and can still change before a stable compatibility commitment.

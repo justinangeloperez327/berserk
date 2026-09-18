@@ -6,6 +6,30 @@ pub trait ApiResource {
     fn to_resource(&self) -> Json;
 }
 
+impl ApiResource for Json {
+    fn to_resource(&self) -> Json {
+        self.clone()
+    }
+}
+
+impl<T: ApiResource> ApiResource for [T] {
+    fn to_resource(&self) -> Json {
+        Json::Array(self.iter().map(ApiResource::to_resource).collect())
+    }
+}
+
+impl<T: ApiResource> ApiResource for Vec<T> {
+    fn to_resource(&self) -> Json {
+        self.as_slice().to_resource()
+    }
+}
+
+impl<T: ApiResource> ApiResource for Option<T> {
+    fn to_resource(&self) -> Json {
+        self.as_ref().map_or(Json::Null, ApiResource::to_resource)
+    }
+}
+
 pub struct Resource<T>(pub T);
 
 impl<T> Resource<T> {

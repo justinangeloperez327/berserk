@@ -68,7 +68,7 @@ PostgreSQL 14 and older, PostgreSQL 19 prereleases, MySQL versions outside 8.4 L
 
 ## Optional components
 
-No optional subsystem is enabled by default. Applications must explicitly select database drivers, Claw ORM, auth, OpenAPI, cache, storage, events, jobs, outbound client, notifications, and CLI support as needed.
+The v0.3.0 development API makes the existing HTTP transport a default-enabled `server` feature. Disable default features for in-memory routing without Tokio, unless opting into `async`. Applications must still explicitly select database drivers, Claw ORM, auth, OpenAPI, cache, storage, events, jobs, outbound client, notifications, and CLI support as needed.
 
 This keeps the default dependency surface small but means examples that use optional APIs will not compile until the matching Cargo features are enabled.
 

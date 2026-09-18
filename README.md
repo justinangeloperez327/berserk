@@ -4,7 +4,7 @@ Berserk is a Rust framework for building secure, maintainable web applications w
 
 It combines familiar conventions and fluent APIs with Rust's explicit errors, type safety, predictable resource ownership, and performance.
 
-> **Status:** v0.2.0 release candidate. Berserk is under active development and has not been published to crates.io. The public API may change before the first stable release.
+> **Status:** v0.3.0 developer-experience work is in progress and has not been validated in this implementation pass. Berserk has not been published to crates.io. See the [v0.3.0 guide](docs/v0.3.0.md) for the new APIs and migration details.
 
 ## Why Berserk?
 
@@ -27,14 +27,14 @@ After Berserk is published, add it to your application's `Cargo.toml`:
 
 ```toml
 [dependencies]
-berserk = "0.2.0"
+berserk = "0.3"
 ```
 
 Enable optional components as needed:
 
 ```toml
 [dependencies]
-berserk = { version = "0.2.0", features = ["postgres", "auth", "openapi"] }
+berserk = { version = "0.3", features = ["postgres", "auth", "openapi"] }
 ```
 
 Until the package is published, use a local path dependency:
@@ -47,22 +47,22 @@ berserk = { path = "../berserk/crates/framework" }
 ## Quick start
 
 ```rust
-use berserk::{App, Response, Result};
+use berserk::{response, App, Response, Result};
 
 fn main() -> Result<()> {
     let mut app = App::new();
 
     {
         let mut route = app.route();
-        route.get("/", || Response::text("Hello from Berserk!"))?;
+        route.get("/", || response().text("Hello from Berserk!"))?;
         route.get("/users/{id}", show_user)?;
     }
 
     app.listen("127.0.0.1:3000")
 }
 
-fn show_user(id: u64) -> Response {
-    Response::text(format!("User {id}"))
+fn show_user(id: u64) -> Result<Response> {
+    response().text(format!("User {id}"))
 }
 ```
 
@@ -211,12 +211,13 @@ One lazy database connection belongs to each request. Query construction perform
 
 Enable the optional `async` feature and use `route.get_async(...)` (or another verb) to await application I/O. Actions remain on a blocking worker so request scope survives awaits; synchronous database drivers still block that worker. Spawned tasks need their own scope. Dropping a response does not cancel an action that has started.
 
-The CLI includes `make:model`, `make:controller`, `make:request`, `make:resource`, and `make:policy`. Generated code has explicit field mappings and policy rules. See the [v0.2.0 guide](docs/v0.2.0.md), [migration notes](docs/upgrade-notes.md), and [runnable foundation application](examples/foundation/README.md) for complete contracts and examples.
+The CLI includes `new`, `serve`, `make:model`, `make:controller`, `make:request`, `make:middleware`, `make:resource`, and `make:policy`. New applications have explicit controllers, models, requests, middleware, configuration, and routes. See the [v0.3.0 guide](docs/v0.3.0.md), [migration notes](docs/upgrade-notes.md), and [foundation CRUD application](examples/foundation/README.md).
 
 ## Optional features
 
 | Feature         | Purpose                                      |
 | --------------- | -------------------------------------------- |
+| `server`        | Tokio/Hyper serving; enabled by default       |
 | `async`         | Optional async application actions          |
 | `database`      | Driver-neutral database contracts            |
 | `claw`          | Claw ORM model and relationship layer        |

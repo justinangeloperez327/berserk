@@ -1,7 +1,7 @@
 use berserk::{
     claw::{field, IntoInsert, IntoUpdate, Model, Row, Transaction, Value},
-    ApiResource, CrudController, Error, FormRequest, FromJson, IntoResponse, Json, Request,
-    Resource, ResourceCollection, Response, Result, ValidationErrors, ValidationResult,
+    response, ApiResource, Error, FormRequest, FromJson, IntoResponse, Json, Request,
+    ResourceCollection, Response, Result, ValidationErrors, ValidationResult,
 };
 
 pub struct User {
@@ -48,8 +48,12 @@ impl FromJson for UserInput {
         let name = value.get("name").and_then(Json::as_str);
         let email = value.get("email").and_then(Json::as_str);
         let mut errors = ValidationErrors::default();
-        errors.required("name", name);
-        errors.required("email", email);
+        if name.is_none() {
+            errors.add("name", "string", "A name string is required.");
+        }
+        if email.is_none() {
+            errors.add("email", "string", "An email string is required.");
+        }
         errors.finish()?;
         Ok(Self {
             name: name.unwrap_or_default().into(),
@@ -96,11 +100,8 @@ impl IntoUpdate<User> for UserInput {
 }
 
 pub struct Users;
-impl CrudController for Users {
-    type Model = User;
-    type Create = UserInput;
-    type Update = UserInput;
-    fn index(&self) -> Result<Response> {
+impl Users {
+    pub fn index() -> Result<Response> {
         ResourceCollection::page(
             User::query()
                 .order_by("id", berserk::claw::Direction::Asc)
@@ -108,19 +109,27 @@ impl CrudController for Users {
         )
         .into_response()
     }
-    fn store(&self, input: UserInput) -> Result<Response> {
+    pub fn store(request: Request) -> Result<Response> {
+        let input = request.validate::<UserInput>()?;
         let user = Transaction::run(|| User::create(input))?;
-        Ok(Resource::new(user).into_response()?.status(201))
+        response().status(201).json(user)
     }
-    fn show(&self, user: User) -> Result<Response> {
-        Resource::new(user).into_response()
+    pub fn show(id: u64) -> Result<Response> {
+        response().json(Self::find(id)?)
     }
-    fn update(&self, mut user: User, input: UserInput) -> Result<Response> {
+    pub fn update(id: u64, request: Request) -> Result<Response> {
+        let mut user = Self::find(id)?;
+        let input = request.validate::<UserInput>()?;
         user.update(input)?;
-        Resource::new(user).into_response()
+        response().json(user)
     }
-    fn destroy(&self, user: User) -> Result<Response> {
-        user.delete()?;
-        Ok(Response::no_content())
+    pub fn destroy(id: u64) -> Result<Response> {
+        Self::find(id)?.delete()?;
+        response().no_content()
+    }
+
+    fn find(id: u64) -> Result<User> {
+        let key = i64::try_from(id).map_err(|_| Error::bad_request("Invalid route parameter"))?;
+        User::find(key)?.ok_or_else(Error::not_found)
     }
 }

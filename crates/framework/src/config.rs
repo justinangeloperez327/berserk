@@ -1,6 +1,9 @@
 use berserk_core::{ConfigError, Validate};
 use std::time::Duration;
 
+/// Keeps application configuration distinct from services of the same Rust type.
+pub(crate) struct Configuration<T>(pub(crate) T);
+
 /// Proposed defaults. Resource enforcement belongs to the server phase.
 #[derive(Debug, Clone)]
 pub struct ServerConfig {

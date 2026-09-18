@@ -18,12 +18,16 @@ pub fn execute(
         Command::New { path } => generator
             .new_project(&path)
             .map(|files| summary("project", &files)),
+        Command::Serve => serve(generator),
         Command::MakeController { name } => generator
             .make_controller(&name)
             .map(|files| summary("controller", &files)),
         Command::MakeRequest { name } => generator
             .make_request(&name)
             .map(|files| summary("request", &files)),
+        Command::MakeMiddleware { name } => generator
+            .make_middleware(&name)
+            .map(|files| summary("middleware", &files)),
         Command::MakeResource { name } => generator
             .make_resource(&name)
             .map(|files| summary("resource", &files)),
@@ -40,6 +44,28 @@ pub fn execute(
         Command::Help => Ok(Command::help().into()),
     }
 }
+
+fn serve(generator: &Generator) -> Result<String> {
+    if !generator.root().join("Cargo.toml").is_file() {
+        return Err(CliError::new(
+            ErrorKind::UnsafePath,
+            "run berserk serve from an application containing Cargo.toml",
+        ));
+    }
+    let status = std::process::Command::new("cargo")
+        .arg("run")
+        .current_dir(generator.root())
+        .status()
+        .map_err(CliError::from_io)?;
+    if !status.success() {
+        return Err(CliError::new(
+            ErrorKind::Process,
+            format!("cargo run failed: {status}"),
+        ));
+    }
+    Ok("application stopped".into())
+}
+
 fn summary(kind: &str, files: &[GeneratedFile]) -> String {
     format!(
         "generated {kind}: {}",

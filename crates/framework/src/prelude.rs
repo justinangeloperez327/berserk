@@ -10,9 +10,9 @@ pub use crate::{Metrics, MetricsLayer, RateLimitLayer, RateLimiter, RequestLogge
 #[cfg(feature = "claw")]
 pub use claw_orm::{Model, PersistableModel, ScopedRouteModel};
 
-pub use crate::{FormRequest, ValidationResult};
+pub use crate::{FormRequest, FromJson, Json, ValidationErrors, ValidationResult};
 
-pub use crate::{response, HandleErrors};
+pub use crate::{redirect, response, HandleErrors};
 #[cfg(feature = "auth")]
 pub use crate::{Auth, RequireAbility};
 
