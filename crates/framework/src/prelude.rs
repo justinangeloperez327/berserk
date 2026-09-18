@@ -15,6 +15,7 @@ pub use claw_orm::{Model, PersistableModel, ScopedRouteModel};
 pub use crate::{FormRequest, FromJson, Json, ValidationErrors, ValidationResult};
 
 pub use crate::{redirect, response, HandleErrors};
+pub use crate::{Cors, SecurityHeaders};
 #[cfg(feature = "auth")]
 pub use crate::{Auth, RequireAbility};
 
