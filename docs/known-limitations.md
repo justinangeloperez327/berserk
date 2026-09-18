@@ -1,12 +1,10 @@
 # Known limitations
 
-This document records intentional or currently unresolved boundaries for the Berserk `0.2.0` release candidate. These are not necessarily defects, but applications must account for them explicitly.
+This document records intentional or unresolved boundaries of the current Berserk v0.3.0 pre-1.0 baseline. They are not necessarily defects, but applications must account for them.
 
 ## Security review status
 
-Berserk has completed an internal security/API review, but the release checklist still requires an independent external security/API review. The project has not received a third-party penetration test or security certification.
-
-Do not describe the `0.2.0` candidate as production-certified.
+Berserk is not independently security-certified. Internal review, automated security checks, fuzzing, and other repository gates do not replace an independent security assessment.
 
 ## TLS termination
 
@@ -14,68 +12,42 @@ The built-in HTTP server does not terminate TLS. Internet-facing deployments req
 
 ## Outbound HTTPS and SSRF policy
 
-The built-in `TcpHttpClient` transport intentionally sends plaintext `http` only. `https` requires a TLS-capable adapter.
+The built-in TCP HTTP transport does not provide a complete application SSRF policy. Applications accepting user-influenced destinations must enforce allowed schemes, hosts, ports, and network ranges before dispatching requests. HTTPS requires an appropriate TLS-capable transport.
 
-The outbound client does not define an SSRF allowlist. Applications accepting user-influenced URLs must enforce allowed schemes, hosts, ports, and network ranges before dispatching requests.
+## Synchronous and async boundaries
 
-## Synchronous request handlers
+Berserk remains sync-first. Optional async actions use the framework's async adapters, while synchronous database drivers remain blocking. Rust cannot safely force-stop arbitrary user code that blocks forever.
 
-Berserk uses bounded Tokio/Hyper infrastructure internally while preserving synchronous public request handlers.
-
-Rust cannot safely force-stop arbitrary synchronous application code. A handler that blocks forever can therefore prevent graceful shutdown from completing even though network I/O deadlines are bounded.
-
-Applications should keep request-path work bounded and move long-running work to appropriate job or external worker infrastructure.
+Spawned tasks do not automatically inherit request-local database or authentication scope. Long-running work should use an appropriate job or external-worker design.
 
 ## Browser authentication policy
 
-The auth component provides password, bearer-session, principal, guard, and authorization primitives, but it does not automatically define browser-cookie or CSRF policy.
-
-Applications using cookies must define Secure, HttpOnly, SameSite, rotation/revocation, and CSRF behavior appropriate to their deployment.
+The current auth component provides authentication and authorization primitives, but applications using cookie-based credentials must define appropriate Secure, HttpOnly, SameSite, rotation/revocation, and CSRF behavior. v0.4.0 is planned to strengthen the framework's authentication and security surface.
 
 ## Memory session store
 
-`MemorySessionStore` is process-local and unbounded. It is useful for development and controlled workloads, but deployments exposed to untrusted session creation should use a bounded and/or persistent store implementation with operational limits.
+`MemorySessionStore` is process-local and unbounded. It is appropriate for development and controlled workloads, not as a general persistent production session store.
 
 ## Local storage trust boundary
 
-`LocalStorage` validates normalized relative paths, rejects traversal and observed symlinks, bounds object/listing sizes, and uses temporary files for writes.
-
-Its standard-library implementation assumes the storage tree is not concurrently rewritten by an untrusted local actor. Use an isolated storage root with appropriate operating-system permissions.
+`LocalStorage` validates normalized relative paths, rejects traversal and observed symlinks, bounds operations, and uses safe write behavior where documented. Its standard-library implementation assumes the storage tree is not concurrently rewritten by an untrusted local actor.
 
 ## Request transactions
 
-Request-scoped transactions reuse the request connection and support commit/rollback behavior through the documented transaction API. Nested request transactions are not currently supported.
+Request-scoped transactions reuse the request connection. Nested request transactions are not currently supported. Backend capabilities still apply.
 
-Driver capabilities still apply, and a backend may reject transaction options it does not support.
+## Database and ORM boundaries
+
+Supported database versions are defined in [support-policy.md](support-policy.md). Synchronous SQL drivers remain blocking. Very large eager-load collections can encounter driver parameter limits. Offset pagination requires explicit ordering and a transaction when count/items must share a snapshot. Some model behaviors, such as timestamps and soft deletes, remain application responsibilities.
 
 ## Platform support
 
-The strongest `0.2.0` host claim is Linux x86_64 validated on Ubuntu 24.04 LTS.
+Linux x86_64 is the strongest release-validation target. Windows and macOS receive development compatibility coverage but not necessarily every live-database, fuzz, load, or soak workflow used on Linux.
 
-Windows and macOS receive development compatibility compile/test coverage, but they do not receive the same live-database, fuzzing, load, and soak validation as the Tier-1 Linux host.
+## Feature combinations
 
-Other operating systems, Linux distributions, and architectures are outside the documented support contract unless added to CI and `docs/support-policy.md`.
-
-## Database support
-
-The `0.2.0` support contract is intentionally narrow:
-
-- PostgreSQL 15, 16, 17, and 18;
-- MySQL 8.4 LTS;
-- bundled SQLite through the supported `rusqlite` path.
-
-PostgreSQL 14 and older, PostgreSQL 19 prereleases, MySQL versions outside 8.4 LTS, MariaDB, and arbitrary system-installed SQLite libraries are not claimed as supported.
-
-## Optional components
-
-The v0.3.0 development API makes the existing HTTP transport a default-enabled `server` feature. Disable default features for in-memory routing without Tokio, unless opting into `async`. Applications must still explicitly select database drivers, Claw ORM, auth, OpenAPI, cache, storage, events, jobs, outbound client, notifications, and CLI support as needed.
-
-This keeps the default dependency surface small but means examples that use optional APIs will not compile until the matching Cargo features are enabled.
+Berserk is modular. Applications must enable the features required by the APIs they use. The `server` feature controls network serving; in-memory application handling can be used without it. The `async` feature is independently optional.
 
 ## Pre-1.0 compatibility
 
-`0.2.x` is pre-1.0. The API is documented and release-reviewed, but breaking changes may still occur in later pre-1.0 releases when necessary. Such changes should be recorded in `CHANGELOG.md` with migration guidance when practical.
-
-## v0.2.0 scope and async boundaries
-
-Synchronous SQL drivers remain blocking. Optional async actions occupy a blocking worker for their lifetime; disconnects, timeouts, and dropped response futures cannot force-stop started application code. Spawned tasks do not inherit database or principal scope. Transaction closures and explicit scope helpers are synchronous. Nested transactions are rejected. Eager loading is bulk and explicit, but very large collections can hit driver parameter limits. Offset pagination requires explicit ordering and a transaction when count/items must share a snapshot. Model timestamps and soft deletes require application code.
+v0.3.0 remains pre-1.0. Later minor releases may make breaking changes when needed for security, correctness, architecture, or developer experience. Compatibility-affecting changes should be recorded in `CHANGELOG.md` and [upgrade-notes.md](upgrade-notes.md).
