@@ -1,8 +1,8 @@
 # Public API contract
 
-The [v0.3.0 developer-experience guide](v0.3.0.md) extends the [v0.2.0 contracts](v0.2.0.md) for typed FormRequest, scoped Claw, async actions, and resources.
+The [v0.3.0 developer-experience guide](v0.3.0.md) documents the current Berserk pre-1.0 API, building on the typed FormRequest, scoped Claw, async-action, and resource foundations introduced in v0.2.0.
 
-Status: v0.3.0 development API. The new changes have not been validated in this pass. The API is not stable and may change before the first stable release.
+Status: v0.3.0 pre-1.0 API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
 
 ## Application
 
@@ -176,7 +176,7 @@ The main `berserk` facade enables `server` by default; it can be disabled for in
 
 ## Stability and compatibility
 
-- Package manifests retain `0.2.0` pending separate v0.3.0 release preparation.
+- Package and release metadata should remain aligned with the current v0.3.0 baseline.
 - Minimum supported Rust version: 1.88.
 - No crates.io publication has occurred yet.
 - The `0.2.x` API is pre-release and can still change before a stable compatibility commitment.
