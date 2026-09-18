@@ -204,7 +204,10 @@ fn credentials_and_wildcards_are_mutually_exclusive_in_both_builder_orders() {
             response.headers().get("access-control-allow-credentials"),
             Some("true")
         );
-        assert_eq!(response.headers().get("access-control-allow-origin"), Some("https://client.example"));
+        assert_eq!(
+            response.headers().get("access-control-allow-origin"),
+            Some("https://client.example")
+        );
     }
     let app = application(Cors::new().allow_origin("*").unwrap());
     for origin in ["https://unlisted.example", "null"] {
@@ -439,7 +442,10 @@ fn security_layers_preserve_auth_challenges_and_preflight_skips_authentication()
             ],
         ));
         assert_eq!(response.status_code(), status);
-        assert_eq!(response.headers().get("access-control-allow-origin"), Some("https://client.example"));
+        assert_eq!(
+            response.headers().get("access-control-allow-origin"),
+            Some("https://client.example")
+        );
         assert_eq!(response.headers().get("x-frame-options"), Some("DENY"));
         if status == 401 {
             assert_eq!(response.headers().get("www-authenticate"), Some("Bearer"));
