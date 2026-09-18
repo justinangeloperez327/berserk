@@ -4,7 +4,7 @@ Berserk prepares pre-publication release evidence through `.github/workflows/rel
 
 ## Why the evidence is source-based before the first publication
 
-Berserk `0.1.0` is a multi-crate workspace whose publishable crates depend on one another. Stable Cargo rewrites versioned path dependencies to registry dependencies when creating a distributable package. Before the first release, those internal `0.1.0` dependencies do not yet exist on crates.io, so downstream crates cannot all be turned into final `.crate` archives in advance.
+Berserk is a multi-crate workspace whose publishable crates depend on one another. Stable Cargo rewrites versioned path dependencies to registry dependencies when creating a distributable package. During an initial coordinated publication, downstream crates cannot be packaged against registry dependencies until required internal versions are visible in the registry.
 
 The release workflow therefore attests the exact source snapshot and package inputs before publication. Actual `.crate` archives are created by Cargo during the later sequential publication process, after each required internal dependency is available in the registry.
 
@@ -38,7 +38,7 @@ After downloading the workflow artifact, verify the checksums from inside the ex
 sha256sum -c SHA256SUMS
 ```
 
-A current `0.1.0` evidence bundle contains 17 checksum subjects:
+A complete evidence bundle contains 17 checksum subjects:
 
 - one source archive;
 - 15 Cargo package-file lists; and

@@ -1,6 +1,6 @@
-# Berserk first-publication runbook
+# Berserk publication runbook
 
-This runbook is for the repository owner or an explicitly authorized release maintainer publishing the first coordinated Berserk release to crates.io.
+This runbook is for the repository owner or an explicitly authorized release maintainer publishing a coordinated Berserk release to crates.io.
 
 It does **not** replace the release checklist, independent security/API review, or owner approval. Do not publish until every required pre-publication gate is complete.
 
@@ -24,7 +24,7 @@ Before the first `cargo publish` command:
 6. The release evidence for that commit has verified checksums and GitHub/Sigstore provenance.
 7. Package-name availability has been rechecked immediately before publication.
 8. The crates.io account is ready and the release credential is available only in the maintainer's secure environment.
-9. `docs/publication-record-template.md` has been copied to a private or repository release record and the exact commit/version are filled in before the first upload.
+9. A release record has been prepared with the exact commit, version, package order, and publication results.
 
 Do not use `--allow-dirty` to bypass source-state checks for a release.
 
@@ -33,7 +33,7 @@ Do not use `--allow-dirty` to bypass source-state checks for a release.
 From the repository root:
 
 ```sh
-python3 scripts/release_plan.py --version 0.2.0
+python3 scripts/release_plan.py --version VERSION
 ```
 
 The command must report exactly 15 publishable packages and a dependency-safe order.
@@ -41,14 +41,14 @@ The command must report exactly 15 publishable packages and a dependency-safe or
 To render the exact publication commands without executing them:
 
 ```sh
-python3 scripts/release_plan.py --version 0.2.0 --format commands
+python3 scripts/release_plan.py --version VERSION --format commands
 ```
 
 To retain the machine-readable plan with the release evidence:
 
 ```sh
-python3 scripts/release_plan.py --version 0.2.0 --format json \
-  --output target/release-plan-0.2.0.json
+python3 scripts/release_plan.py --version VERSION --format json \
+  --output target/release-plan-VERSION.json
 ```
 
 Review the plan before continuing. If the package count, version, dependency graph, or order is unexpected, stop and fix the repository rather than editing the generated order manually.
@@ -79,7 +79,7 @@ Verify the exact package/version from outside the Berserk workspace so Cargo can
 
 ```sh
 cd /tmp
-cargo info PACKAGE@0.2.0 --registry crates-io
+cargo info PACKAGE@VERSION --registry crates-io
 ```
 
 You may also verify the version directly on crates.io.
@@ -100,9 +100,9 @@ After all 15 publishes are recorded as successful, verify every exact version fr
 
 ```sh
 cd /tmp
-cargo info berserk@0.2.0 --registry crates-io
-cargo info berserk-core@0.2.0 --registry crates-io
-cargo info claw-orm@0.2.0 --registry crates-io
+cargo info berserk@VERSION --registry crates-io
+cargo info berserk-core@VERSION --registry crates-io
+cargo info claw-orm@VERSION --registry crates-io
 ```
 
 The publication record should contain remote-verification status for all 15 packages, not only these examples.
@@ -115,7 +115,7 @@ Example dependency:
 
 ```toml
 [dependencies]
-berserk = { version = "0.2.0", features = ["sqlite", "claw", "auth", "openapi"] }
+berserk = { version = "VERSION", features = ["sqlite", "claw", "auth", "openapi"] }
 ```
 
 Compile a minimal application using the documented quick-start API with `cargo check --locked` (or generate and then retain its lockfile before the locked check).
@@ -127,7 +127,7 @@ This test must prove that the public facade resolves entirely from the published
 Only after the coordinated crates.io set and fresh external consumer are verified:
 
 1. Confirm the release commit is still the exact approved/provenance commit.
-2. Create the immutable version tag for that commit (for `0.2.0`, `v0.2.0`).
+2. Create the immutable version tag for that commit (for version `X.Y.Z`, use `vX.Y.Z`).
 3. Push the tag.
 4. Create the GitHub Release from that tag using the reviewed changelog/release notes.
 5. Attach or link the retained release evidence as appropriate.

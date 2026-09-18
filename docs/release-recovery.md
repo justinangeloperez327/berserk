@@ -64,7 +64,7 @@ Before yanking, record the reason, affected package/version, incident or advisor
 A crates.io owner can yank an explicit package/version with Cargo, for example:
 
 ```sh
-cargo yank berserk@0.1.0
+cargo yank berserk@VERSION
 ```
 
 For a coordinated incident, evaluate every affected package independently and also evaluate the transitive Berserk packages that depend on it. Do not assume yanking one low-level crate is sufficient when higher-level packages still resolve to that exact version.
@@ -84,7 +84,7 @@ Unyank only when the original reason for the yank is proven incorrect or has bee
 Example:
 
 ```sh
-cargo yank berserk@0.1.0 --undo
+cargo yank berserk@VERSION --undo
 ```
 
 Do not use unyank as a substitute for publishing a corrected version when the package contents themselves are defective.

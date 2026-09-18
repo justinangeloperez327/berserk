@@ -20,7 +20,7 @@ The maintainer targets acknowledgement within 3 business days and initial triage
 
 ## Supported versions
 
-There are no published supported releases yet. The planned initial package version is `0.1.0`; publishable library and CLI crates are prepared, while examples and benchmarks remain non-publishable. Compatibility may still change before the first stable release.
+Berserk v0.3.0 is the current pre-1.0 baseline. Compatibility may still change before the first stable release. Security support and remediation follow the current repository support policy and release documentation.
 
 ## Security boundaries
 

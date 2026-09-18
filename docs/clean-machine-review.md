@@ -2,7 +2,7 @@
 
 Date: 2026-09-17
 
-This review checks the Berserk `0.1.0` candidate from the perspective of a new consumer rather than from inside the workspace implementation.
+This historical review checked an earlier Berserk candidate from the perspective of a new consumer rather than from inside the workspace implementation. It records evidence from 2026-09-17 and must not be treated as validation of a later release candidate.
 
 ## Scope
 

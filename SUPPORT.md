@@ -1,13 +1,13 @@
-# Support policy
+# Support
 
-The project has no supported release yet. Source snapshots are development artifacts, not stability promises.
+Berserk is currently pre-1.0.
 
-The intended initial policy is:
+- Minimum supported Rust version (MSRV): **Rust 1.88**.
+- Stable Rust is the primary development toolchain.
+- Linux x86_64 is the primary release-validation platform.
+- Windows and macOS receive development compatibility coverage.
+- PostgreSQL, MySQL, and SQLite support is feature-gated and defined by the tested matrix.
+- Before 1.0, users should normally upgrade to the latest Berserk minor release to receive fixes.
+- Security or correctness fixes may require breaking changes before 1.0.
 
-- Rust 1.82 is the minimum supported Rust version (MSRV).
-- Stable Rust is the primary toolchain.
-- PostgreSQL, MySQL, and SQLite are optional and tested independently as well as together.
-- The latest minor release receives fixes before 1.0; older pre-1.0 minors may require upgrading.
-- Security fixes may require breaking changes before 1.0.
-
-This policy becomes binding only after CI passes, a license and final package names are selected, and the first release is explicitly published by the owner.
+The authoritative platform, toolchain, and database matrix is maintained in [docs/support-policy.md](docs/support-policy.md). Security reporting is covered by [SECURITY.md](SECURITY.md).

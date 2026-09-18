@@ -1,6 +1,6 @@
-# Berserk 0.1.0 support policy
+# Berserk support policy
 
-This policy defines the support boundary intended for the first public `0.1.0` release. It is deliberately narrower than the set of systems where Berserk may happen to compile.
+This policy defines the support boundary for the current Berserk v0.3.0 pre-1.0 baseline. It is deliberately narrower than the set of systems where Berserk may happen to compile.
 
 ## Rust toolchain
 
@@ -14,7 +14,7 @@ This policy defines the support boundary intended for the first public `0.1.0` r
 
 - **Linux x86_64**, validated on **Ubuntu 24.04 LTS**.
 
-Tier 1 means the release-blocking quality, MSRV, live-database, security, fuzzing, load, and package workflows are expected to remain green for the release candidate. This is the strongest host-platform compatibility claim for `0.1.0`; it does not replace the separate independent security/API review gate or imply security certification.
+Tier 1 means the release-blocking quality, MSRV, live-database, security, fuzzing, load, and package workflows are expected to remain green for the release candidate. This is the strongest host-platform compatibility claim for the current baseline; it does not replace the separate independent security/API review gate or imply security certification.
 
 ### Tier 2: development compatibility
 
@@ -25,13 +25,13 @@ Tier 2 runs workspace compile and test coverage with all features. These platfor
 
 The standalone minimal API and fresh external-consumer checks run on the Tier-1 Linux CI path rather than being duplicated on every Tier-2 runner.
 
-Other operating systems, Linux distributions, and architectures may work but are not part of the `0.1.0` support contract unless they are added to CI and this document.
+Other operating systems, Linux distributions, and architectures may work but are not part of the current support contract unless they are added to CI and this document.
 
 ## Database compatibility
 
 Database support means Berserk's driver contract and migration tests run against a real server in CI for the listed server line.
 
-| Database | Supported for `0.1.0` | CI evidence |
+| Database | Supported for the current baseline | CI evidence |
 | --- | --- | --- |
 | PostgreSQL | **15, 16, 17, 18** | Real server test for each major version using the current official major Docker image |
 | MySQL | **8.4 LTS** | Real MySQL 8.4 server test |
@@ -39,9 +39,9 @@ Database support means Berserk's driver contract and migration tests run against
 
 For PostgreSQL, use the latest available minor release in the supported major line. The CI major tags intentionally follow the current patch release in each major version.
 
-PostgreSQL 14 and older are not part of the `0.1.0` support contract. PostgreSQL 14 reaches upstream end of support on 2026-11-12, so Berserk does not add a new release commitment to that line shortly before its retirement. PostgreSQL 19 prereleases are not supported.
+PostgreSQL 14 and older are not part of the current support contract. PostgreSQL 14 reaches upstream end of support on 2026-11-12, so Berserk does not add a new release commitment to that line shortly before its retirement. PostgreSQL 19 prereleases are not supported.
 
-MySQL versions other than 8.4 LTS, including MySQL 8.0 and 9.x/other later lines, are not claimed as supported until they are added to the live-database matrix. MariaDB is not claimed as MySQL-compatible for `0.1.0`.
+MySQL versions other than 8.4 LTS, including MySQL 8.0 and 9.x/other later lines, are not claimed as supported until they are added to the live-database matrix. MariaDB is not claimed as MySQL-compatible for the current baseline.
 
 The SQLite feature uses `rusqlite` with its `bundled` feature. Berserk therefore supports the SQLite library compiled by that dependency; compatibility with an arbitrary system-installed SQLite library is not part of the `0.1.0` contract.
 

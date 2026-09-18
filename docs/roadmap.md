@@ -1,33 +1,51 @@
-# Development roadmap
+# Berserk roadmap
 
-Current candidate: [Berserk v0.2.0](v0.2.0.md). The phases below record the foundation history.
+Berserk v0.3.0 is the current completed developer-experience baseline. Development now moves from foundation work toward application security, services, ORM maturity, testing, and production readiness.
 
+## Completed
 
-1. **Public API Design**
-2. **Workspace and Core**
-3. **Requests and Responses**
-4. **Routing and Handlers**
-5. **HTTP Parsing and Encoding**
-6. **Server Execution**
-7. **Reliability**
-8. **Working Application**
-9. **Middleware and State**
-10. **JSON and Validation**
-11. **HTTP Expansion**
-12. **Performance Baseline**
-13. **Database Contracts**
-14. **PostgreSQL Driver**
-15. **MySQL and SQLite Drivers**
-16. **Fluent Query Builder**
-17. **Models and Relationships**
-18. **Database Tooling**
-19. **Authentication and Authorization**
-20. **API Resources and Documentation**
-21. **Operational Features**
-22. **Cache and Storage**
-23. **Events and Background Jobs**
-24. **External Communication**
-25. **Developer Tooling**
-26. **Hardening and Maintenance**
+### v0.1.0 — Foundation
 
-No version numbers are assigned to phases. Every phase includes documentation, tests, and review. Source for all 26 planned phases is prepared. The stable toolchain, Rust 1.88 MSRV, independent consumer, and dependency-policy gates pass in CI. Fuzzing, live PostgreSQL/MySQL testing, load/soak measurements, independent review, final package naming/versioning, and owner approval remain pending, so the framework is not release-ready. Publication remains with the user.
+Application assembly, HTTP transport, routing, requests/responses, validation, database contracts and drivers, Claw ORM foundations, middleware/state, optional application components, testing infrastructure, and developer tooling.
+
+### v0.2.0 — Typed application development
+
+FormRequest extraction, request-scoped Claw operations, typed CRUD controllers, eager loading, transactions, pagination/resources, unified application errors, async action support, generators, and the foundation application.
+
+### v0.3.0 — Developer experience
+
+Concise request/response APIs, controller ergonomics, typed route parameters, resource routing, middleware ergonomics, typed state/configuration, CLI/application skeleton improvements, and a coherent CRUD example.
+
+## Planned
+
+### v0.4.0 — Authentication and security
+
+Strengthen authentication, authorization, password/token handling, guards, security middleware, rate limiting, CORS/security headers, and consistent 401/403/429 behavior.
+
+### v0.5.0 — Application services
+
+Mature cache, storage, events, jobs/queues, notifications, mail, and related application-service integrations.
+
+### v0.6.0 — Database and Claw ORM
+
+Expand ORM ergonomics, relationships, query capabilities, migrations, transactions, performance, and database developer experience.
+
+### v0.7.0 — Testing
+
+Improve application test APIs, HTTP assertions, database test workflows, fakes, fixtures, and framework-level testing ergonomics.
+
+### v0.8.0 — Observability and production
+
+Improve logging, tracing, metrics, health/readiness behavior, operational configuration, deployment guidance, and production hardening.
+
+### v0.9.0 — Stabilization
+
+Reduce API churn, resolve known limitations where practical, strengthen documentation and compatibility guarantees, and prepare the public API for 1.0.
+
+### v1.0.0 — Stable baseline
+
+Establish the first stable Berserk public API and documented production baseline.
+
+## Principles
+
+Roadmap versions describe direction, not a promise that every proposed API will ship unchanged. Security, correctness, Rust safety, MSRV compatibility, and coherent developer experience take priority over copying another framework's syntax.

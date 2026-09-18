@@ -2,7 +2,7 @@
 
 Date checked: 2026-09-17
 
-This record covers the package identities prepared for Berserk `0.1.0`.
+This historical record covers the intended Berserk package identities. Package-name availability is time-sensitive and must be rechecked immediately before first publication.
 
 ## Method
 
