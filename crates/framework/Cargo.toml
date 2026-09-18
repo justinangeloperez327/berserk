@@ -11,8 +11,9 @@ description = "Berserk web framework for secure, maintainable Rust applications.
 publish = true
 
 [features]
-default = []
-async = []
+default = ["server"]
+server = ["dep:bytes", "dep:http", "dep:http-body-util", "dep:hyper", "dep:hyper-util", "dep:tokio"]
+async = ["dep:tokio"]
 database = ["dep:berserk-database"]
 claw = ["database", "dep:claw-orm"]
 postgres = ["database", "berserk-database/postgres"]
@@ -43,9 +44,29 @@ berserk-jobs = { workspace = true, optional = true }
 berserk-client = { workspace = true, optional = true }
 berserk-notifications = { workspace = true, optional = true }
 berserk-cli = { workspace = true, optional = true }
-bytes = "1.12"
-http = "1.5"
-http-body-util = { version = "0.1.5", features = ["channel"] }
-hyper = { version = "1.11", features = ["http1", "server"] }
-hyper-util = { version = "0.1.20", features = ["http1", "server", "tokio"] }
-tokio = { version = "1.53", features = ["net", "rt-multi-thread", "sync", "time"] }
+bytes = { version = "1.12", optional = true }
+http = { version = "1.5", optional = true }
+http-body-util = { version = "0.1.5", features = ["channel"], optional = true }
+hyper = { version = "1.11", features = ["http1", "server"], optional = true }
+hyper-util = { version = "0.1.20", features = ["http1", "server", "tokio"], optional = true }
+tokio = { version = "1.53", features = ["net", "rt-multi-thread", "sync", "time"], optional = true }
+
+[[test]]
+name = "server"
+required-features = ["server"]
+
+[[test]]
+name = "reliability"
+required-features = ["server"]
+
+[[test]]
+name = "http_expansion"
+required-features = ["server"]
+
+[[example]]
+name = "json"
+required-features = ["server"]
+
+[[example]]
+name = "middleware"
+required-features = ["server"]

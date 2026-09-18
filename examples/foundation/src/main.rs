@@ -1,16 +1,27 @@
 mod users;
 use berserk::{
     database::{drivers::sqlite::SqliteConnection, Connection, Database, Statement},
-    App, HandleErrors, Response, Result,
+    response, App, HandleErrors, Next, Request, RequestId, Result,
 };
 
 fn application(database: Database) -> Result<App> {
     let mut app = App::new();
     app.database(database)?;
+    app.middleware(RequestId);
     app.middleware(HandleErrors);
-    app.route().crud("/users", users::Users)?;
     app.route()
-        .get_async("/health", || async { Response::text("OK") })?;
+        .middleware(|request: Request, next: Next<'_>| {
+            next.run(request)?.header("x-api-version", "0.3")
+        })
+        .group(|routes| {
+            routes.get("/users", users::Users::index)?;
+            routes.post("/users", users::Users::store)?;
+            routes.get("/users/{id}", users::Users::show)?;
+            routes.put("/users/{id}", users::Users::update)?;
+            routes.patch("/users/{id}", users::Users::update)?;
+            routes.delete("/users/{id}", users::Users::destroy)
+        })?;
+    app.route().get("/health", || response().text("OK"))?;
     Ok(app)
 }
 fn main() -> Result<()> {
@@ -23,7 +34,7 @@ fn main() -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use berserk::{Headers, Json, Method, Request};
+    use berserk::{Headers, Json, Method};
     #[test]
     fn typed_crud_sanitizes_and_rejects_duplicate_email() -> Result<()> {
         let path =
@@ -54,10 +65,7 @@ mod tests {
         );
         assert_eq!(created.status_code(), 201);
         let json = Json::parse(created.body()).unwrap();
-        assert_eq!(
-            json.get("data").unwrap().get("name").and_then(Json::as_str),
-            Some("Ada")
-        );
+        assert_eq!(json.get("name").and_then(Json::as_str), Some("Ada"));
         assert_eq!(
             send(
                 "POST",

@@ -39,6 +39,7 @@ impl<T> Deref for Validated<T> {
 pub enum InputError {
     Json(crate::json::JsonError),
     ContentType,
+    Object,
     Query,
     Fields(ValidationErrors),
 }
@@ -48,6 +49,7 @@ impl InputError {
             Self::Json(_) => (400, "Invalid JSON", Vec::new()),
             Self::Query => (400, "Invalid query string", Vec::new()),
             Self::ContentType => (415, "Expected application/json", Vec::new()),
+            Self::Object => (400, "Expected a JSON object", Vec::new()),
             Self::Fields(errors) => (
                 422,
                 "Validation failed",
@@ -91,8 +93,21 @@ impl std::error::Error for InputError {}
 pub trait FromJson: Sized {
     fn from_json(value: &Json) -> std::result::Result<Self, ValidationErrors>;
 }
+
+impl FromJson for Json {
+    fn from_json(value: &Json) -> std::result::Result<Self, ValidationErrors> {
+        Ok(value.clone())
+    }
+}
+
 impl Request {
-    pub fn json(&self) -> Result<Json> {
+    /// Decodes JSON into an explicit input type. Use `validate` for the FormRequest lifecycle.
+    pub fn json<T: FromJson>(&self) -> Result<T> {
+        T::from_json(&self.json_value()?).map_err(|errors| InputError::Fields(errors).into())
+    }
+
+    /// Parses a JSON value without application-specific decoding or validation.
+    pub fn json_value(&self) -> Result<Json> {
         let types: Vec<_> = self.headers().get_all("content-type").collect();
         if types.len() != 1
             || !types[0]
@@ -107,14 +122,39 @@ impl Request {
         Json::parse(self.body()).map_err(|e| InputError::Json(e).into())
     }
     pub fn validated<T: FromJson + ValidateInput>(&self) -> Result<T> {
-        let value = self.json()?;
+        let value = self.json_value()?;
         let mut typed = T::from_json(&value).map_err(InputError::Fields)?;
         typed.sanitize();
         typed.validate().map_err(InputError::Fields)?;
         Ok(typed)
     }
+    /// Returns one decoded query value. Repeated values for this name are rejected.
+    pub fn query(&self, name: &str) -> Result<Option<String>> {
+        let mut value = None;
+        for (key, item) in self.query_pairs()? {
+            if key == name && value.replace(item).is_some() {
+                return Err(InputError::Query.into());
+            }
+        }
+        Ok(value)
+    }
+
+    /// JSON object fields take precedence over query values, including explicit JSON null.
+    /// Query values are returned as JSON strings. This accessor does not validate input.
+    pub fn input(&self, name: &str) -> Result<Option<Json>> {
+        if !self.body().is_empty() {
+            let Json::Object(mut fields) = self.json_value()? else {
+                return Err(InputError::Object.into());
+            };
+            if let Some(value) = fields.remove(name) {
+                return Ok(Some(value));
+            }
+        }
+        Ok(self.query(name)?.map(Json::String))
+    }
+
     /// Form-style query decoding: repeated keys retained, '+' becomes space.
-    pub fn query(&self) -> Result<Vec<(String, String)>> {
+    pub fn query_pairs(&self) -> Result<Vec<(String, String)>> {
         let text = self.query_string().unwrap_or("");
         if text.is_empty() {
             return Ok(Vec::new());
@@ -184,8 +224,13 @@ pub trait FormRequest: FromJson {
     }
 }
 impl Request {
+    /// Decode, sanitize, validate with request context, and authorize a FormRequest.
+    pub fn validate<T: FormRequest>(&self) -> Result<T> {
+        self.form_request()
+    }
+
     pub fn form_request<T: FormRequest>(&self) -> Result<T> {
-        let mut input = T::from_json(&self.json()?).map_err(InputError::Fields)?;
+        let mut input = T::from_json(&self.json_value()?).map_err(InputError::Fields)?;
         input.sanitize();
         input.validate().map_err(InputError::Fields)?;
         input.validate_request(self)?;
@@ -195,7 +240,7 @@ impl Request {
     /// One positive decimal `page` value; invalid and duplicate values are rejected.
     pub fn page_number(&self) -> Result<u64> {
         let mut page = None;
-        for (key, value) in self.query()? {
+        for (key, value) in self.query_pairs()? {
             if key == "page" {
                 if page.is_some() || value.is_empty() || !value.bytes().all(|b| b.is_ascii_digit())
                 {

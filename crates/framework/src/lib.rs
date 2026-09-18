@@ -1,4 +1,4 @@
-//! BERSERK application assembly with bounded Tokio/Hyper HTTP serving.
+//! BERSERK application assembly with optional, bounded Tokio/Hyper HTTP serving.
 #![forbid(unsafe_code)]
 
 mod app;
@@ -46,7 +46,9 @@ pub use http::{Headers, HttpError, IntoResponse, Method, Request, Response, Stat
 pub mod routing;
 pub use routing::{ApiResourceController, NamedRoute, ResourceController, Route, RouteError};
 
+#[cfg(feature = "server")]
 pub mod server;
+#[cfg(feature = "server")]
 pub use server::Server;
 
 pub mod middleware;
@@ -75,7 +77,7 @@ pub use operational::{
 };
 
 mod responses;
-pub use responses::{response, ResponseFactory};
+pub use responses::{redirect, response, ResponseFactory};
 #[cfg(feature = "auth")]
 mod authorization;
 #[cfg(feature = "auth")]

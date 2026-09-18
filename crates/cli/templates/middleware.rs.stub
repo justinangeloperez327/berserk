@@ -1,0 +1,10 @@
+use berserk::{Middleware, Next, Request, Response, Result};
+
+pub struct {{name}};
+
+impl Middleware for {{name}} {
+    fn handle(&self, request: Request, next: Next<'_>) -> Result<Response> {
+        // Inspect the request here; modify the response after next.run(request).
+        next.run(request)
+    }
+}

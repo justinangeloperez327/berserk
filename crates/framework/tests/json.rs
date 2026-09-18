@@ -31,9 +31,9 @@ fn request_content_type_query_and_response() {
         b"{}".to_vec(),
     )
     .unwrap();
-    assert!(req.json().is_ok());
+    assert!(req.json::<Json>().is_ok());
     assert_eq!(
-        req.query().unwrap(),
+        req.query_pairs().unwrap(),
         vec![("q".into(), "hello world".into()), ("q".into(), "✓".into())]
     );
     let no_type = Request::new(
@@ -43,7 +43,7 @@ fn request_content_type_query_and_response() {
         b"{}".to_vec(),
     )
     .unwrap();
-    assert!(no_type.json().is_err());
+    assert!(no_type.json::<Json>().is_err());
     assert_eq!(
         Response::json(&Json::Null)
             .unwrap()

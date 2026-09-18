@@ -151,6 +151,7 @@ impl App {
     }
 }
 
+#[cfg(feature = "server")]
 impl App {
     pub fn bind(self, address: impl std::net::ToSocketAddrs) -> Result<crate::server::Server> {
         Ok(crate::server::Server::bind(self, address)?)
@@ -171,6 +172,15 @@ impl App {
     pub fn state<T: Send + Sync + 'static>(&mut self, value: T) -> Result<()> {
         if !self.state.insert(value) {
             return Err(crate::ConfigError::new("state", "type already registered").into());
+        }
+        Ok(())
+    }
+
+    /// Validates typed application configuration once, before any request is served.
+    pub fn configure<T: Validate + Send + Sync + 'static>(&mut self, value: T) -> Result<()> {
+        value.validate()?;
+        if !self.state.insert(crate::config::Configuration(value)) {
+            return Err(crate::ConfigError::new("config", "type already configured").into());
         }
         Ok(())
     }

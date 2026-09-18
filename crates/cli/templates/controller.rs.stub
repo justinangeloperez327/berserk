@@ -1,7 +1,13 @@
-use berserk::{Json, Response, Result};
+use berserk::{response, Json, Response, Result};
 
 pub struct {{name}};
+
 impl {{name}} {
-    pub fn index() -> Result<Response> { Response::json(&Json::Array(vec![])) }
-    pub fn show(id: u64) -> Result<Response> { Response::json(&Json::Object([("id".into(), id.into())].into())) }
+    pub fn index() -> Result<Response> {
+        response().json(Json::Array(vec![]))
+    }
+
+    pub fn show(id: u64) -> Result<Response> {
+        response().json(Json::Object([("id".into(), id.into())].into()))
+    }
 }

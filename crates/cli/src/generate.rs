@@ -65,17 +65,28 @@ impl Generator {
         fs::create_dir(&target).map_err(CliError::from_io)?;
         let result = (|| {
             fs::create_dir(target.join("src")).map_err(CliError::from_io)?;
-            let cargo = format!("[package]\nname = \"{package}\"\nversion = \"0.1.0\"\nedition = \"2021\"\nrust-version = \"1.88\"\n\n[dependencies]\nberserk = \"0.2\"\n");
+            let cargo = format!("[package]\nname = \"{package}\"\nversion = \"0.1.0\"\nedition = \"2021\"\nrust-version = \"1.88\"\n\n[dependencies]\nberserk = {{ version = \"0.3\", features = [\"claw\"] }}\n");
             write_new(&target.join("Cargo.toml"), cargo.as_bytes())?;
-            write_new(&target.join("src/main.rs"), b"use berserk::{App, Response, Result};\n\nfn main() -> Result<()> {\n    let mut app = App::new();\n    app.route().get(\"/\", || Response::text(\"Hello, world!\"))?;\n    app.listen(\"127.0.0.1:3000\")\n}\n")?;
-            Ok(vec![
-                GeneratedFile {
-                    path: target.join("Cargo.toml"),
-                },
-                GeneratedFile {
-                    path: target.join("src/main.rs"),
-                },
-            ])
+            let mut files = vec![GeneratedFile {
+                path: target.join("Cargo.toml"),
+            }];
+            for (path, source) in [
+                ("src/main.rs", include_str!("../templates/main.rs.stub")),
+                ("src/config.rs", include_str!("../templates/config.rs.stub")),
+                ("src/routes.rs", include_str!("../templates/routes.rs.stub")),
+            ] {
+                let path = target.join(path);
+                write_new(&path, source.as_bytes())?;
+                files.push(GeneratedFile { path });
+            }
+            for folder in ["controllers", "models", "requests", "middleware"] {
+                let directory = target.join("src").join(folder);
+                fs::create_dir(&directory).map_err(CliError::from_io)?;
+                let path = directory.join("mod.rs");
+                write_new(&path, b"")?;
+                files.push(GeneratedFile { path });
+            }
+            Ok(files)
         })();
         if result.is_err() {
             let _ = fs::remove_dir_all(&target);
@@ -97,6 +108,13 @@ impl Generator {
             name,
             "requests",
             include_str!("../templates/request.rs.stub"),
+        )
+    }
+    pub fn make_middleware(&self, name: &str) -> Result<Vec<GeneratedFile>> {
+        self.make_type(
+            name,
+            "middleware",
+            include_str!("../templates/middleware.rs.stub"),
         )
     }
     pub fn make_resource(&self, name: &str) -> Result<Vec<GeneratedFile>> {

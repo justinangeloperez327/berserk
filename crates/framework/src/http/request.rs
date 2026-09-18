@@ -107,6 +107,23 @@ impl Request {
         self.state.get::<T>()
     }
 
+    /// Clones the shared handle, not the service. It can safely outlive this request.
+    pub fn shared<T: Send + Sync + 'static>(&self) -> crate::Result<std::sync::Arc<T>> {
+        self.state.shared().ok_or_else(|| {
+            crate::ConfigError::new("state", "requested service is not configured").into()
+        })
+    }
+
+    /// Borrows application configuration validated by `App::configure` at startup.
+    pub fn config<T: Send + Sync + 'static>(&self) -> crate::Result<&T> {
+        self.state::<crate::config::Configuration<T>>()
+            .map(|configuration| &configuration.0)
+            .ok_or_else(|| {
+                crate::ConfigError::new("config", "requested configuration is not registered")
+                    .into()
+            })
+    }
+
     #[cfg(feature = "database")]
     pub fn database(&self) -> crate::Result<&berserk_database::Database> {
         self.state::<berserk_database::Database>().ok_or_else(|| {

@@ -2,6 +2,7 @@
 """Compile every application generator in an independent consumer project."""
 from pathlib import Path
 import os
+import re
 import subprocess
 import tempfile
 
@@ -23,7 +24,15 @@ def main():
         consumer = base / "consumer"
         manifest = consumer / "Cargo.toml"
         dependency = (ROOT / "crates/framework").as_posix()
-        manifest.write_text(manifest.read_text().replace('berserk = "0.2"', f'berserk = {{ path = "{dependency}", features = ["claw", "auth"] }}'))
+        manifest_text, replacements = re.subn(
+            r"^berserk\s*=\s*.+$",
+            lambda _: f'berserk = {{ path = "{dependency}", features = ["claw", "auth"] }}',
+            manifest.read_text(),
+            flags=re.MULTILINE,
+        )
+        if replacements != 1:
+            raise RuntimeError("expected exactly one generated Berserk dependency")
+        manifest.write_text(manifest_text)
         for kind, name in [("model", "User"), ("controller", "UserController"), ("request", "CreateUser"), ("resource", "UserResource"), ("policy", "UserPolicy")]:
             run(str(cli), f"make:{kind}", name, cwd=consumer)
         (consumer / "src/lib.rs").write_text('''pub mod models;

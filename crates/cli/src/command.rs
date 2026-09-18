@@ -4,9 +4,11 @@ use std::path::PathBuf;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Command {
     New { path: PathBuf },
+    Serve,
     MakeModel { name: String },
     MakeController { name: String },
     MakeRequest { name: String },
+    MakeMiddleware { name: String },
     MakeResource { name: String },
     MakePolicy { name: String },
 
@@ -34,11 +36,15 @@ impl Command {
             "new" => Self::New {
                 path: one(&mut arguments, "new <path>")?.into(),
             },
+            "serve" => Self::Serve,
             "make:controller" => Self::MakeController {
                 name: one(&mut arguments, "make:controller <Name>")?,
             },
             "make:request" => Self::MakeRequest {
                 name: one(&mut arguments, "make:request <Name>")?,
+            },
+            "make:middleware" => Self::MakeMiddleware {
+                name: one(&mut arguments, "make:middleware <Name>")?,
             },
             "make:resource" => Self::MakeResource {
                 name: one(&mut arguments, "make:resource <Name>")?,
@@ -62,6 +68,7 @@ impl Command {
                     match kind.as_str() {
                         "controller" => Self::MakeController { name: one(&mut arguments, "make controller <Name>")? },
                         "request" => Self::MakeRequest { name: one(&mut arguments, "make request <Name>")? },
+                        "middleware" => Self::MakeMiddleware { name: one(&mut arguments, "make middleware <Name>")? },
                         "resource" => Self::MakeResource { name: one(&mut arguments, "make resource <Name>")? },
                         "policy" => Self::MakePolicy { name: one(&mut arguments, "make policy <Name>")? },
                         "model" => Self::MakeModel {
@@ -73,7 +80,7 @@ impl Command {
                         _ => {
                             return Err(CliError::new(
                                 ErrorKind::Usage,
-                                "make accepts model, controller, request, resource, policy, or migration",
+                                "make accepts model, controller, request, middleware, resource, policy, or migration",
                             ))
                         }
                     }
@@ -98,7 +105,7 @@ impl Command {
         Ok(parsed)
     }
     pub const fn help() -> &'static str {
-        "berserk commands:\n  new <path>\n  make:controller <Name>\n  make:request <Name>\n  make:resource <Name>\n  make:policy <Name>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate:rollback\n  migrate:status"
+        "berserk commands:\n  new <path>\n  serve\n  make:controller <Name>\n  make:request <Name>\n  make:middleware <Name>\n  make:resource <Name>\n  make:policy <Name>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate:rollback\n  migrate:status"
     }
 }
 fn one(arguments: &mut impl Iterator<Item = String>, usage: &str) -> Result<String> {

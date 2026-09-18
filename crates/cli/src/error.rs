@@ -8,6 +8,7 @@ pub enum ErrorKind {
     UnsafePath,
     AlreadyExists,
     Io,
+    Process,
     MigrationUnavailable,
     Clock,
 }
