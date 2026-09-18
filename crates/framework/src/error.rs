@@ -164,8 +164,7 @@ impl Error {
             #[cfg(feature = "auth")]
             Self::Auth(error) => match error.kind() {
                 berserk_auth::ErrorKind::Forbidden => 403,
-                berserk_auth::ErrorKind::Unauthorized
-                | berserk_auth::ErrorKind::InvalidCredentials => 401,
+                _ if error.is_authentication_failure() => 401,
                 _ => 500,
             },
             _ => 500,
@@ -208,6 +207,31 @@ impl Error {
                 .expect("static header")
         } else {
             response
+        }
+    }
+}
+
+#[cfg(all(test, feature = "auth"))]
+mod tests {
+    use super::*;
+    use berserk_auth::{AuthError, ErrorKind};
+
+    #[test]
+    fn authentication_errors_render_generic_challenges() {
+        for kind in [
+            ErrorKind::InvalidCredentials,
+            ErrorKind::InvalidToken,
+            ErrorKind::ExpiredToken,
+            ErrorKind::RevokedToken,
+            ErrorKind::Unauthorized,
+        ] {
+            let response = Error::from(AuthError::new(kind, "private detail")).response();
+            assert_eq!(response.status_code(), 401);
+            assert_eq!(response.headers().get("www-authenticate"), Some("Bearer"));
+            assert!(!String::from_utf8_lossy(response.body()).contains("private detail"));
+        }
+        for (kind, status) in [(ErrorKind::Forbidden, 403), (ErrorKind::Store, 500)] {
+            assert_eq!(Error::from(AuthError::new(kind, "private detail")).status_code(), status);
         }
     }
 }
