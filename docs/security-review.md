@@ -2,7 +2,7 @@
 
 Date: 2026-09-17
 
-Status: internal release review pass completed for the `0.1.0` candidate surface. This is not an independent third-party security audit, penetration test, external certification, or guarantee of vulnerability absence.
+Status: historical internal review completed on 2026-09-17 against the then-current candidate surface. This record is evidence of that review only; it is not validation of v0.3.0 or a later release, and it is not an independent third-party security audit, penetration test, external certification, or guarantee of vulnerability absence.
 
 ## Scope
 
