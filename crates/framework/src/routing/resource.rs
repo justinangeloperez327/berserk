@@ -17,3 +17,16 @@ pub trait ResourceController: ApiResourceController {
     fn create(&self, request: Request) -> Result<Response>;
     fn edit(&self, id: Self::Id, request: Request) -> Result<Response>;
 }
+
+/// Model-bound API actions with typed validated input.
+#[cfg(feature = "claw")]
+pub trait CrudController: Send + Sync + 'static {
+    type Model: claw_orm::Model + 'static;
+    type Create: crate::FormRequest + 'static;
+    type Update: crate::FormRequest + 'static;
+    fn index(&self) -> crate::Result<crate::Response>;
+    fn store(&self, input: Self::Create) -> crate::Result<crate::Response>;
+    fn show(&self, model: Self::Model) -> crate::Result<crate::Response>;
+    fn update(&self, model: Self::Model, input: Self::Update) -> crate::Result<crate::Response>;
+    fn destroy(&self, model: Self::Model) -> crate::Result<crate::Response>;
+}

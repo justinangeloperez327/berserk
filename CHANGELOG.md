@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0 — release candidate
+
+- Direct FormRequest parameters: sanitize, validate, request-aware checks, and authorize before actions.
+- Request-scoped Claw terminals, guarded IntoInsert/IntoUpdate writes, model-returning create, refreshed update, and explicit `_on` escape hatches.
+- Typed eager loading, scoped transactions, request pagination, and paginated resource metadata.
+- Unified JSON errors, response helpers, request-local Auth, duplicate credential rejection, and authorization middleware.
+- Typed CrudController routes; explicit HEAD/OPTIONS; optional async actions with matching extraction and named-route support.
+- Public-error test client assertions; compiling controller/request/model/resource/policy generators.
+- SQLite foundation application, migration guide, release review, coordinated 0.2.0 versions, and CI coverage.
+
+See docs/upgrade-notes.md for breaking API and response changes. Rust 1.88 remains the MSRV.
+
+
 Berserk follows the spirit of Keep a Changelog. Versioning and compatibility policy are defined in `docs/compatibility.md`.
 
 ## Unreleased

@@ -1,10 +1,77 @@
-use berserk::{App, Request, Response, Result};
-fn main() -> Result<()> {
+mod users;
+use berserk::{
+    database::{drivers::sqlite::SqliteConnection, Connection, Database, Statement},
+    App, HandleErrors, Response, Result,
+};
+
+fn application(database: Database) -> Result<App> {
     let mut app = App::new();
-    app.get("/", || Response::text("Hello, world!"))?;
-    app.get("/users/{id}", |req: Request| {
-        Response::text(format!("User {}", req.param("id").unwrap_or("")))
-    })?;
-    app.post("/echo", |req: Request| Response::bytes(req.body().to_vec()))?;
-    app.listen("127.0.0.1:3000")
+    app.database(database)?;
+    app.middleware(HandleErrors);
+    app.route().crud("/users", users::Users)?;
+    app.route()
+        .get_async("/health", || async { Response::text("OK") })?;
+    Ok(app)
+}
+fn main() -> Result<()> {
+    let path = std::env::var("BERSERK_DATABASE").unwrap_or_else(|_| "foundation.sqlite".into());
+    let mut connection = SqliteConnection::open(&path)?;
+    connection.execute(&Statement::new("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE)"))?;
+    application(Database::new(move || SqliteConnection::open(&path)))?.listen("127.0.0.1:3000")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use berserk::{Headers, Json, Method, Request};
+    #[test]
+    fn typed_crud_sanitizes_and_rejects_duplicate_email() -> Result<()> {
+        let path =
+            std::env::temp_dir().join(format!("berserk-foundation-{}.sqlite", std::process::id()));
+        let _ = std::fs::remove_file(&path);
+        let mut c = SqliteConnection::open(&path)?;
+        c.execute(&Statement::new("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE)"))?;
+        drop(c);
+        let db_path = path.clone();
+        let app = application(Database::new(move || SqliteConnection::open(&db_path)))?;
+        let send = |method: &str, target: &str, body: &str| {
+            let mut headers = Headers::new();
+            headers.insert("content-type", "application/json").unwrap();
+            app.respond(
+                Request::new(
+                    Method::new(method).unwrap(),
+                    target,
+                    headers,
+                    body.as_bytes(),
+                )
+                .unwrap(),
+            )
+        };
+        let created = send(
+            "POST",
+            "/users",
+            r#"{"name":" Ada ","email":" ADA@EXAMPLE.COM ","id":999}"#,
+        );
+        assert_eq!(created.status_code(), 201);
+        let json = Json::parse(created.body()).unwrap();
+        assert_eq!(
+            json.get("data").unwrap().get("name").and_then(Json::as_str),
+            Some("Ada")
+        );
+        assert_eq!(
+            send(
+                "POST",
+                "/users",
+                r#"{"name":"Ada","email":"ada@example.com"}"#
+            )
+            .status_code(),
+            422
+        );
+        assert_eq!(send("GET", "/users", "").status_code(), 200);
+        assert_eq!(send("GET", "/users/999", "").status_code(), 404);
+        assert_eq!(send("DELETE", "/users/1", "").status_code(), 204);
+        drop(app);
+        std::fs::remove_file(path)?;
+        Ok(())
+    }
 }

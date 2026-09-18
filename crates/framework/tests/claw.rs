@@ -23,7 +23,7 @@ impl Model for User {
 
 #[test]
 fn claw_model_is_available_through_the_framework_prelude() {
-    let statement = User::where_("active", "=", true)
+    let statement = User::where_op("active", "=", true)
         .to_statement(Driver::Postgres)
         .unwrap();
 

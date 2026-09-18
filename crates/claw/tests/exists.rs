@@ -71,7 +71,7 @@ fn exists_uses_a_bounded_query_without_decoding_models() {
     let sentinel = Row::new(vec![Column::new("sentinel", true)]).unwrap();
     let mut any_user = FakeConnection::with_rows(vec![sentinel]);
 
-    assert!(User::exists(&mut any_user).unwrap());
+    assert!(User::exists_on(&mut any_user).unwrap());
     assert_eq!(
         any_user.statements[0].sql(),
         "SELECT * FROM \"users\" LIMIT 1"
@@ -79,8 +79,8 @@ fn exists_uses_a_bounded_query_without_decoding_models() {
     assert!(any_user.statements[0].bindings().is_empty());
 
     let mut active_user = FakeConnection::with_rows(Vec::new());
-    assert!(!User::where_("active", "=", true)
-        .exists(&mut active_user)
+    assert!(!User::where_op("active", "=", true)
+        .exists_on(&mut active_user)
         .unwrap());
     assert_eq!(
         active_user.statements[0].sql(),

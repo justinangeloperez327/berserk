@@ -159,3 +159,15 @@ impl Drop for TemporaryDirectory {
 fn assert_cli_error_is_public(error: CliError) -> String {
     error.to_string()
 }
+
+#[test]
+fn generator_rejects_type_names_that_become_reserved_modules() {
+    let temporary = TemporaryDirectory::new();
+    let root = temporary.path();
+    let generator = Generator::at(root).unwrap();
+    generator.new_project(std::path::Path::new("app")).unwrap();
+    let generator = Generator::at(root.join("app")).unwrap();
+    for name in ["Type", "Crate", "Async", "Self", "Super"] {
+        assert!(generator.make_model(name).is_err(), "accepted {name}");
+    }
+}

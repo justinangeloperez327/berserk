@@ -287,14 +287,24 @@ where
         Err(error) => return Ok(fallback_wire_response(error.status_code())),
     };
 
-    let handled =
-        tokio::task::spawn_blocking(move || catch_unwind(AssertUnwindSafe(|| app.handle(request))))
-            .await;
+    let handled = tokio::task::spawn_blocking(move || {
+        catch_unwind(AssertUnwindSafe(|| {
+            #[cfg(feature = "async")]
+            {
+                crate::controller::async_handlers::in_worker(|| app.handle(request))
+            }
+            #[cfg(not(feature = "async"))]
+            {
+                app.handle(request)
+            }
+        }))
+    })
+    .await;
 
     let response = match handled {
         Ok(Ok(Ok(response))) => response,
         Ok(Ok(Err(error))) => application_error_response(error),
-        Ok(Err(_)) | Err(_) => Response::text("Internal Server Error").status(500),
+        Ok(Err(_)) | Err(_) => crate::Error::rejected(500, "Internal Server Error").response(),
     };
 
     Ok(match into_wire_response(response, head) {

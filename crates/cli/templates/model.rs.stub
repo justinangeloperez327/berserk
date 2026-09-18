@@ -1,0 +1,11 @@
+use berserk::claw::{field, Model, Result, Row, Value};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct {{name}} { pub id: i64 }
+impl Model for {{name}} {
+    const TABLE: &'static str = "{{table}}";
+    const FILLABLE: &'static [&'static str] = &[];
+    fn from_row(row: &Row) -> Result<Self> { Ok(Self { id: field(row, "id")? }) }
+    fn key(&self) -> Value { self.id.into() }
+    fn parse_route_key(value: &str) -> Option<Value> { value.parse::<i64>().ok().map(Into::into) }
+}

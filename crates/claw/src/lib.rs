@@ -30,4 +30,27 @@ pub mod prelude {
         field, BelongsTo, FromValue, HasMany, HasOne, Model, ModelQuery, Page, PersistableModel,
         RelatedSet, ScopedRouteModel,
     };
+    pub use crate::{DatabaseScope, IntoInsert, IntoUpdate, Relationship, Transaction};
+}
+
+mod eager;
+mod writes;
+pub use berserk_database::scope::{with_scoped_connection, DatabaseScope};
+pub use eager::{EagerQuery, Loaded, LoadedPage, Relationship};
+pub use writes::{IntoInsert, IntoUpdate};
+
+/// Run a synchronous unit of work using the active connection and transaction.
+pub struct Transaction;
+impl Transaction {
+    pub fn run<T, E: From<DatabaseError>>(
+        operation: impl FnOnce() -> std::result::Result<T, E>,
+    ) -> std::result::Result<T, E> {
+        Self::with_options(Default::default(), operation)
+    }
+    pub fn with_options<T, E: From<DatabaseError>>(
+        options: berserk_database::TransactionOptions,
+        operation: impl FnOnce() -> std::result::Result<T, E>,
+    ) -> std::result::Result<T, E> {
+        berserk_database::scope::transaction(options, operation)
+    }
 }

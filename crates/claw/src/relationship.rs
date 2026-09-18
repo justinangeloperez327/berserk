@@ -73,7 +73,7 @@ impl<P, R: Model> HasMany<P, R> {
         }
         let related = R::query()
             .where_in(self.foreign_key, keys)
-            .get(connection)?;
+            .get_on(connection)?;
         let mut result = RelatedSet::default();
         for model in related {
             result.insert((self.related_key)(&model), model);
@@ -135,7 +135,9 @@ impl<C, R: Model> BelongsTo<C, R> {
         if keys.is_empty() {
             return Ok(RelatedSet::default());
         }
-        let related = R::query().where_in(self.owner_key, keys).get(connection)?;
+        let related = R::query()
+            .where_in(self.owner_key, keys)
+            .get_on(connection)?;
         let mut result = RelatedSet::default();
         for model in related {
             result.insert((self.related_key)(&model), model);

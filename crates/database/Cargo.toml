@@ -17,6 +17,7 @@ mysql = ["dep:mysql"]
 sqlite = ["dep:rusqlite"]
 
 [dependencies]
+scoped-tls-hkt = "0.1.5"
 postgres = { version = "0.19.14", optional = true }
 mysql = { version = "28.0.2", default-features = false, features = ["minimal-rust", "rustls-tls-ring"], optional = true }
 rusqlite = { version = "0.40.2", features = ["bundled"], optional = true }

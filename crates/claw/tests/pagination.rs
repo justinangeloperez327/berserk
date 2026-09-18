@@ -78,8 +78,8 @@ fn pagination_executes_count_then_a_bounded_model_query() {
     let mut connection = FakeConnection::with_results(vec![vec![count], vec![user]]);
 
     let page = User::query()
-        .where_("active", "=", true)
-        .paginate(&mut connection, 2, 1)
+        .where_op("active", "=", true)
+        .paginate_on(&mut connection, 2, 1)
         .unwrap();
 
     assert_eq!(page.total(), 3);

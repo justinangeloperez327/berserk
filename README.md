@@ -1,14 +1,14 @@
 # Berserk
 
-Berserk is a Laravel-inspired Rust framework for building secure, maintainable web applications without forcing a specific project structure.
+Berserk is a Rust framework for building secure, maintainable web applications without forcing a specific project structure.
 
 It combines familiar conventions and fluent APIs with Rust's explicit errors, type safety, predictable resource ownership, and performance.
 
-> **Status:** Berserk is under active development and has not been published to crates.io. The public API may change before the first stable release.
+> **Status:** v0.2.0 release candidate. Berserk is under active development and has not been published to crates.io. The public API may change before the first stable release.
 
 ## Why Berserk?
 
-- **Laravel-inspired conventions** — readable APIs and features designed to work together.
+- **Application conventions** — readable APIs and features designed to work together.
 - **Freedom of structure** — start with one file or organize a larger application however you prefer.
 - **Explicit execution** — query chains build operations; terminal methods perform database work.
 - **Safe boundaries** — validated HTTP input, bound SQL values, bounded resources, and explicit errors.
@@ -27,14 +27,14 @@ After Berserk is published, add it to your application's `Cargo.toml`:
 
 ```toml
 [dependencies]
-berserk = "0.1.0"
+berserk = "0.2.0"
 ```
 
 Enable optional components as needed:
 
 ```toml
 [dependencies]
-berserk = { version = "0.1.0", features = ["postgres", "auth", "openapi"] }
+berserk = { version = "0.2.0", features = ["postgres", "auth", "openapi"] }
 ```
 
 Until the package is published, use a local path dependency:
@@ -176,140 +176,48 @@ fn update(id: u64, request: Request) -> Result<Response> {
 
 Multiple typed parameters are extracted in route-template order. A typed route parameter that cannot be parsed returns `400 Bad Request`. A controller expecting a different number of typed route parameters cannot be registered against the route.
 
-With Claw enabled, route models and validated input can be injected directly:
+## Typed controllers
 
-```rust
-fn update(
-    mut user: User,
-    input: Validated<UpdateUser>,
-    request: Request,
-) -> Result<Response> {
-    user.name = input.name.clone();
+With Claw enabled, actions work directly with models and validated FormRequest input:
 
-    let mut connection = request.connection()?;
-    user.save(&mut *connection)?;
-
-    Ok(Response::empty().status(204))
+```rust,ignore
+fn update(mut user: User, input: UpdateUserRequest) -> Result<Response> {
+    user.update(input)?;
+    response().resource(user)
 }
 ```
 
-For `route.put("/users/{user}", update)`, Berserk parses the model key, loads the model through Claw, returns `404` when the model is missing, then decodes, sanitizes, and validates the request body before invoking the controller.
+For `route.put("/users/{user}", update)`, Berserk parses the key, loads the model, sanitizes and validates the body, checks authorization, and invokes the action. Invalid keys return 400; missing models return 404. `route.crud("/users", Users)` registers a typed CrudController atomically.
 
-The router provides static-route precedence, path parameters, named paths, REST resources, `404`, `405`, automatic `HEAD` fallback to `GET`, scoped middleware, nested prefixes, atomic route groups, and a root fallback.
+## Scoped Claw ORM
 
-## Fluent database queries
-
-Berserk keeps Laravel-style readability while making database execution visible. `User::query()` remains the canonical query-builder entry point:
-
-```rust
-let users = User::query()
-    .where_("active", "=", true)
-    .where_not_null("email")
-    .order_by("created_at", Direction::Desc)
-    .limit(20)
-    .get(&mut connection)?;
-```
-
-Convenience entry points remain available when a query starts with a known predicate:
-
-```rust
-let users = User::where_("active", "=", true)
-    .order_by("name", Direction::Asc)
-    .get(&mut connection)?;
-```
-
-Methods such as `where_`, `or_where`, `where_in`, `where_not_null`, and `order_by` build the query. Terminal methods such as `get`, `first`, `count`, `exists`, `update`, `delete`, and `paginate` execute it.
-
-SQL values remain separate from SQL text through bound parameters. Raw SQL remains available as an explicit escape hatch.
-
-## Claw model lifecycle
-
-Claw keeps row decoding and write serialization separate. Every model implements `Model`; models that want automatic `save()` explicitly opt into `PersistableModel` and declare the columns they allow Claw to write:
-
-```rust
-impl PersistableModel for User {
-    fn values_for_save(&self) -> Vec<(&'static str, Value)> {
-        vec![
-            ("name", self.name.clone().into()),
-            ("active", self.active.into()),
-        ]
-    }
-}
-```
-
-The primary key is always used as the update filter and is rejected if it is included in `values_for_save`:
-
-```rust
-user.name = "Grace".into();
-user.save(&mut connection)?;
-```
-
-Explicit instance mutation is also available when only selected columns should be written:
-
-```rust
-user.update(
-    &mut connection,
-    [("name", Value::from("Grace"))],
-)?;
-
-user.delete(&mut connection)?;
-```
-
-`update` does not silently rewrite the Rust struct. Use `fresh()` to fetch a new copy or `refresh()` to replace the current model from the database:
-
-```rust
-let fresh_user = user.fresh(&mut connection)?;
-
-if user.refresh(&mut connection)? {
-    // `user` now contains the current database row.
-}
-```
-
-Database access can be registered once on the application and acquired explicitly from a request:
-
-```rust
+```rust,ignore
 app.database(database)?;
 
-let mut connection = request.connection()?;
+let users = User::where_("active", true)
+    .where_not_null("email")
+    .order_by("id", Direction::Asc)
+    .get()?;
+
+let user = Transaction::run(|| User::create(input))?;
+let page = User::query().paginate(20)?;
 ```
 
-`request.connection()` lazily acquires one connection for that request and reuses it across non-overlapping borrows. This keeps ownership visible while allowing route-model binding and controller persistence to share the same acquired connection. Pooling strategy remains behind the `Database` acquisition boundary.
+One lazy database connection belongs to each request. Query construction performs no I/O; terminal methods execute SQL with bound values. Models declare their table, key, row mapping, and FILLABLE columns. Input types implement IntoInsert/IntoUpdate to select writable fields. Explicit connections remain available through `request.connection()` and Claw's `_on` methods.
 
-### Request transactions
+`query.with(relation)` bulk loads typed relationships without hidden queries. Resource and ResourceCollection expose explicitly selected public fields. `ResourceCollection::page` includes pagination metadata. Unified application errors return JSON and redact internal details.
 
-Use the request-scoped connection for atomic database work without changing the normal Claw or query-builder APIs:
+## Async actions and generators
 
-```rust
-request.transaction(TransactionOptions::default(), |connection| {
-    user.save(connection)?;
-    audit.save(connection)?;
+Enable the optional `async` feature and use `route.get_async(...)` (or another verb) to await application I/O. Actions remain on a blocking worker so request scope survives awaits; synchronous database drivers still block that worker. Spawned tasks need their own scope. Dropping a response does not cancel an action that has started.
 
-    Ok(())
-})?;
-```
-
-The transaction reuses the request's existing connection. The closure receives a connection-compatible mutable reference, so Claw operations and query-builder terminal methods use the same syntax they use outside a transaction.
-
-Berserk commits when the closure returns `Ok` and rolls back when it returns `Err`. When rollback succeeds, the original application error is returned. A commit or rollback failure is surfaced as a database transaction error because the final transaction state is uncertain.
-
-Read-only transactions can be requested explicitly:
-
-```rust
-request.transaction(
-    TransactionOptions { read_only: true },
-    |connection| {
-        let users = User::query().get(connection)?;
-        Ok(users)
-    },
-)?;
-```
-
-Driver capabilities still apply; a driver may reject an unsupported transaction option. Nested transactions are not currently supported through the request transaction view.
+The CLI includes `make:model`, `make:controller`, `make:request`, `make:resource`, and `make:policy`. Generated code has explicit field mappings and policy rules. See the [v0.2.0 guide](docs/v0.2.0.md), [migration notes](docs/upgrade-notes.md), and [runnable foundation application](examples/foundation/README.md) for complete contracts and examples.
 
 ## Optional features
 
 | Feature         | Purpose                                      |
 | --------------- | -------------------------------------------- |
+| `async`         | Optional async application actions          |
 | `database`      | Driver-neutral database contracts            |
 | `claw`          | Claw ORM model and relationship layer        |
 | `postgres`      | PostgreSQL driver                            |

@@ -1,6 +1,8 @@
 # Public API contract
 
-Status: current pre-release contract for the `0.1.0` candidate. The API is implemented and tested, but it is not yet stable and may change before the first stable release.
+The [v0.2.0 release guide](v0.2.0.md) defines typed FormRequest, scoped Claw, async actions, resources, and migration behavior.
+
+Status: current pre-release contract for the `0.2.0` candidate. The API is implemented and tested, but it is not yet stable and may change before the first stable release.
 
 ## Application
 
@@ -50,13 +52,13 @@ Supported handler inputs include:
 - no arguments;
 - an owned `Request`;
 - one or two typed route parameters in route-template order;
-- `Validated<T>` request input;
+- direct `T: FormRequest` request input or `Validated<T>`;
 - combinations of typed route parameters, validated input, and `Request`;
 - with the `claw` feature, route-bound models and scoped nested route models.
 
 A typed route parameter that cannot be parsed returns 400. A route model with no matching row returns 404. Scoped nested route-model binding performs the child lookup through `ScopedRouteModel<Parent>`, so a child outside the parent scope also resolves as 404.
 
-Controller resource contracts are represented by `ApiResourceController` and `ResourceController`. `ActionResult` is the conventional `Result<Response>` alias for controller actions that can fail.
+Controller resource contracts are represented by `CrudController` (typed models/forms), `ApiResourceController`, and `ResourceController`. `ActionResult` is the conventional `Result<Response>` alias for controller actions that can fail.
 
 ## Request and input
 
@@ -67,6 +69,7 @@ Higher-level input APIs include:
 - `Request::json()` for `application/json` bodies;
 - `Request::query()` for form-style query decoding, preserving repeated keys and decoding `+`/percent escapes;
 - `Request::multipart(max_parts, max_part_headers)` for the bounded buffered multipart subset;
+- `Request::form_request<T>()` and direct FormRequest extraction, including authorization after validation;
 - handler-level `Validated<T>` extraction.
 
 Validated controller input follows one fixed order:
@@ -87,7 +90,8 @@ Responses provide:
 - `Response::text(...)`;
 - `Response::bytes(...)`;
 - `Response::empty()`;
-- `Response::json(...)`;
+- `Response::json(...)`, `created(...)`, and `no_content()`;
+- `response()` factory and Resource/ResourceCollection outputs;
 - `.status(...)`;
 - validated header insertion/appending.
 
@@ -101,7 +105,7 @@ These components are explicit layers. Applications remain responsible for choosi
 
 ## Server, concurrency, and shutdown
 
-The current server is implemented on bounded Tokio/Hyper infrastructure while preserving synchronous public controller handlers.
+The current server is implemented on bounded Tokio/Hyper infrastructure while preserving synchronous handlers by default, with opt-in async actions on blocking workers.
 
 `ServerConfig` bounds server resources including worker/queue behavior, request metadata/body sizes, and network deadlines. Deliberate overload is rejected rather than silently corrupting accepted work.
 
@@ -115,6 +119,8 @@ The built-in server does not terminate TLS. Internet-facing deployments require 
 
 Database and Claw APIs are feature-gated.
 
+- Claw terminal methods use the active scope; explicit connection terminals have `_on` names.
+- `Transaction::run` provides scoped atomic work; typed writes require input conversion and allowed columns.
 - `request.connection()` lazily acquires and reuses a request-scoped database connection across non-overlapping borrows.
 - `request.transaction(...)` reuses that connection, commits on success, rolls back on application error, and rejects unsupported nested request transactions.
 - Query-builder values remain bound separately from generated SQL text.
@@ -160,13 +166,13 @@ Webhook notifications build on these client contracts and expose optional idempo
 
 ## Optional features
 
-The main `berserk` facade can expose the following optional subsystems: database, Claw ORM, PostgreSQL, MySQL, SQLite, auth, OpenAPI, cache, storage, events, jobs, outbound client, notifications, and CLI tooling. Optional components are feature-gated rather than enabled implicitly.
+The main `berserk` facade can expose the following optional subsystems: async actions, database, Claw ORM, PostgreSQL, MySQL, SQLite, auth, OpenAPI, cache, storage, events, jobs, outbound client, notifications, and CLI tooling. Optional components are feature-gated rather than enabled implicitly.
 
 ## Stability and compatibility
 
-- Candidate package version: `0.1.0`.
+- Candidate package version: `0.2.0`.
 - Minimum supported Rust version: 1.88.
 - No crates.io publication has occurred yet.
-- The `0.1.x` API is pre-release and can still change before a stable compatibility commitment.
+- The `0.2.x` API is pre-release and can still change before a stable compatibility commitment.
 
 `README.md`, crate-level Rustdoc, tests, and this contract should agree on public behavior. When implementation and this document diverge, that drift is a release-review finding and must be corrected before publication.

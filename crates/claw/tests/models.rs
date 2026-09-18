@@ -135,7 +135,7 @@ fn model_queries_decode_rows_and_keep_execution_explicit() {
     );
 
     let mut connection = FakeConnection::with_rows(vec![user_row(7, "Ada")]);
-    let users = query.get(&mut connection).unwrap();
+    let users = query.get_on(&mut connection).unwrap();
     assert_eq!(
         users,
         vec![User {
@@ -149,7 +149,7 @@ fn model_queries_decode_rows_and_keep_execution_explicit() {
 
 #[test]
 fn model_static_query_entry_points_are_laravel_style() {
-    let query = User::where_("active", "=", true)
+    let query = User::where_op("active", "=", true)
         .where_not_null("name")
         .order_by("name", Direction::Desc)
         .limit(10);
@@ -165,7 +165,7 @@ fn model_static_query_entry_points_are_laravel_style() {
 #[test]
 fn create_uses_the_model_table_and_keeps_values_bound() {
     let mut connection = FakeConnection::default();
-    let execution = User::create(
+    let execution = User::create_on(
         &mut connection,
         [("name", Value::from("Ada")), ("active", Value::from(true))],
     )
@@ -188,8 +188,8 @@ fn create_uses_the_model_table_and_keeps_values_bound() {
 fn filtered_update_and_delete_use_bound_model_queries() {
     let mut connection = FakeConnection::default();
 
-    let updated = User::where_("id", "=", 7_u64)
-        .update(&mut connection, [("name", Value::from("Grace"))])
+    let updated = User::where_op("id", "=", 7_u64)
+        .update_on(&mut connection, [("name", Value::from("Grace"))])
         .unwrap();
     assert_eq!(updated.affected_rows, 1);
     assert_eq!(updated.last_insert_id, None);
@@ -202,8 +202,8 @@ fn filtered_update_and_delete_use_bound_model_queries() {
         &[Value::Text("Grace".into()), Value::U64(7)]
     );
 
-    let deleted = User::where_("id", "=", 7_u64)
-        .delete(&mut connection)
+    let deleted = User::where_op("id", "=", 7_u64)
+        .delete_on(&mut connection)
         .unwrap();
     assert_eq!(deleted.affected_rows, 1);
     assert_eq!(deleted.last_insert_id, None);
@@ -224,7 +224,7 @@ fn instance_update_and_delete_filter_by_the_model_key() {
     let mut connection = FakeConnection::default();
 
     let updated = user
-        .update(&mut connection, [("name", Value::from("Grace"))])
+        .update_on(&mut connection, [("name", Value::from("Grace"))])
         .unwrap();
     assert_eq!(updated.affected_rows, 1);
     assert_eq!(user.name, "Ada");
@@ -237,7 +237,7 @@ fn instance_update_and_delete_filter_by_the_model_key() {
         &[Value::Text("Grace".into()), Value::U64(7)]
     );
 
-    let deleted = user.delete(&mut connection).unwrap();
+    let deleted = user.delete_on(&mut connection).unwrap();
     assert_eq!(deleted.affected_rows, 1);
     assert_eq!(
         connection.executed[1].sql(),
@@ -251,11 +251,11 @@ fn unfiltered_model_mutations_are_rejected_before_execution() {
     let mut connection = FakeConnection::default();
 
     let update_error = User::query()
-        .update(&mut connection, [("active", Value::from(false))])
+        .update_on(&mut connection, [("active", Value::from(false))])
         .unwrap_err();
     assert!(matches!(update_error.kind(), ErrorKind::Query));
 
-    let delete_error = User::query().delete(&mut connection).unwrap_err();
+    let delete_error = User::query().delete_on(&mut connection).unwrap_err();
     assert!(matches!(delete_error.kind(), ErrorKind::Query));
     assert!(connection.executed.is_empty());
 }
@@ -263,7 +263,7 @@ fn unfiltered_model_mutations_are_rejected_before_execution() {
 #[test]
 fn find_uses_the_declared_primary_key() {
     let mut connection = FakeConnection::with_rows(vec![user_row(9, "Lin")]);
-    let user = User::find(&mut connection, 9_u64).unwrap().unwrap();
+    let user = User::find_on(&mut connection, 9_u64).unwrap().unwrap();
     assert_eq!(user.id, 9);
     assert_eq!(connection.statements[0].bindings(), &[Value::U64(9)]);
 }
@@ -271,7 +271,7 @@ fn find_uses_the_declared_primary_key() {
 #[test]
 fn destroy_filters_by_the_declared_primary_key() {
     let mut connection = FakeConnection::default();
-    let execution = User::destroy(&mut connection, 9_u64).unwrap();
+    let execution = User::destroy_on(&mut connection, 9_u64).unwrap();
 
     assert_eq!(execution.affected_rows, 1);
     assert_eq!(execution.last_insert_id, None);

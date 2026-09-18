@@ -19,6 +19,18 @@ impl<'a> TestClient<'a> {
     pub fn get(&self, target: impl Into<String>) -> Result<TestResponse> {
         self.request("GET", target)?.send()
     }
+    pub fn put(&self, target: impl Into<String>) -> Result<TestRequest<'a>> {
+        self.request("PUT", target)
+    }
+    pub fn patch(&self, target: impl Into<String>) -> Result<TestRequest<'a>> {
+        self.request("PATCH", target)
+    }
+    pub fn delete(&self, target: impl Into<String>) -> Result<TestRequest<'a>> {
+        self.request("DELETE", target)
+    }
+    pub fn head(&self, target: impl Into<String>) -> Result<TestRequest<'a>> {
+        self.request("HEAD", target)
+    }
     pub fn post(&self, target: impl Into<String>) -> Result<TestRequest<'a>> {
         self.request("POST", target)
     }
@@ -46,14 +58,12 @@ impl<'a> TestRequest<'a> {
         Ok(self)
     }
     pub fn send(self) -> Result<TestResponse> {
-        self.app
-            .handle(Request::new(
-                self.method,
-                self.target,
-                self.headers,
-                self.body,
-            )?)
-            .map(TestResponse)
+        Ok(TestResponse(self.app.respond(Request::new(
+            self.method,
+            self.target,
+            self.headers,
+            self.body,
+        )?)))
     }
 }
 
@@ -118,5 +128,57 @@ impl TestResponse {
             "unexpected JSON response"
         );
         self
+    }
+}
+
+impl TestResponse {
+    pub fn json(&self) -> Json {
+        Json::parse(self.0.body()).expect("response body is not valid JSON")
+    }
+    #[track_caller]
+    pub fn assert_json_path(self, path: &str, expected: impl Into<Json>) -> Self {
+        assert_eq!(
+            berserk::Arr::get(&self.json(), path),
+            Some(&expected.into()),
+            "unexpected JSON path value"
+        );
+        self
+    }
+    #[track_caller]
+    pub fn assert_validation_error(self, field: &str) -> Self {
+        assert_eq!(self.0.status_code(), 422);
+        let json = self.json();
+        let errors = json
+            .get("errors")
+            .and_then(|v| {
+                if let Json::Array(items) = v {
+                    Some(items)
+                } else {
+                    None
+                }
+            })
+            .expect("validation errors array");
+        assert!(
+            errors
+                .iter()
+                .any(|e| e.get("field").and_then(Json::as_str) == Some(field)),
+            "missing validation error for {field}"
+        );
+        self
+    }
+    pub fn assert_created(self) -> Self {
+        self.assert_status(201)
+    }
+    pub fn assert_no_content(self) -> Self {
+        self.assert_status(204)
+    }
+    pub fn assert_unauthorized(self) -> Self {
+        self.assert_status(401)
+    }
+    pub fn assert_forbidden(self) -> Self {
+        self.assert_status(403)
+    }
+    pub fn assert_not_found(self) -> Self {
+        self.assert_status(404)
     }
 }

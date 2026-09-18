@@ -22,7 +22,7 @@ impl Model for User {
 #[test]
 fn model_query_keeps_values_bound() {
     let statement = User::query()
-        .where_("email", "=", "a@example.com")
+        .where_op("email", "=", "a@example.com")
         .limit(1)
         .to_statement(Driver::Sqlite)
         .unwrap();

@@ -48,6 +48,11 @@ fn authenticated_middleware_rejects_missing_and_malformed_credentials() {
         let response = app.handle(request(authorization)).unwrap();
         assert_eq!(response.status_code(), 401);
         assert_eq!(response.headers().get("www-authenticate"), Some("Bearer"));
-        assert_eq!(response.body(), b"Unauthorized");
+        assert_eq!(
+            berserk::Json::parse(response.body())
+                .unwrap()
+                .get("message"),
+            Some(&berserk::Json::from("Unauthorized"))
+        );
     }
 }

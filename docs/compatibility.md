@@ -2,7 +2,7 @@
 
 ## Current status
 
-The workspace is prepared as the unpublished `0.1.0` release candidate. Rust 1.88 is the declared minimum supported Rust version (MSRV). CI checks the complete workspace on Rust 1.88 and on the current stable Rust toolchain, with platform and database coverage defined in `docs/support-policy.md`.
+The workspace is prepared as the unpublished `0.2.0` release candidate. Rust 1.88 is the declared minimum supported Rust version (MSRV). CI checks the complete workspace on Rust 1.88 and on the current stable Rust toolchain, with platform and database coverage defined in `docs/support-policy.md`.
 
 Berserk is still pre-1.0. Public APIs may change before a stable compatibility commitment is made, but release-candidate changes must be documented rather than introduced silently.
 

@@ -31,6 +31,12 @@ impl<'a> Route<'a> {
         }
     }
 
+    pub fn head<H: Handler<A>, A>(&mut self, path: &str, handler: H) -> Result<()> {
+        self.add(Method::new("HEAD")?, path, handler)
+    }
+    pub fn options<H: Handler<A>, A>(&mut self, path: &str, handler: H) -> Result<()> {
+        self.add(Method::new("OPTIONS")?, path, handler)
+    }
     pub fn get<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         H: Handler<A>,
@@ -231,6 +237,14 @@ impl<'a> Route<'a> {
 }
 
 impl NamedRoute<'_, '_> {
+    pub fn head<H: Handler<A>, A>(self, path: &str, handler: H) -> Result<()> {
+        self.route
+            .add_named(Method::new("HEAD")?, path, handler, Some(self.name))
+    }
+    pub fn options<H: Handler<A>, A>(self, path: &str, handler: H) -> Result<()> {
+        self.route
+            .add_named(Method::new("OPTIONS")?, path, handler, Some(self.name))
+    }
     pub fn get<H, A>(self, path: &str, handler: H) -> Result<()>
     where
         H: Handler<A>,
@@ -332,4 +346,232 @@ where
     )?;
 
     Ok(())
+}
+
+#[cfg(feature = "async")]
+impl Route<'_> {
+    pub fn get_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.get(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+#[cfg(feature = "async")]
+impl NamedRoute<'_, '_> {
+    pub fn get_async<H, A>(self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.get(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+
+#[cfg(feature = "async")]
+impl Route<'_> {
+    pub fn post_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.post(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+#[cfg(feature = "async")]
+impl NamedRoute<'_, '_> {
+    pub fn post_async<H, A>(self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.post(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+
+#[cfg(feature = "async")]
+impl Route<'_> {
+    pub fn put_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.put(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+#[cfg(feature = "async")]
+impl NamedRoute<'_, '_> {
+    pub fn put_async<H, A>(self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.put(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+
+#[cfg(feature = "async")]
+impl Route<'_> {
+    pub fn patch_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.patch(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+#[cfg(feature = "async")]
+impl NamedRoute<'_, '_> {
+    pub fn patch_async<H, A>(self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.patch(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+
+#[cfg(feature = "async")]
+impl Route<'_> {
+    pub fn delete_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.delete(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+#[cfg(feature = "async")]
+impl NamedRoute<'_, '_> {
+    pub fn delete_async<H, A>(self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.delete(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+
+#[cfg(feature = "async")]
+impl Route<'_> {
+    pub fn head_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.head(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+#[cfg(feature = "async")]
+impl NamedRoute<'_, '_> {
+    pub fn head_async<H, A>(self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.head(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+
+#[cfg(feature = "async")]
+impl Route<'_> {
+    pub fn options_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.options(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+#[cfg(feature = "async")]
+impl NamedRoute<'_, '_> {
+    pub fn options_async<H, A>(self, path: &str, handler: H) -> Result<()>
+    where
+        crate::controller::async_handlers::Async<H>: Handler<A>,
+    {
+        self.options(
+            path,
+            crate::controller::async_handlers::Async(Arc::new(handler)),
+        )
+    }
+}
+
+#[cfg(feature = "claw")]
+impl Route<'_> {
+    /// Atomically register named index, store, show, update (PUT/PATCH), and destroy actions.
+    pub fn crud<C: super::resource::CrudController>(
+        &mut self,
+        path: &str,
+        controller: C,
+    ) -> Result<()> {
+        use crate::controller::{FormArg, NoArgs, RouteModel, RouteModelForm};
+        let name = self.resource_name(path)?;
+        let member = format!("{path}/{{id}}");
+        let controller = Arc::new(controller);
+        let mut child = Router::default();
+        let current = controller.clone();
+        child.add_named::<_, NoArgs>(
+            Method::new("GET")?,
+            path,
+            move || current.index(),
+            Some(format!("{name}.index")),
+        )?;
+        let current = controller.clone();
+        child.add_named::<_, FormArg<C::Create>>(
+            Method::new("POST")?,
+            path,
+            move |input: C::Create| current.store(input),
+            Some(format!("{name}.store")),
+        )?;
+        let current = controller.clone();
+        child.add_named::<_, RouteModel<C::Model>>(
+            Method::new("GET")?,
+            &member,
+            move |model: C::Model| current.show(model),
+            Some(format!("{name}.show")),
+        )?;
+        for verb in ["PUT", "PATCH"] {
+            let current = controller.clone();
+            child.add_named::<_, RouteModelForm<C::Model, C::Update>>(
+                Method::new(verb)?,
+                &member,
+                move |model: C::Model, input: C::Update| current.update(model, input),
+                Some(format!("{name}.update")),
+            )?;
+        }
+        child.add_named::<_, RouteModel<C::Model>>(
+            Method::new("DELETE")?,
+            &member,
+            move |model: C::Model| controller.destroy(model),
+            Some(format!("{name}.destroy")),
+        )?;
+        self.mount_scoped(child)
+    }
 }

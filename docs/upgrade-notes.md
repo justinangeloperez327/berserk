@@ -1,5 +1,29 @@
 # Upgrade notes
 
+## 0.2.0 release candidate
+
+Rust 1.88 remains supported. This is one coordinated change across the 15 publishable crates. Use the [release guide](v0.2.0.md) and the runnable foundation example for the current API.
+
+| Previous explicit-connection API | v0.2.0 request-scoped API | Explicit escape hatch |
+| --- | --- | --- |
+| `User::find(connection, key)` | `User::find(key)` | `User::find_on(connection, key)` |
+| `query.get(connection)` | `query.get()` | `query.get_on(connection)` |
+| `user.save(connection)` | `user.save()` | `user.save_on(connection)` |
+| `User::create(connection, columns)` | `User::create(input)` returns model | `User::create_on(connection, columns)` returns Execution |
+| `user.update(connection, columns)` | `user.update(input)` reloads model | `user.update_on(connection, columns)` returns Execution |
+| `user.delete(connection)` | `user.delete()` | `user.delete_on(connection)` |
+| `query.paginate(connection, page, size)` | `query.paginate(size)` reads request page | `query.paginate_on(connection, page, size)` |
+| `where_(column, operator, value)` on Claw | `where_(column, value)` means equality | `where_op(column, operator, value)` |
+
+Other Claw connection-taking terminals and lifecycle helpers likewise gain `_on`. Low-level database::Query is unchanged. Raw `_on` writes accept trusted values directly; typed create/update require FILLABLE plus IntoInsert/IntoUpdate. PersistableModel::save uses its existing explicit values_for_save mapping.
+
+FormRequest supports direct input parameters and adds authorization after validation; Validated<T> remains supported. Existing routes/resources continue working; typed CrudController is additive. Application error responses, including router 404/405 and authentication failures, are now JSON. Update tests that compare plain-text error bodies. TestClient renders errors through App::respond; use App::handle to inspect Error values directly.
+
+Enable `async` explicitly for async actions. Use Arc<App>::handle_async from Tokio callers; the scope does not propagate into separately spawned tasks. Cancellation of the waiting caller does not cancel a started worker. DatabaseScope::run and Transaction::run take synchronous closures.
+
+The previous release record below is historical evidence, not validation of this candidate.
+
+
 ## 0.1.0 release candidate
 
 `0.1.0` is Berserk's planned first public release. There is no supported migration path from an earlier crates.io release because no Berserk package has been published yet.

@@ -88,7 +88,7 @@ pub(super) fn serve(
                 let response = match catch_unwind(AssertUnwindSafe(|| app.handle(request))) {
                     Ok(Ok(response)) => response,
                     Ok(Err(error)) => application_error_response(error),
-                    Err(_) => Response::text("Internal Server Error").status(500),
+                    Err(_) => crate::Error::rejected(500, "Internal Server Error").response(),
                 };
                 (method, response)
             }
