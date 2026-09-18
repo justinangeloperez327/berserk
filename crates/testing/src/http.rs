@@ -46,7 +46,8 @@ pub struct TestRequest<'a> {
 impl<'a> TestRequest<'a> {
     /// Set one bearer credential, replacing any previous Authorization headers.
     pub fn bearer(mut self, token: impl AsRef<str>) -> Result<Self> {
-        self.headers.insert("authorization", &format!("Bearer {}", token.as_ref()))?;
+        self.headers
+            .insert("authorization", &format!("Bearer {}", token.as_ref()))?;
         Ok(self)
     }
 
@@ -201,21 +202,35 @@ mod tests {
             assert_eq!(request.header("authorization"), Some("Bearer new-token"));
             assert_eq!(request.header("x-test"), Some("kept"));
             Response::text("profile")
-        }).unwrap();
-        TestClient::new(&app).request("GET", "/profile").unwrap()
-            .header("authorization", "Basic old").unwrap()
-            .header("Authorization", "Bearer old").unwrap()
-            .header("x-test", "kept").unwrap()
-            .bearer("new-token").unwrap().send().unwrap()
-            .assert_ok().assert_text("profile");
+        })
+        .unwrap();
+        TestClient::new(&app)
+            .request("GET", "/profile")
+            .unwrap()
+            .header("authorization", "Basic old")
+            .unwrap()
+            .header("Authorization", "Bearer old")
+            .unwrap()
+            .header("x-test", "kept")
+            .unwrap()
+            .bearer("new-token")
+            .unwrap()
+            .send()
+            .unwrap()
+            .assert_ok()
+            .assert_text("profile");
     }
 
     #[test]
     fn bearer_rejects_header_injection_without_echoing_the_credential() {
         let app = App::new();
-        let result = TestClient::new(&app).request("GET", "/").unwrap()
+        let result = TestClient::new(&app)
+            .request("GET", "/")
+            .unwrap()
             .bearer("secret\r\nx-injected: true");
-        let Err(error) = result else { panic!("header injection accepted"); };
+        let Err(error) = result else {
+            panic!("header injection accepted");
+        };
         assert!(!format!("{error:?}").contains("secret"));
     }
 }
