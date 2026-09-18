@@ -87,6 +87,6 @@ impl Middleware for SecurityHeaders {
     }
 }
 
-fn config(message: &str) -> crate::Error {
+fn config(message: &'static str) -> crate::Error {
     ConfigError::new("security_headers", message).into()
 }
