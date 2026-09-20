@@ -298,7 +298,7 @@ impl CreateTable {
         }
         if let Some(primary_key) = &self.primary_key {
             if primary_key.is_empty() {
-                return Err(error("a composite primary key must contain at least one column"));
+                return Err(error(\n                    "a composite primary key must contain at least one column",\n                ));
             }
             if self.columns.iter().any(|column| column.primary) {
                 return Err(error("column and table primary keys cannot be combined"));
@@ -306,7 +306,7 @@ impl CreateTable {
             for column in primary_key {
                 validate_identifier("primary key column", column)?;
                 if !self.columns.iter().any(|item| item.name == *column) {
-                    return Err(error(format!("primary key references unknown column `{column}`")));
+                    return Err(error(format!(\n                        "primary key references unknown column `{column}`"\n                    )));
                 }
             }
         }
@@ -337,7 +337,7 @@ impl CreateTable {
             for column in &foreign_key.columns {
                 validate_identifier("foreign key column", column)?;
                 if !self.columns.iter().any(|item| item.name == *column) {
-                    return Err(error(format!("foreign key references unknown local column `{column}`")));
+                    return Err(error(format!(\n                        "foreign key references unknown local column `{column}`"\n                    )));
                 }
             }
             for column in &foreign_key.referenced_columns {
