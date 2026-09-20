@@ -2,10 +2,11 @@ use crate::Json;
 use rand_core::{OsRng, RngCore};
 use std::{collections::BTreeMap, fmt::Display};
 
-/// Laravel-style array helpers adapted to Rust collections and Berserk `Json` values.
+/// Collection and nested-value helpers for Rust collections and Berserk `Json`.
 ///
-/// Typed collection helpers operate on `Vec` / `BTreeMap`. Dot-notation helpers
-/// operate on `Json`, which is Berserk's dynamic nested value representation.
+/// Typed collection helpers operate on `Vec` / `BTreeMap`. Dot-path helpers
+/// operate on `Json`, Berserk's dynamic nested value representation. These
+/// helpers are explicit utilities, not framework-global facades.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Arr;
 
