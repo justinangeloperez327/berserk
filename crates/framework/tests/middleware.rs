@@ -25,8 +25,7 @@ fn layers_wrap_in_registration_order() {
         );
     }
     let events = log.clone();
-    app.route()
-            .get("/", move || {
+    app.route().get("/", move || {
         events.lock().unwrap().push("handler");
         Response::empty()
     })
@@ -43,8 +42,7 @@ fn early_response_and_head_apply_to_whole_pipeline() {
     app.middleware(|_: Request, _: Next<'_>| -> Result<Response> {
         Ok(Response::text("blocked").status(403))
     });
-    app.route()
-            .get("/", || -> Response { panic!("must not run") })
+    app.route().get("/", || -> Response { panic!("must not run") })
         .unwrap();
     let request = Request::new(
         Method::new("HEAD").unwrap(),
@@ -68,8 +66,7 @@ fn state_and_ids_are_available_and_groups_are_isolated() {
         group.middleware(|req: Request, next: Next<'_>| -> Result<Response> {
             next.run(req)?.header("x-group", "api")
         });
-        group.route()
-            .get("/users/{id}", |req: Request| {
+        group.route().get("/users/{id}", |req: Request| {
             assert!(req.request_id().is_some());
             Response::text(format!(
                 "{}:{}",
@@ -79,8 +76,7 @@ fn state_and_ids_are_available_and_groups_are_isolated() {
         })
     })
     .unwrap();
-    app.route()
-            .get("/outside", Response::empty).unwrap();
+    app.route().get("/outside", Response::empty).unwrap();
     let response = app.handle(req("/api/users/9")).unwrap();
     assert_eq!(response.body(), b"shared:9");
     assert_eq!(response.headers().get("x-group"), Some("api"));
@@ -100,20 +96,16 @@ fn state_and_ids_are_available_and_groups_are_isolated() {
 #[test]
 fn groups_are_transactional_and_can_nest() {
     let mut app = App::new();
-    app.route()
-            .get("/api/taken", Response::empty).unwrap();
+    app.route().get("/api/taken", Response::empty).unwrap();
     assert!(app
         .group("/api", |g| {
-            g.route()
-                .get("/new", Response::empty)?;
-            g.route()
-                .get("/taken", Response::empty)
+            g.route().get("/new", Response::empty)?;
+            g.route().get("/taken", Response::empty)
         })
         .is_err());
     assert_eq!(app.handle(req("/api/new")).unwrap().status_code(), 404);
     app.group("/api", |g| {
-        g.group("/v1", |v| v.route()
-            .get("/ok", || Response::text("ok")))
+        g.group("/v1", |v| v.route().get("/ok", || Response::text("ok")))
     })
     .unwrap();
     assert_eq!(app.handle(req("/api/v1/ok")).unwrap().body(), b"ok");
