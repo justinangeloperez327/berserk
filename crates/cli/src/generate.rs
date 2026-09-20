@@ -163,7 +163,7 @@ impl Generator {
             .as_secs();
         let path = directory.join(format!("{timestamp}_{name}.rs"));
         let type_name = pascal_case(name);
-        let source = format!("use berserk::database::{{Driver, Migration, Result, Statement}};\n\npub struct {type_name};\n\nimpl Migration for {type_name} {{\n    fn name(&self) -> &'static str {{ \"{timestamp}_{name}\" }}\n    fn up(&self, _driver: Driver) -> Result<Vec<Statement>> {{\n        Ok(vec![Statement::new(\"-- write forward migration SQL\")])\n    }}\n    fn down(&self, _driver: Driver) -> Result<Vec<Statement>> {{\n        Ok(vec![Statement::new(\"-- write rollback migration SQL\")])\n    }}\n}}\n");
+        let source = migration_source(&type_name, timestamp, name);
         write_new(&path, source.as_bytes())?;
         Ok(vec![GeneratedFile { path }])
     }
@@ -473,5 +473,21 @@ fn rust_keyword(name: &str) -> bool {
             | "yield"
             | "try"
             | "gen"
+    )
+}
+
+
+fn migration_source(type_name: &str, timestamp: u64, name: &str) -> String {
+    let migration_name = format!("{timestamp}_{name}");
+    if let Some(table) = name
+        .strip_prefix("create_")
+        .and_then(|value| value.strip_suffix("_table"))
+    {
+        return format!(
+            "use berserk::database::{{migrations::{{Column, MigrationPlan, Table}}, Driver, Migration, Result, Statement}};\n\npub struct {type_name};\n\nimpl Migration for {type_name} {{\n    fn name(&self) -> &'static str {{ \"{migration_name}\" }}\n\n    fn up(&self, driver: Driver) -> Result<Vec<Statement>> {{\n        MigrationPlan::new()\n            .create(Table::create(\"{table}\").columns([\n                Column::id(),\n                Column::timestamp(\"created_at\"),\n                Column::timestamp(\"updated_at\"),\n            ]))\n            .compile(driver)\n    }}\n\n    fn down(&self, driver: Driver) -> Result<Vec<Statement>> {{\n        MigrationPlan::new()\n            .table(Table::drop(\"{table}\"))\n            .compile(driver)\n    }}\n}}\n"
+        );
+    }
+    format!(
+        "use berserk::database::{{migrations::MigrationPlan, Driver, Migration, Result, Statement}};\n\npub struct {type_name};\n\nimpl Migration for {type_name} {{\n    fn name(&self) -> &'static str {{ \"{migration_name}\" }}\n\n    fn up(&self, driver: Driver) -> Result<Vec<Statement>> {{\n        MigrationPlan::new().compile(driver)\n    }}\n\n    fn down(&self, driver: Driver) -> Result<Vec<Statement>> {{\n        MigrationPlan::new().compile(driver)\n    }}\n}}\n"
     )
 }
