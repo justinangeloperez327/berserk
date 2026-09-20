@@ -2,7 +2,7 @@ mod compiler;
 mod schema;
 
 pub use compiler::compile_create;
-pub use schema::{Column, ColumnType, CreateTable, Table};
+pub use schema::{Column, ColumnType, CreateTable, ForeignAction, ForeignKey, Index, Table};
 
 use crate::{
     Connection, DatabaseError, Direction, Driver, ErrorKind, Query, Result, Row, Statement, Value,
