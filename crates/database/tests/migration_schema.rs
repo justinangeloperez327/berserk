@@ -45,7 +45,6 @@ fn column_definitions_validate_lengths_and_decimals() {
         .is_err());
 }
 
-
 #[test]
 fn migration_identifiers_use_portable_limits() {
     let too_long = "a".repeat(64);
