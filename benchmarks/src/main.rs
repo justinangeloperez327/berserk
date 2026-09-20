@@ -72,9 +72,11 @@ fn main() -> Result<()> {
         "routing" => {
             let mut app = App::new();
             for i in 0..100 {
-                app.route().get(&format!("/items/{i}"), || Response::text("ok"))?;
+                app.route()
+        .get(&format!("/items/{i}"), || Response::text("ok"))?;
             }
-            app.route().get("/users/{id}", |req: Request| {
+            app.route()
+        .get("/users/{id}", |req: Request| {
                 Response::text(req.param("id").unwrap())
             })?;
             measure(
@@ -110,7 +112,8 @@ fn main() -> Result<()> {
         }
         "tcp" => {
             let mut app = App::new();
-            app.route().get("/", || Response::text("ok"))?;
+            app.route()
+        .get("/", || Response::text("ok"))?;
             let server = app.bind("127.0.0.1:0")?;
             let addr = server.local_addr()?;
             let stop = Stop(server.shutdown_handle());
