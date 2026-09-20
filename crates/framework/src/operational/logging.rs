@@ -141,7 +141,8 @@ mod tests {
         let sink = Arc::new(MemoryLogSink::default());
         let mut app = App::new();
         app.middleware(RequestLogger::new(sink.clone()));
-        app.route().get("/forbidden", || -> Result<Response> {
+        app.route()
+            .get("/forbidden", || -> Result<Response> {
             Err(crate::Error::forbidden())
         })
         .unwrap();
