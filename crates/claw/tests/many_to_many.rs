@@ -14,7 +14,9 @@ impl Model for User {
     const TABLE: &'static str = "users";
 
     fn from_row(row: &Row) -> Result<Self> {
-        Ok(Self {\n            id: field(row, "id")?,\n        })
+        Ok(Self {
+            id: field(row, "id")?,
+        })
     }
 
     fn key(&self) -> Value {
