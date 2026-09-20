@@ -14,7 +14,7 @@ impl Model for User {
     const TABLE: &'static str = "users";
 
     fn from_row(row: &Row) -> Result<Self> {
-        Ok(Self { id: field(row, "id")? })
+        Ok(Self {\n            id: field(row, "id")?,\n        })
     }
 
     fn key(&self) -> Value {
@@ -126,10 +126,8 @@ fn many_to_many_batches_pivot_and_related_queries() {
 #[test]
 fn many_to_many_preserves_a_related_model_shared_by_multiple_parents() {
     let users = [User { id: 1 }, User { id: 2 }];
-    let mut connection = FakeConnection::with_results([
-        vec![pivot(1, 10), pivot(2, 10)],
-        vec![role(10, "Admin")],
-    ]);
+    let mut connection =
+        FakeConnection::with_results([vec![pivot(1, 10), pivot(2, 10)], vec![role(10, "Admin")]]);
 
     let loaded = relation().load(&mut connection, &users).unwrap();
 
