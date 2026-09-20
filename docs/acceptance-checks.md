@@ -1,6 +1,6 @@
 # Implementation acceptance checks
 
-These checks define the release target. Automated stable/MSRV compilation, formatting, Clippy, tests, documentation, the independent consumer, dependency policy, and advisory audit currently pass. Items requiring live services, fuzzing, measured performance, independent review, or owner release authorization remain pending.
+These checks define the release target. The workflow results for the exact release-candidate commit are the source of truth; results from an earlier commit do not satisfy a later candidate. Independent review and owner release authorization remain explicit non-automated gates.
 
 ## Public API
 
