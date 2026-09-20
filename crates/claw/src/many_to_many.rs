@@ -1,4 +1,4 @@
-use crate::{Model, RelatedSet};
+use crate::{relationship::unique_non_null, Model, RelatedSet};
 use berserk_database::{Connection, DatabaseError, ErrorKind, Query, Result, Value};
 use std::marker::PhantomData;
 
@@ -33,7 +33,7 @@ impl<P, R: Model> BelongsToMany<P, R> {
         }
     }
 
-    pub fn load(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
+    pub fn load_on(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
         let parent_keys = unique_non_null(parents.iter().map(self.parent_key));
         if parent_keys.is_empty() {
             return Ok(RelatedSet::default());
@@ -95,12 +95,3 @@ impl<P, R: Model> BelongsToMany<P, R> {
     }
 }
 
-fn unique_non_null(values: impl IntoIterator<Item = Value>) -> Vec<Value> {
-    let mut unique = Vec::new();
-    for value in values {
-        if value != Value::Null && !unique.contains(&value) {
-            unique.push(value);
-        }
-    }
-    unique
-}
