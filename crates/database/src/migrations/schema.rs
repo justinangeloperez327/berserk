@@ -170,6 +170,7 @@ pub struct ForeignKey {
     pub(crate) referenced_columns: Vec<String>,
     pub(crate) on_delete: Option<ForeignAction>,
     pub(crate) on_update: Option<ForeignAction>,
+    pub(crate) name: Option<String>,
 }
 
 impl ForeignKey {
@@ -180,6 +181,7 @@ impl ForeignKey {
             referenced_columns: Vec::new(),
             on_delete: None,
             on_update: None,
+            name: None,
         }
     }
 
@@ -190,6 +192,11 @@ impl ForeignKey {
     ) -> Self {
         self.referenced_table = table.into();
         self.referenced_columns = columns.into_iter().map(str::to_owned).collect();
+        self
+    }
+
+    pub fn named(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
         self
     }
 
@@ -324,6 +331,9 @@ impl CreateTable {
                 return Err(error("foreign key columns must match referenced columns"));
             }
             validate_identifier("referenced table", &foreign_key.referenced_table)?;
+            if let Some(name) = &foreign_key.name {
+                validate_identifier("foreign key", name)?;
+            }
             for column in &foreign_key.columns {
                 validate_identifier("foreign key column", column)?;
                 if !self.columns.iter().any(|item| item.name == *column) {
