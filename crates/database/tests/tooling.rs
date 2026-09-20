@@ -119,11 +119,8 @@ fn rollback_uses_the_latest_batch_in_reverse_order() {
 fn rollback_all_unwinds_batches_from_newest_to_oldest() {
     let users = CreateUsers;
     let posts = CreatePosts;
-    let runner = MigrationRunner::new([
-        &users as &dyn Migration,
-        &posts as &dyn Migration,
-    ])
-    .unwrap();
+    let runner =
+        MigrationRunner::new([&users as &dyn Migration, &posts as &dyn Migration]).unwrap();
     let mut connection = FakeConnection::with_results(vec![
         vec![applied_row(users.name(), 1), applied_row(posts.name(), 2)],
         vec![applied_row(users.name(), 1)],
