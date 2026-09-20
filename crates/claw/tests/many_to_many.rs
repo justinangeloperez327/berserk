@@ -146,3 +146,15 @@ fn many_to_many_empty_parents_do_not_query() {
     assert!(loaded.is_empty());
     assert!(connection.statements.is_empty());
 }
+
+#[test]
+fn many_to_many_reports_missing_pivot_columns() {
+    let users = [User { id: 1 }];
+    let malformed = Row::new(vec![Column::new("user_id", 1_u64)]).unwrap();
+    let mut connection = FakeConnection::with_results([vec![malformed]]);
+
+    let error = relation().load_on(&mut connection, &users).unwrap_err();
+
+    assert!(matches!(error.kind(), claw_orm::ErrorKind::Decode));
+    assert!(error.message().contains("role_id"));
+}
