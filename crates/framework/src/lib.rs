@@ -74,9 +74,8 @@ pub use resource::{ApiResource, Resource, ResourceCollection};
 pub mod operational;
 pub use operational::{
     HealthCheck, HealthCheckResult, HealthRegistry, HealthSnapshot, HealthStatus, LogEvent,
-    LogSink, MemoryLogSink, Metrics,
-    MetricsLayer, MetricsSnapshot, RateLimitDecision, RateLimitLayer, RateLimiter, RequestLogger,
-    StderrJson, TraceContext, TraceLayer,
+    LogSink, MemoryLogSink, Metrics, MetricsLayer, MetricsSnapshot, RateLimitDecision,
+    RateLimitLayer, RateLimiter, RequestLogger, StderrJson, TraceContext, TraceLayer,
 };
 
 mod responses;
