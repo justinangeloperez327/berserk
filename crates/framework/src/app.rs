@@ -255,4 +255,3 @@ impl App {
         .map_err(|_| crate::ConfigError::new("async", "request worker failed"))?
     }
 }
-
