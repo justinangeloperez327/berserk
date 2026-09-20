@@ -156,5 +156,5 @@ fn many_to_many_reports_missing_pivot_columns() {
     let error = relation().load_on(&mut connection, &users).unwrap_err();
 
     assert!(matches!(error.kind(), claw_orm::ErrorKind::Decode));
-    assert!(error.message().contains("role_id"));
+    assert!(error.to_string().contains("role_id"));
 }
