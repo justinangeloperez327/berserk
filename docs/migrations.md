@@ -55,9 +55,9 @@ Timestamps are ordinary explicit columns. Berserk does not inject `created_at` o
 MigrationPlan::new()
     .alter(
         Table::alter("users")
-            .add([Column::string("phone").nullable()])
+            .add_columns([Column::string("phone").nullable()])
             .rename("phone", "mobile")
-            .drop(["legacy_column"]),
+            .drop_columns(["legacy_column"]),
     )
     .compile(driver)
 ```
