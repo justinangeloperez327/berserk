@@ -401,6 +401,7 @@ impl Table {
 
 fn validate_identifier(kind: &str, identifier: &str) -> Result<()> {
     let valid = !identifier.is_empty()
+        && identifier.len() <= 63
         && identifier
             .chars()
             .all(|character| character == '_' || character.is_ascii_alphanumeric())
