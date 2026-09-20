@@ -20,13 +20,13 @@ pub struct AlterTable {
 }
 
 impl AlterTable {
-    pub fn add<const N: usize>(mut self, columns: [Column; N]) -> Self {
+    pub fn add_columns<const N: usize>(mut self, columns: [Column; N]) -> Self {
         self.operations
             .extend(columns.into_iter().map(AlterOperation::Add));
         self
     }
 
-    pub fn drop<const N: usize>(mut self, columns: [&str; N]) -> Self {
+    pub fn drop_columns<const N: usize>(mut self, columns: [&str; N]) -> Self {
         self.operations.extend(
             columns
                 .into_iter()
