@@ -122,7 +122,73 @@ impl<G: berserk_auth::Guard> Middleware for Guest<G> {
 }
 
 #[cfg(feature = "auth")]
-fn authenticate_request<G: berserk_auth::Guard>(
+#[derive(Clone)]
+pub(crate) struct ConfiguredAuth {
+    guard: Arc<dyn berserk_auth::Guard>,
+}
+
+#[cfg(feature = "auth")]
+impl ConfiguredAuth {
+    pub(crate) fn new<G: berserk_auth::Guard>(guard: G) -> Self {
+        Self {
+            guard: Arc::new(guard),
+        }
+    }
+
+    fn guard(&self) -> &(dyn berserk_auth::Guard) {
+        self.guard.as_ref()
+    }
+}
+
+#[cfg(feature = "auth")]
+pub(crate) struct ConfiguredAuthenticated;
+
+#[cfg(feature = "auth")]
+impl Middleware for ConfiguredAuthenticated {
+    fn handle(&self, mut request: Request, next: Next<'_>) -> Result<Response> {
+        let outcome = {
+            let auth = request.state::<ConfiguredAuth>().ok_or_else(|| {
+                crate::ConfigError::new("auth", "authentication guard is not configured")
+            })?;
+            authenticate_request(&request, auth.guard())
+        };
+
+        match outcome {
+            Ok(Some(principal)) => {
+                request.set_principal(principal);
+                next.run(request)
+            }
+            Ok(None) => Ok(crate::Error::unauthorized().response()),
+            Err(error) if error.status_code() == 401 => Ok(error.response()),
+            Err(error) => Err(error),
+        }
+    }
+}
+
+#[cfg(feature = "auth")]
+pub(crate) struct ConfiguredGuest;
+
+#[cfg(feature = "auth")]
+impl Middleware for ConfiguredGuest {
+    fn handle(&self, request: Request, next: Next<'_>) -> Result<Response> {
+        let outcome = {
+            let auth = request.state::<ConfiguredAuth>().ok_or_else(|| {
+                crate::ConfigError::new("auth", "authentication guard is not configured")
+            })?;
+            authenticate_request(&request, auth.guard())
+        };
+
+        match outcome {
+            Ok(None) if request.user().is_none() => next.run(request),
+            Ok(_) => Ok(crate::Error::forbidden().response()),
+            Err(error) if error.status_code() == 401 => Ok(error.response()),
+            Err(error) => Err(error),
+        }
+    }
+}
+
+#[cfg(feature = "auth")]
+fn authenticate_request<G: berserk_auth::Guard + ?Sized>(
     request: &Request,
     guard: &G,
 ) -> Result<Option<berserk_auth::Principal>> {
