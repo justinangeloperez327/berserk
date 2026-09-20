@@ -6,7 +6,9 @@ fn preferred_application_surface_stays_small_and_explicit() {
     let mut app = App::new();
 
     app.route()
-        .get("/users/{id}", |id: u64| response().text(format!("user:{id}")))
+        .get("/users/{id}", |id: u64| {
+            response().text(format!("user:{id}"))
+        })
         .unwrap();
 
     let request = Request::new(
