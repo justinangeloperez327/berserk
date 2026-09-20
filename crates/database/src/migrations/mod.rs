@@ -6,7 +6,9 @@ mod schema;
 pub use compiler::{compile_alter, compile_create, compile_indexes, compile_table_operation};
 pub use operations::{AlterOperation, AlterTable, TableOperation};
 pub use plan::{MigrationOperation, MigrationPlan};
-pub use schema::{Column, ColumnType, CreateTable, ForeignAction, ForeignKey, Index, Table};
+pub use schema::{
+    Column, ColumnDefault, ColumnType, CreateTable, ForeignAction, ForeignKey, Index, Table,
+};
 
 use crate::{
     Connection, DatabaseError, Direction, Driver, ErrorKind, Query, Result, Row, Statement, Value,
