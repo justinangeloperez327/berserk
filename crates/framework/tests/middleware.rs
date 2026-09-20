@@ -25,7 +25,7 @@ fn layers_wrap_in_registration_order() {
         );
     }
     let events = log.clone();
-    app.get("/", move || {
+    app.route().get("/", move || {
         events.lock().unwrap().push("handler");
         Response::empty()
     })
@@ -42,7 +42,7 @@ fn early_response_and_head_apply_to_whole_pipeline() {
     app.middleware(|_: Request, _: Next<'_>| -> Result<Response> {
         Ok(Response::text("blocked").status(403))
     });
-    app.get("/", || -> Response { panic!("must not run") })
+    app.route().get("/", || -> Response { panic!("must not run") })
         .unwrap();
     let request = Request::new(
         Method::new("HEAD").unwrap(),
@@ -76,7 +76,7 @@ fn state_and_ids_are_available_and_groups_are_isolated() {
         })
     })
     .unwrap();
-    app.get("/outside", Response::empty).unwrap();
+    app.route().get("/outside", Response::empty).unwrap();
     let response = app.handle(req("/api/users/9")).unwrap();
     assert_eq!(response.body(), b"shared:9");
     assert_eq!(response.headers().get("x-group"), Some("api"));
@@ -96,7 +96,7 @@ fn state_and_ids_are_available_and_groups_are_isolated() {
 #[test]
 fn groups_are_transactional_and_can_nest() {
     let mut app = App::new();
-    app.get("/api/taken", Response::empty).unwrap();
+    app.route().get("/api/taken", Response::empty).unwrap();
     assert!(app
         .group("/api", |g| {
             g.get("/new", Response::empty)?;
