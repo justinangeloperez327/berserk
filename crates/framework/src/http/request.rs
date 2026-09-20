@@ -162,9 +162,7 @@ impl Request {
     pub fn events(&self) -> crate::Result<std::sync::Arc<berserk_events::EventBus>> {
         self.state::<std::sync::Arc<berserk_events::EventBus>>()
             .cloned()
-            .ok_or_else(|| {
-                crate::ConfigError::new("events", "event bus is not configured").into()
-            })
+            .ok_or_else(|| crate::ConfigError::new("events", "event bus is not configured").into())
     }
 
     /// Return the configured application job queue.
