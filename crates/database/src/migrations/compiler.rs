@@ -242,6 +242,82 @@ pub fn compile_alter(table: &AlterTable, driver: Driver) -> Result<Vec<Statement
                         ));
                     }
                 },
+                AlterOperation::AddIndex(index) => {
+                    let columns = index
+                        .columns
+                        .iter()
+                        .map(|column| quote_identifier(column, driver))
+                        .collect::<Result<Vec<_>>>()?
+                        .join(", ");
+                    let generated_name =
+                        format!("idx_{}_{}", table.name, index.columns.join("_"));
+                    let name = index.name.as_deref().unwrap_or(&generated_name);
+                    let unique = if index.unique { "UNIQUE " } else { "" };
+                    return Ok(Statement::new(format!(
+                        "CREATE {unique}INDEX {} ON {table_name} ({columns})",
+                        quote_identifier(name, driver)?
+                    )));
+                }
+                AlterOperation::DropIndex(name) => {
+                    return Ok(Statement::new(match driver {
+                        Driver::MySql => format!(
+                            "DROP INDEX {} ON {table_name}",
+                            quote_identifier(name, driver)?
+                        ),
+                        Driver::Postgres | Driver::Sqlite => {
+                            format!("DROP INDEX {}", quote_identifier(name, driver)?)
+                        }
+                    }));
+                }
+                AlterOperation::AddForeignKey(foreign_key) => {
+                    if matches!(driver, Driver::Sqlite) {
+                        return Err(error(
+                            "SQLite does not support adding foreign keys with ALTER TABLE; use a table rebuild migration",
+                        ));
+                    }
+                    let local = foreign_key
+                        .columns
+                        .iter()
+                        .map(|column| quote_identifier(column, driver))
+                        .collect::<Result<Vec<_>>>()?
+                        .join(", ");
+                    let referenced = foreign_key
+                        .referenced_columns
+                        .iter()
+                        .map(|column| quote_identifier(column, driver))
+                        .collect::<Result<Vec<_>>>()?
+                        .join(", ");
+                    let constraint = match &foreign_key.name {
+                        Some(name) => format!("CONSTRAINT {} ", quote_identifier(name, driver)?),
+                        None => String::new(),
+                    };
+                    let mut clause = format!(
+                        "ADD {constraint}FOREIGN KEY ({local}) REFERENCES {} ({referenced})",
+                        quote_identifier(&foreign_key.referenced_table, driver)?
+                    );
+                    if let Some(action) = foreign_key.on_delete {
+                        clause.push_str(" ON DELETE ");
+                        clause.push_str(compile_foreign_action(action));
+                    }
+                    if let Some(action) = foreign_key.on_update {
+                        clause.push_str(" ON UPDATE ");
+                        clause.push_str(compile_foreign_action(action));
+                    }
+                    clause
+                }
+                AlterOperation::DropForeignKey(name) => match driver {
+                    Driver::Postgres => {
+                        format!("DROP CONSTRAINT {}", quote_identifier(name, driver)?)
+                    }
+                    Driver::MySql => {
+                        format!("DROP FOREIGN KEY {}", quote_identifier(name, driver)?)
+                    }
+                    Driver::Sqlite => {
+                        return Err(error(
+                            "SQLite does not support dropping foreign keys with ALTER TABLE; use a table rebuild migration",
+                        ));
+                    }
+                },
             };
             Ok(Statement::new(format!("ALTER TABLE {table_name} {clause}")))
         })
