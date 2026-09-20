@@ -1,6 +1,6 @@
 # Berserk support policy
 
-This policy defines the support boundary for the current Berserk v0.9.0 pre-1.0 stabilization baseline. It is deliberately narrower than the set of systems where Berserk may happen to compile.
+This policy defines the support boundary for the current Berserk v1.0.0 stable baseline. It is deliberately narrower than the set of systems where Berserk may happen to compile.
 
 ## Rust toolchain
 
@@ -21,7 +21,7 @@ Tier 1 means the release-blocking quality, MSRV, live-database, security, fuzzin
 - **Windows**, validated on the current GitHub-hosted `windows-latest` runner.
 - **macOS**, validated on the current GitHub-hosted `macos-latest` runner.
 
-Tier 2 runs workspace compile and test coverage with all features. These platforms are supported for development compatibility, but v0.9.0 does not make the same operational-validation claim as Tier 1 because live database services, fuzzing, package verification, load, and soak testing are not executed there.
+Tier 2 runs workspace compile and test coverage with all features. These platforms are supported for development compatibility, but v1.0.0 does not make the same operational-validation claim as Tier 1 because live database services, fuzzing, package verification, load, and soak testing are not executed there.
 
 The standalone minimal API and fresh external-consumer checks run on the Tier-1 Linux CI path rather than being duplicated on every Tier-2 runner.
 
