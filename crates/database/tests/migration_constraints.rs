@@ -59,3 +59,28 @@ fn constraints_reject_unknown_local_columns() {
 
     assert!(table.validate().is_err());
 }
+
+
+#[test]
+fn named_foreign_keys_and_composite_primary_keys_compile() {
+    let table = Table::create("role_user")
+        .columns([
+            Column::big_integer("role_id"),
+            Column::big_integer("user_id"),
+        ])
+        .primary(["role_id", "user_id"])
+        .foreign_keys([
+            ForeignKey::new(["user_id"])
+                .references("users", ["id"])
+                .named("role_user_user_fk"),
+        ]);
+
+    let statement = compile_create(&table, Driver::Postgres).unwrap();
+
+    assert!(statement
+        .sql()
+        .contains("PRIMARY KEY (\"role_id\", \"user_id\")"));
+    assert!(statement.sql().contains(
+        "CONSTRAINT \"role_user_user_fk\" FOREIGN KEY (\"user_id\") REFERENCES \"users\" (\"id\")"
+    ));
+}
