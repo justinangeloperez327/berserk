@@ -1,4 +1,4 @@
-use super::{Column, ColumnType, CreateTable, ForeignAction};
+use super::{AlterOperation, AlterTable, Column, ColumnType, CreateTable, ForeignAction, TableOperation};
 use crate::{DatabaseError, Driver, ErrorKind, Result, Statement, Value};
 
 pub fn compile_create(table: &CreateTable, driver: Driver) -> Result<Statement> {
@@ -185,4 +185,59 @@ fn quote_identifier(identifier: &str, driver: Driver) -> Result<String> {
 
 fn error(message: impl Into<String>) -> DatabaseError {
     DatabaseError::new(ErrorKind::Query, message)
+}
+
+
+pub fn compile_alter(table: &AlterTable, driver: Driver) -> Result<Vec<Statement>> {
+    table.validate()?;
+    table
+        .operations
+        .iter()
+        .map(|operation| {
+            let table_name = quote_identifier(&table.name, driver)?;
+            let clause = match operation {
+                AlterOperation::Add(column) => {
+                    format!("ADD COLUMN {}", compile_column(column, driver)?)
+                }
+                AlterOperation::Drop(column) => {
+                    format!("DROP COLUMN {}", quote_identifier(column, driver)?)
+                }
+                AlterOperation::Rename { from, to } => format!(
+                    "RENAME COLUMN {} TO {}",
+                    quote_identifier(from, driver)?,
+                    quote_identifier(to, driver)?
+                ),
+                AlterOperation::Modify(column) => match driver {
+                    Driver::Postgres => format!(
+                        "ALTER COLUMN {} TYPE {}",
+                        quote_identifier(column.name(), driver)?,
+                        compile_type(column, driver)?
+                    ),
+                    Driver::MySql => format!("MODIFY COLUMN {}", compile_column(column, driver)?),
+                    Driver::Sqlite => {
+                        return Err(error(
+                            "SQLite does not support direct column modification; use a table rebuild migration",
+                        ));
+                    }
+                },
+            };
+            Ok(Statement::new(format!("ALTER TABLE {table_name} {clause}")))
+        })
+        .collect()
+}
+
+pub fn compile_table_operation(operation: &TableOperation, driver: Driver) -> Result<Statement> {
+    operation.validate()?;
+    match operation {
+        TableOperation::Rename { from, to } => Ok(Statement::new(format!(
+            "ALTER TABLE {} RENAME TO {}",
+            quote_identifier(from, driver)?,
+            quote_identifier(to, driver)?
+        ))),
+        TableOperation::Drop { name, if_exists } => Ok(Statement::new(format!(
+            "DROP TABLE {}{}",
+            if *if_exists { "IF EXISTS " } else { "" },
+            quote_identifier(name, driver)?
+        ))),
+    }
 }
