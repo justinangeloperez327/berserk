@@ -1,6 +1,6 @@
 # Berserk roadmap
 
-Berserk v0.3.0 is the current completed developer-experience baseline. Development now moves from foundation work toward application security, services, ORM maturity, testing, and production readiness.
+Berserk v0.5.0 is the current application-services baseline. Development now moves toward ORM maturity, testing ergonomics, production operations, and stabilization.
 
 ## Completed
 
@@ -16,15 +16,15 @@ FormRequest extraction, request-scoped Claw operations, typed CRUD controllers, 
 
 Concise request/response APIs, controller ergonomics, typed route parameters, resource routing, middleware ergonomics, typed state/configuration, CLI/application skeleton improvements, and a coherent CRUD example.
 
-## Planned
-
 ### v0.4.0 — Authentication and security
 
-Strengthen authentication, authorization, password/token handling, guards, security middleware, rate limiting, CORS/security headers, and consistent 401/403/429 behavior.
+Authentication, authorization, secure password/token handling, concise route protection, rate limiting, CORS/security headers, and consistent 401/403/429 behavior.
 
 ### v0.5.0 — Application services
 
-Mature cache, storage, events, jobs/queues, notifications, mail, and related application-service integrations.
+Explicit instance-scoped integration for cache, storage, events, jobs/queues, outbound HTTP, notifications, and mail-related application services.
+
+## Planned
 
 ### v0.6.0 — Database and Claw ORM
 
