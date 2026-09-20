@@ -25,7 +25,7 @@ fn migration_plan_compiles_create_indexes_and_drop() {
 fn migration_plan_compiles_alter_operations_in_order() {
     let plan = MigrationPlan::new().alter(
         Table::alter("users")
-            .add([Column::string("phone").nullable()])
+            .add_columns([Column::string("phone").nullable()])
             .rename("phone", "mobile"),
     );
 
