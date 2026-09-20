@@ -13,7 +13,7 @@ No documented changes after v0.9.0.
 - Began the 1.0 stabilization window and documented the preferred instance- and request-scoped API surface.
 - Removed `Arr` and `Str` from the default prelude while keeping them available as explicit root utilities.
 - Marked request-local authentication and route registration as the preferred application style over compatibility facades and shortcuts.
-- Aligned workspace package metadata and package validation to v0.9.0.
+- Aligned workspace package metadata to v0.9.0 and made package CI derive the synchronized release version dynamically.
 - Applied canonical formatting fixes inherited from the v0.8 merge.
 
 ### Added
