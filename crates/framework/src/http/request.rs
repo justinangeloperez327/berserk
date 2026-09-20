@@ -233,6 +233,7 @@ impl Request {
         self.principal.as_ref()
     }
 
+    /// Compatibility alias for `user`. New code should use `user`.
     #[cfg(feature = "auth")]
     pub fn principal(&self) -> Option<&berserk_auth::Principal> {
         self.user()
