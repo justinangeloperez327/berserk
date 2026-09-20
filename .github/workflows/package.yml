@@ -54,10 +54,16 @@ jobs:
           missing = expected - packages.keys()
           if missing:
               raise SystemExit(f'missing expected packages: {sorted(missing)}')
+          versions = {packages[name]['version'] for name in expected}
+          if len(versions) != 1:
+              details = ', '.join(
+                  f'{name}={packages[name]["version"]}' for name in sorted(expected)
+              )
+              raise SystemExit(f'publishable packages are not version-synchronized: {details}')
+          release_version = versions.pop()
+
           for name in expected:
               package = packages[name]
-              if package['version'] != '0.9.0':
-                  raise SystemExit(f'{name}: expected version 0.9.0, got {package["version"]}')
               if package.get('publish') == []:
                   raise SystemExit(f'{name}: publication is disabled')
               if package.get('license') != 'MIT':
@@ -66,6 +72,10 @@ jobs:
                   raise SystemExit(f'{name}: repository metadata mismatch')
           for name in {'foundation-example', 'berserk-benchmarks'}:
               package = packages[name]
+              if package['version'] != release_version:
+                  raise SystemExit(
+                      f'{name}: expected workspace version {release_version}, got {package["version"]}'
+                  )
               if package.get('publish') != []:
                   raise SystemExit(f'{name}: must remain non-publishable')
           CHECK
