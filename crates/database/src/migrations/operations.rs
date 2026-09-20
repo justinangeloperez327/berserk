@@ -1,4 +1,4 @@
-use super::{Check, Column, ColumnDefault, ForeignKey, Index, Unique};
+use super::{Check, Column, ColumnDefault, CreateTable, ForeignKey, Index, Unique};
 use crate::{DatabaseError, ErrorKind, Result};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -227,6 +227,52 @@ impl AlterTable {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct RebuildTable {
+    pub(crate) name: String,
+    pub(crate) replacement: CreateTable,
+    pub(crate) copy: Vec<(String, String)>,
+}
+
+impl RebuildTable {
+    pub fn copy<const N: usize>(mut self, columns: [(&str, &str); N]) -> Self {
+        self.copy.extend(
+            columns
+                .into_iter()
+                .map(|(from, to)| (from.to_owned(), to.to_owned())),
+        );
+        self
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        validate_identifier("table", &self.name)?;
+        self.replacement.validate()?;
+        if self.replacement.name() != self.name {
+            return Err(error(
+                "SQLite rebuild replacement must use the original table name",
+            ));
+        }
+        if self.copy.is_empty() {
+            return Err(error("SQLite rebuild requires explicit column copy mappings"));
+        }
+        for (from, to) in &self.copy {
+            validate_identifier("source column", from)?;
+            validate_identifier("replacement column", to)?;
+            if !self
+                .replacement
+                .column_definitions()
+                .iter()
+                .any(|column| column.name() == to)
+            {
+                return Err(error(format!(
+                    "rebuild references unknown replacement column `{to}`"
+                )));
+            }
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TableOperation {
     Rename { from: String, to: String },
@@ -250,6 +296,14 @@ impl TableOperation {
 }
 
 impl super::Table {
+    pub fn rebuild(name: impl Into<String>, replacement: CreateTable) -> RebuildTable {
+        RebuildTable {
+            name: name.into(),
+            replacement,
+            copy: Vec::new(),
+        }
+    }
+
     pub fn alter(name: impl Into<String>) -> AlterTable {
         AlterTable {
             name: name.into(),
