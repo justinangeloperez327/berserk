@@ -15,9 +15,9 @@ Berserk is a Rust web framework focused on a clear developer experience, explici
 
 ## 1.0 stable baseline
 
-v0.9 begins the 1.0 API freeze. New application code should prefer instance- and request-scoped APIs such as `app.route()`, `Request::user()`, explicit application-service registration, and Claw's bound query builders.
+v1.0.0 establishes the stable API baseline. New application code uses instance- and request-scoped APIs such as `app.route()`, `Request::user()`, explicit application-service registration, and Claw's bound query builders.
 
-Compatibility shortcuts remain available where practical, but they are not the design center for 1.0. `Arr` and `Str` remain explicit root utilities and are intentionally excluded from the default prelude.
+The pre-1.0 direct application verb shortcuts and `Request::principal()` compatibility alias were removed before the stable release. `Arr` and `Str` remain explicit root utilities and are intentionally excluded from the default prelude.
 
 ## Requirements
 
@@ -38,7 +38,7 @@ Enable optional components as needed:
 
 ```toml
 [dependencies]
-berserk = { version = "0.9", features = ["postgres", "auth", "cache", "storage"] }
+berserk = { version = "1.0", features = ["postgres", "auth", "cache", "storage"] }
 ```
 
 Repository consumers can use the framework crate by path while developing Berserk itself.
@@ -247,7 +247,7 @@ Additional security, dependency, database, fuzz, load, package, and release chec
 
 ## Security
 
-Berserk is pre-1.0 and should not be represented as independently security-certified. Review [SECURITY.md](SECURITY.md) and [known limitations](docs/known-limitations.md) before deployment.
+Berserk v1.0.0 is stable but should not be represented as independently security-certified. Review [SECURITY.md](SECURITY.md) and [known limitations](docs/known-limitations.md) before deployment.
 
 ## License
 
