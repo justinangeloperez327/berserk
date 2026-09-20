@@ -24,7 +24,7 @@ impl ValidateInput for CreateUser {
 }
 fn main() -> Result<()> {
     let mut app = App::new();
-    app.post("/users", |req: Request| -> Result<Response> {
+    app.route().post("/users", |req: Request| -> Result<Response> {
         let input: CreateUser = req.validated()?;
         Response::json(&Json::Object(
             [("name".into(), Json::String(input.name))]
