@@ -29,10 +29,11 @@ fn request(addr: std::net::SocketAddr, wire: &[u8]) -> String {
 #[test]
 fn chunked_request_body_reaches_handler() {
     let mut app = App::new();
-    app.route().post("/echo", |request: Request| {
-        Response::text(String::from_utf8_lossy(request.body()).into_owned())
-    })
-    .unwrap();
+    app.route()
+        .post("/echo", |request: Request| {
+            Response::text(String::from_utf8_lossy(request.body()).into_owned())
+        })
+        .unwrap();
     let server = app.bind("127.0.0.1:0").unwrap();
     let addr = server.local_addr().unwrap();
     let stop = Stop(server.shutdown_handle());
@@ -52,9 +53,12 @@ fn chunked_request_body_reaches_handler() {
 #[test]
 fn streaming_and_head_work_over_live_transport() {
     let mut app = App::new();
-    app.route().get("/stream", || Response::stream(Cursor::new(b"abc".to_vec())))
+    app.route()
+        .get("/stream", || Response::stream(Cursor::new(b"abc".to_vec())))
         .unwrap();
-    app.route().get("/head", || Response::text("hello")).unwrap();
+    app.route()
+        .get("/head", || Response::text("hello"))
+        .unwrap();
     let server = app.bind("127.0.0.1:0").unwrap();
     let addr = server.local_addr().unwrap();
     let stop = Stop(server.shutdown_handle());
