@@ -10,9 +10,9 @@ The repository owner, `@justinangeloperez327`, is the security maintainer and re
 
 Do not disclose exploit details, credentials, private data, or proof-of-concept material in a public issue, discussion, or pull request.
 
-The intended primary private channel is **GitHub Private Vulnerability Reporting** for this repository. Once the repository setting is enabled, use **Security and quality -> Report a vulnerability** to submit the report privately to the maintainer.
+The intended primary private channel is **GitHub Private Vulnerability Reporting** for this repository. Use **Security and quality -> Report a vulnerability** to submit the report privately to the maintainer. GitHub Private Vulnerability Reporting was confirmed enabled for the repository on 2026-09-17.
 
-Until that setting is confirmed enabled, the release gate for private vulnerability reporting remains open. If a private form is not available, a reporter may open a public issue only to request a private contact method; the issue must contain no vulnerability details.
+If the private form is temporarily unavailable, a reporter may open a public issue only to request a private contact method; the issue must contain no vulnerability details.
 
 A complete report should include the affected component/version or commit, impact, attacker prerequisites, reproduction steps or proof of concept, affected configuration, and suggested mitigation when known.
 
