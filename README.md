@@ -2,7 +2,7 @@
 
 Berserk is a Rust web framework focused on a clear developer experience, explicit behavior, type safety, and predictable performance.
 
-> **Current version:** v0.7.0. Berserk is pre-1.0, so public APIs may still evolve. Rust 1.88 is the minimum supported Rust version (MSRV).
+> **Current version:** v0.8.0. Berserk is pre-1.0, so public APIs may still evolve. Rust 1.88 is the minimum supported Rust version (MSRV).
 
 ## Why Berserk?
 
@@ -25,14 +25,14 @@ When using the published package:
 
 ```toml
 [dependencies]
-berserk = "0.7"
+berserk = "0.8"
 ```
 
 Enable optional components as needed:
 
 ```toml
 [dependencies]
-berserk = { version = "0.7", features = ["postgres", "auth", "cache", "storage"] }
+berserk = { version = "0.8", features = ["postgres", "auth", "cache", "storage"] }
 ```
 
 Repository consumers can use the framework crate by path while developing Berserk itself.
@@ -152,6 +152,23 @@ TestClient::new(&app)
 
 Testing helpers also include event recorders, job probes, outbound HTTP fakes, temporary directories, and the in-memory mail transport. These are ordinary Rust types rather than a macro-specific test DSL.
 
+## Operations
+
+Berserk exposes production-facing health, logging, tracing, and metrics primitives without requiring a specific external observability vendor.
+
+```rust,ignore
+let snapshot = health.snapshot();
+if !snapshot.ready {
+    // application-specific shutdown or alerting
+}
+
+let metrics = metrics.snapshot();
+let completed = metrics.completed();
+let average_us = metrics.average_duration_us();
+```
+
+Health readiness can still be rendered as HTTP, while programmatic snapshots support supervisors and deployment integrations. Trace contexts expose W3C trace flags and sampling state, and the in-memory log sink can be drained by tests or controlled tooling.
+
 ## CLI
 
 The CLI includes application and code-generation commands such as:
@@ -173,7 +190,7 @@ The generated application remains explicit: controllers, models, requests, middl
 
 Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
 
-See [docs/public-api.md](docs/public-api.md) for the current API contract and [docs/v0.7.0.md](docs/v0.7.0.md) for v0.7.0 details.
+See [docs/public-api.md](docs/public-api.md) for the current API contract and [docs/v0.8.0.md](docs/v0.8.0.md) for v0.8.0 details.
 
 ## Workspace
 
