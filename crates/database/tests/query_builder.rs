@@ -117,3 +117,32 @@ fn raw_queries_remain_explicit_and_bound() {
     assert_eq!(raw.statement().sql(), "select * from users where id = ?");
     assert_eq!(raw.statement().bindings(), &[Value::I64(9)]);
 }
+
+
+#[test]
+fn between_predicates_keep_bounds_bound_and_ordered() {
+    let statement = Query::table("orders")
+        .where_between("total", 100_i64, 500_i64)
+        .or_where_not_between("created_at", "2026-01-01", "2026-01-31")
+        .to_statement(Driver::Postgres)
+        .unwrap();
+
+    assert_eq!(
+        statement.sql(),
+        "SELECT * FROM \"orders\" WHERE \"total\" BETWEEN $1 AND $2 OR \"created_at\" NOT BETWEEN $3 AND $4"
+    );
+    assert_eq!(
+        statement.bindings(),
+        &[
+            Value::I64(100),
+            Value::I64(500),
+            Value::Text("2026-01-01".into()),
+            Value::Text("2026-01-31".into()),
+        ]
+    );
+
+    assert!(Query::table("orders")
+        .where_between("total", Value::Null, 500_i64)
+        .to_statement(Driver::Sqlite)
+        .is_err());
+}
