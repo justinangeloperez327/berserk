@@ -136,6 +136,17 @@ impl<'a> MigrationRunner<'a> {
         }
         Ok(report)
     }
+
+    pub fn rollback_all(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {
+        let mut report = MigrationReport::default();
+        loop {
+            let batch = self.rollback_last(connection)?;
+            if batch.rolled_back.is_empty() {
+                return Ok(report);
+            }
+            report.rolled_back.extend(batch.rolled_back);
+        }
+    }
 }
 
 fn decode_applied(row: &Row) -> Result<AppliedMigration> {
