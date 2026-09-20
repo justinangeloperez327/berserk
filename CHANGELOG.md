@@ -4,7 +4,50 @@ Berserk follows the spirit of Keep a Changelog. Versioning and compatibility pol
 
 ## Unreleased
 
-No documented changes after v0.3.0.
+No documented changes after v0.5.0.
+
+## 0.5.0
+
+### Added
+
+- Explicit application registration for cache, storage, events, jobs, outbound HTTP, and notifications.
+- Request accessors for configured application services without a global service locator.
+- v0.4.0 and v0.5.0 release guides.
+
+### Changed
+
+- Application-service integration now uses typed, instance-scoped state rather than requiring handlers to manually retrieve generic state.
+- Workspace package metadata and package validation are aligned to v0.5.0.
+- The authentication refactor's clippy warning is corrected.
+
+### Compatibility
+
+- Rust 1.88 remains the MSRV.
+- Existing generic `App::state`, `Request::state`, and `Request::shared` APIs remain available.
+
+See `docs/v0.5.0.md` and `docs/upgrade-notes.md`.
+
+## 0.4.0
+
+### Added
+
+- Secure session and personal/API token primitives with expiry, revocation, and abilities.
+- Concise configured authentication with `app.auth(...)` and route-level `.auth()`, `.guest()`, and `.can(...)`.
+- `Request::user()`, `Request::can(...)`, and resource authorization helpers.
+- Explicit CORS and security-header middleware.
+- Security coverage for malformed credentials, token redaction, CORS validation, and authorization behavior.
+
+### Changed
+
+- Authentication internals remain available, but the primary route API hides guard plumbing for normal application code.
+- Authorization consistently distinguishes unauthenticated 401 responses from authenticated 403 denials.
+
+### Compatibility
+
+- Rust 1.88 remains the MSRV.
+- CSRF is not a first-class v0.4 feature because Berserk does not provide browser cookie authentication as a first-class mode.
+
+See `docs/v0.4.0.md`.
 
 ## 0.3.0
 
