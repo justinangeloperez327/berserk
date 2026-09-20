@@ -1,0 +1,37 @@
+name: One-time rustfmt
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [release/1.1]
+    paths:
+      - ".github/workflows/one-time-rustfmt.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  rustfmt:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/1.1
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.88"
+          components: rustfmt
+      - name: Format entire workspace
+        run: cargo fmt --all
+      - name: Commit rustfmt changes
+        run: |
+          if git diff --quiet; then
+            echo "Workspace is already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "style(1.1): format entire Rust workspace"
+          git push origin HEAD:release/1.1
