@@ -34,6 +34,10 @@ fn command_parser_supports_laravel_style_and_spaced_forms() {
         }
     );
     assert_eq!(
+        Command::parse(["migrate", "--dry-run"]).unwrap(),
+        Command::Migrate(MigrationCommand::DryRun)
+    );
+    assert_eq!(
         Command::parse(["migrate:rollback"]).unwrap(),
         Command::Migrate(MigrationCommand::Rollback)
     );
@@ -152,6 +156,7 @@ impl MigrationExecutor for MigrationFake {
             MigrationCommand::Up => "up",
             MigrationCommand::Rollback => "rollback",
             MigrationCommand::Status => "status",
+            MigrationCommand::DryRun => "dry-run",
         }
         .into())
     }
