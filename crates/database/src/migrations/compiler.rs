@@ -30,8 +30,12 @@ pub fn compile_create(table: &CreateTable, driver: Driver) -> Result<Statement> 
             .map(|column| quote_identifier(column, driver))
             .collect::<Result<Vec<_>>>()?
             .join(", ");
+        let constraint = match &foreign_key.name {
+            Some(name) => format!("CONSTRAINT {} ", quote_identifier(name, driver)?),
+            None => String::new(),
+        };
         let mut definition = format!(
-            "FOREIGN KEY ({local}) REFERENCES {} ({referenced})",
+            "{constraint}FOREIGN KEY ({local}) REFERENCES {} ({referenced})",
             quote_identifier(&foreign_key.referenced_table, driver)?
         );
         if let Some(action) = foreign_key.on_delete {
