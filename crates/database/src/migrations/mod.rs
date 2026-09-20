@@ -290,7 +290,7 @@ fn with_migration_lock<T>(
 fn acquire_migration_lock(connection: &mut dyn Connection) -> Result<()> {
     match connection.driver() {
         Driver::Postgres => connection
-            .query(&Statement::new("SELECT pg_advisory_lock(1650553701)"))
+            .execute(&Statement::new("SELECT pg_advisory_lock(1650553701)"))
             .map(|_| ()),
         Driver::MySql => {
             let rows = connection.query(&Statement::new(
@@ -317,7 +317,7 @@ fn acquire_migration_lock(connection: &mut dyn Connection) -> Result<()> {
 fn release_migration_lock(connection: &mut dyn Connection, commit: bool) -> Result<()> {
     match connection.driver() {
         Driver::Postgres => connection
-            .query(&Statement::new("SELECT pg_advisory_unlock(1650553701)"))
+            .execute(&Statement::new("SELECT pg_advisory_unlock(1650553701)"))
             .map(|_| ()),
         Driver::MySql => connection
             .query(&Statement::new(
