@@ -30,8 +30,7 @@ pub use berserk_database::{
 pub mod prelude {
     pub use crate::{
         field, BelongsTo, BelongsToMany, FromValue, HasMany, HasOne, Model, ModelQuery, Page,
-        PersistableModel,
-        RelatedSet, ScopedRouteModel,
+        PersistableModel, RelatedSet, ScopedRouteModel,
     };
     pub use crate::{DatabaseScope, IntoInsert, IntoUpdate, Relationship, Transaction};
 }
