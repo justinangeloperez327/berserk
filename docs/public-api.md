@@ -1,12 +1,12 @@
 # Public API contract
 
-The [v0.9.0 stabilization guide](v0.9.0.md) documents the current Berserk pre-1.0 API, building on the authentication/security work in v0.4.0 and the developer-experience baseline from v0.3.0.
+The [v1.0.0 release guide](v1.0.0.md) documents the current stable Berserk API, building on the v0.9.0 stabilization baseline.
 
-Status: 1.0 release-candidate API freeze, based on the v0.9.0 stabilization baseline. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
+Status: v1.0.0 stable public API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
 
 ## Stabilization boundary
 
-v0.9 is the 1.0 candidate window. New application code should prefer the APIs documented in this file rather than compatibility shortcuts retained from earlier pre-1.0 releases.
+v1.0.0 is the stable API baseline. New application code should use the APIs documented in this file.
 
 The default prelude contains application framework primitives. General support helpers `Arr` and `Str` remain available through explicit root imports and are intentionally not part of `berserk::prelude::*`.
 
@@ -219,9 +219,9 @@ The main `berserk` facade enables `server` by default; it can be disabled for in
 
 ## Stability and compatibility
 
-- Package and release metadata remain at v0.9.0 until the 1.0 release audit is complete; the `release/1.0` branch freezes the intended stable API.
+- Package and release metadata are aligned to v1.0.0.
 - Minimum supported Rust version: 1.88.
 - Publication is an explicit owner-controlled release action; repository automation validates artifacts but does not publish by default.
-- v0.9.0 remains pre-1.0 and is the stabilization window for the intended 1.0 surface.
+- v1.0.0 establishes the stable public API surface; breaking public API changes require a new major release.
 
 `README.md`, crate-level Rustdoc, tests, and this contract should agree on public behavior. When implementation and this document diverge, that drift is a release-review finding and must be corrected before publication.
