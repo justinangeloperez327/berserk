@@ -20,7 +20,9 @@ pub use capability::{Capabilities, Capability, Driver};
 pub use connection::Connection;
 pub use database::Database;
 pub use error::{DatabaseError, ErrorKind, Result};
-pub use migrations::{AppliedMigration, Migration, MigrationReport, MigrationRunner};
+pub use migrations::{
+    AppliedMigration, Migration, MigrationReport, MigrationRunner, PlannedMigration,
+};
 pub use query::{Builder as Query, Direction, JoinKind, RawQuery};
 pub use row::{Column, Row};
 pub use seeding::{run_seeders, Factory, Seeder};
