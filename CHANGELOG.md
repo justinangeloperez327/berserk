@@ -4,7 +4,30 @@ Berserk follows the spirit of Keep a Changelog. Versioning and compatibility pol
 
 ## Unreleased
 
-No documented changes after v0.8.0.
+No documented changes after v0.9.0.
+
+## 0.9.0
+
+### Changed
+
+- Began the 1.0 stabilization window and documented the preferred instance- and request-scoped API surface.
+- Removed `Arr` and `Str` from the default prelude while keeping them available as explicit root utilities.
+- Marked request-local authentication and route registration as the preferred application style over compatibility facades and shortcuts.
+- Aligned workspace package metadata and package validation to v0.9.0.
+- Applied canonical formatting fixes inherited from the v0.8 merge.
+
+### Added
+
+- A public-surface contract test covering the preferred routing/response API and explicit support-utility imports.
+- A v0.9 stabilization and compatibility guide.
+
+### Compatibility
+
+- Rust 1.88 remains the MSRV.
+- Compatibility APIs remain available during the pre-1.0 transition unless otherwise documented.
+- v0.9.x should favor fixes and API clarification over new public concepts.
+
+See `docs/v0.9.0.md`, `docs/compatibility.md`, and `docs/upgrade-notes.md`.
 
 ## 0.8.0
 
