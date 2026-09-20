@@ -8,11 +8,13 @@ use std::{
 #[test]
 fn serves_real_connections_and_shuts_down() {
     let mut app = App::new();
-    app.route().get("/hello/{id}", |req: Request| {
+    app.route()
+        .get("/hello/{id}", |req: Request| {
         Response::text(req.param("id").unwrap())
     })
     .unwrap();
-    app.route().get("/panic", || -> Response { panic!("test handler panic") })
+    app.route()
+        .get("/panic", || -> Response { panic!("test handler panic") })
         .unwrap();
     let server = app.bind("127.0.0.1:0").unwrap();
     let address = server.local_addr().unwrap();
