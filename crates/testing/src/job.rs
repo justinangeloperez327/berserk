@@ -18,6 +18,13 @@ impl JobProbe {
     pub fn count(&self) -> usize {
         self.attempts.lock().expect("job probe lock poisoned").len()
     }
+    pub fn last_attempt(&self) -> Option<u32> {
+        self.attempts
+            .lock()
+            .expect("job probe lock poisoned")
+            .last()
+            .copied()
+    }
 }
 
 pub struct RecordingJob {
