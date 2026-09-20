@@ -1,6 +1,6 @@
 # Known limitations
 
-This document records intentional or unresolved boundaries of the current Berserk v0.8.0 pre-1.0 baseline. They are not necessarily defects, but applications must account for them.
+This document records intentional or unresolved boundaries of the current Berserk v0.9.0 pre-1.0 stabilization baseline. They are not necessarily defects, but applications must account for them.
 
 ## Security review status
 
@@ -50,4 +50,4 @@ Berserk is modular. Applications must enable the features required by the APIs t
 
 ## Pre-1.0 compatibility
 
-v0.8.0 remains pre-1.0. Later minor releases may make breaking changes when needed for security, correctness, architecture, or developer experience. Compatibility-affecting changes should be recorded in `CHANGELOG.md` and [upgrade-notes.md](upgrade-notes.md).
+v0.9.0 remains pre-1.0. Later minor releases may make breaking changes when needed for security, correctness, architecture, or developer experience. Compatibility-affecting changes should be recorded in `CHANGELOG.md` and [upgrade-notes.md](upgrade-notes.md).
