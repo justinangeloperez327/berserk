@@ -106,6 +106,24 @@ impl<M: Model> ModelQuery<M> {
         self
     }
 
+    pub fn or_where_in<I, V>(mut self, column: impl Into<String>, values: I) -> Self
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<Value>,
+    {
+        self.builder = self.builder.or_where_in(column, values);
+        self
+    }
+
+    pub fn or_where_not_in<I, V>(mut self, column: impl Into<String>, values: I) -> Self
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<Value>,
+    {
+        self.builder = self.builder.or_where_not_in(column, values);
+        self
+    }
+
     pub fn where_between(
         mut self,
         column: impl Into<String>,
@@ -153,6 +171,16 @@ impl<M: Model> ModelQuery<M> {
 
     pub fn where_not_null(mut self, column: impl Into<String>) -> Self {
         self.builder = self.builder.where_not_null(column);
+        self
+    }
+
+    pub fn or_where_null(mut self, column: impl Into<String>) -> Self {
+        self.builder = self.builder.or_where_null(column);
+        self
+    }
+
+    pub fn or_where_not_null(mut self, column: impl Into<String>) -> Self {
+        self.builder = self.builder.or_where_not_null(column);
         self
     }
 
