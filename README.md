@@ -2,7 +2,7 @@
 
 Berserk is a Rust web framework focused on a clear developer experience, explicit behavior, type safety, and predictable performance.
 
-> **Current version:** v0.3.0. Berserk is pre-1.0, so public APIs may still evolve. Rust 1.88 is the minimum supported Rust version (MSRV).
+> **Current version:** v0.5.0. Berserk is pre-1.0, so public APIs may still evolve. Rust 1.88 is the minimum supported Rust version (MSRV).
 
 ## Why Berserk?
 
@@ -25,14 +25,14 @@ When using the published package:
 
 ```toml
 [dependencies]
-berserk = "0.3"
+berserk = "0.5"
 ```
 
 Enable optional components as needed:
 
 ```toml
 [dependencies]
-berserk = { version = "0.3", features = ["postgres", "auth", "openapi"] }
+berserk = { version = "0.5", features = ["postgres", "auth", "cache", "storage"] }
 ```
 
 Repository consumers can use the framework crate by path while developing Berserk itself.
@@ -78,7 +78,7 @@ Routes support typed parameters, names, reverse routing, scoped prefixes and mid
 
 ## Requests and responses
 
-v0.3.0 adds concise request input and response APIs:
+Berserk provides concise request input and response APIs:
 
 ```rust,ignore
 let email = request.input("email")?;
@@ -96,6 +96,29 @@ FormRequest processing preserves Berserk's sanitize-then-validate lifecycle and 
 ## Middleware, state, and configuration
 
 Middleware uses the existing request/response pipeline and can be applied globally, to a route, or to a scoped group. Application services and typed configuration are registered on an `App` instance and accessed through the request; Berserk does not require a process-global mutable application registry.
+
+## Application services
+
+Optional services stay explicit and instance-scoped. Register only what the application uses:
+
+```rust,ignore
+app.cache(cache)?;
+app.storage(storage)?;
+app.events(events)?;
+app.jobs(queue)?;
+app.http_client(client)?;
+app.notifications(notifier)?;
+```
+
+Handlers retrieve configured services from the request:
+
+```rust,ignore
+let cache = request.cache()?;
+let storage = request.storage()?;
+let events = request.events()?;
+```
+
+These APIs are thin typed accessors over application state. Berserk does not use a process-global service locator or folder discovery.
 
 ## Claw ORM
 
@@ -134,7 +157,7 @@ The generated application remains explicit: controllers, models, requests, middl
 
 Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
 
-See [docs/public-api.md](docs/public-api.md) for the current API contract and [docs/v0.3.0.md](docs/v0.3.0.md) for v0.3.0 details.
+See [docs/public-api.md](docs/public-api.md) for the current API contract and [docs/v0.5.0.md](docs/v0.5.0.md) for v0.5.0 details.
 
 ## Workspace
 
