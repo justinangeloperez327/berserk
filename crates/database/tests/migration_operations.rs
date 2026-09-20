@@ -8,9 +8,9 @@ use berserk_database::{
 #[test]
 fn alter_table_builds_explicit_operations() {
     let alter = Table::alter("users")
-        .add([Column::string("phone").nullable()])
+        .add_columns([Column::string("phone").nullable()])
         .rename("name", "full_name")
-        .drop(["legacy"])
+        .drop_columns(["legacy"])
         .modify(Column::string("email").length(320));
 
     alter.validate().unwrap();
@@ -22,9 +22,9 @@ fn alter_table_builds_explicit_operations() {
 fn alter_table_compiles_for_postgres() {
     let statements = compile_alter(
         &Table::alter("users")
-            .add([Column::string("phone").nullable()])
+            .add_columns([Column::string("phone").nullable()])
             .rename("name", "full_name")
-            .drop(["legacy"]),
+            .drop_columns(["legacy"]),
         Driver::Postgres,
     )
     .unwrap();
