@@ -88,10 +88,11 @@ impl Middleware for MetricsLayer {
         self.metrics
             .duration_us
             .fetch_add(elapsed, Ordering::Relaxed);
-        if result
-            .as_ref()
-            .map_or(true, |response| response.status_code() >= 500)
-        {
+        let failed = match &result {
+            Ok(response) => response.status_code() >= 500,
+            Err(error) => error.status_code() >= 500,
+        };
+        if failed {
             self.metrics.failures.fetch_add(1, Ordering::Relaxed);
         }
         drop(guard);
@@ -103,5 +104,50 @@ struct ActiveGuard<'a>(&'a AtomicU64);
 impl Drop for ActiveGuard<'_> {
     fn drop(&mut self) {
         self.0.fetch_sub(1, Ordering::Relaxed);
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{App, Headers, Method};
+
+    fn request(path: &str) -> Request {
+        Request::new(Method::new("GET").unwrap(), path, Headers::new(), vec![]).unwrap()
+    }
+
+    #[test]
+    fn client_errors_are_not_counted_as_server_failures() {
+        let metrics = Arc::new(Metrics::default());
+        let mut app = App::new();
+        app.middleware(MetricsLayer::new(metrics.clone()));
+        app.get("/forbidden", || -> Result<Response> {
+            Err(crate::Error::forbidden())
+        })
+        .unwrap();
+
+        let error = app.handle(request("/forbidden")).unwrap_err();
+        assert_eq!(error.status_code(), 403);
+
+        let snapshot = metrics.snapshot();
+        assert_eq!(snapshot.requests, 1);
+        assert_eq!(snapshot.failures, 0);
+        assert_eq!(snapshot.active, 0);
+    }
+
+    #[test]
+    fn server_errors_are_counted_as_failures() {
+        let metrics = Arc::new(Metrics::default());
+        let mut app = App::new();
+        app.middleware(MetricsLayer::new(metrics.clone()));
+        app.get("/failed", || -> Result<Response> {
+            Err(crate::Error::internal("failed"))
+        })
+        .unwrap();
+
+        let error = app.handle(request("/failed")).unwrap_err();
+        assert_eq!(error.status_code(), 500);
+        assert_eq!(metrics.snapshot().failures, 1);
     }
 }
