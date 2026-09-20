@@ -62,8 +62,7 @@ fn idle_connection_expires_and_worker_remains_available() {
         ..ServerConfig::default()
     })
     .unwrap();
-    app.route()
-        .get("/", || Response::text("alive")).unwrap();
+    app.route().get("/", || Response::text("alive")).unwrap();
     let server = Running::new(app);
     let _idle = server.connect();
     wait_for(|| server.stats.snapshot().failed >= 1);
@@ -85,10 +84,8 @@ fn stalled_request_body_expires_and_worker_remains_available() {
         ..ServerConfig::default()
     })
     .unwrap();
-    app.route()
-        .post("/", || Response::text("unexpected")).unwrap();
-    app.route()
-        .get("/alive", || Response::text("alive")).unwrap();
+    app.route().post("/", || Response::text("unexpected")).unwrap();
+    app.route().get("/alive", || Response::text("alive")).unwrap();
     let server = Running::new(app);
 
     let mut stalled = server.connect();
@@ -115,8 +112,7 @@ fn oversized_live_body_returns_413_without_invoking_handler() {
         ..ServerConfig::default()
     })
     .unwrap();
-    app.route()
-        .post("/", move || {
+    app.route().post("/", move || {
         handler_calls.fetch_add(1, Ordering::SeqCst);
         Response::text("unexpected")
     })
@@ -149,8 +145,7 @@ fn queued_first_request_expires_from_accept_time() {
         ..ServerConfig::default()
     })
     .unwrap();
-    app.route()
-        .get("/block", move || {
+    app.route().get("/block", move || {
         let _ = entered.send(());
         let lock = blocking_gate.0.lock().unwrap();
         let (_lock, _) = blocking_gate
@@ -160,8 +155,7 @@ fn queued_first_request_expires_from_accept_time() {
         Response::text("done")
     })
     .unwrap();
-    app.route()
-        .get("/queued", move || {
+    app.route().get("/queued", move || {
         handler_calls.fetch_add(1, Ordering::SeqCst);
         Response::text("late")
     })
@@ -220,8 +214,7 @@ fn full_queue_rejects_and_shutdown_drains_accepted_work() {
         ..ServerConfig::default()
     })
     .unwrap();
-    app.route()
-        .get("/", move || {
+    app.route().get("/", move || {
         let _ = entered.send(());
         let lock = gate.0.lock().unwrap();
         let (_lock, _) = gate
@@ -268,8 +261,7 @@ fn full_queue_rejects_and_shutdown_drains_accepted_work() {
 #[test]
 fn truncated_client_does_not_consume_worker_permanently() {
     let mut app = App::new();
-    app.route()
-        .get("/", Response::empty).unwrap();
+    app.route().get("/", Response::empty).unwrap();
     let server = Running::new(app);
     let mut stream = server.connect();
     stream
