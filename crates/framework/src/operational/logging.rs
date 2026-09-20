@@ -141,10 +141,11 @@ mod tests {
         let sink = Arc::new(MemoryLogSink::default());
         let mut app = App::new();
         app.middleware(RequestLogger::new(sink.clone()));
-        app.route().get("/forbidden", || -> Result<Response> {
-            Err(crate::Error::forbidden())
-        })
-        .unwrap();
+        app.route()
+            .get("/forbidden", || -> Result<Response> {
+                Err(crate::Error::forbidden())
+            })
+            .unwrap();
 
         let error = app.handle(request("/forbidden")).unwrap_err();
         assert_eq!(error.status_code(), 403);
