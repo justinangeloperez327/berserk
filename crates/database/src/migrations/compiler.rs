@@ -195,6 +195,7 @@ fn compile_default(default: &ColumnDefault) -> Result<String> {
 
 fn quote_identifier(identifier: &str, driver: Driver) -> Result<String> {
     if identifier.is_empty()
+        || identifier.len() > 63
         || !identifier
             .chars()
             .all(|character| character == '_' || character.is_ascii_alphanumeric())
