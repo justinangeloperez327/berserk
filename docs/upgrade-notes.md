@@ -1,5 +1,20 @@
 # Upgrade notes
 
+## v0.8.0 → v0.9.0
+
+v0.9.0 starts the 1.0 stabilization window.
+
+The only default-prelude tightening in this release is `Arr` and `Str`: import them explicitly when used.
+
+```rust,ignore
+use berserk::{Arr, Str};
+use berserk::prelude::*;
+```
+
+New routing code should use `app.route()`. New authentication/authorization code should prefer request-scoped `Request::user`, `Request::can`, and `Request::authorize` rather than request-global compatibility facades. Existing compatibility APIs remain available unless separately documented.
+
+No database, service, testing, or operational feature is removed.
+
 ## v0.7.0 → v0.8.0
 
 v0.8.0 is additive. Existing operational middleware continues to work.
