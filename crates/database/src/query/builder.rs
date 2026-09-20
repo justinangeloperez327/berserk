@@ -181,7 +181,13 @@ impl Builder {
         lower: impl Into<Value>,
         upper: impl Into<Value>,
     ) -> Self {
-        self.between(Boolean::And, column.into(), lower.into(), upper.into(), false)
+        self.between(
+            Boolean::And,
+            column.into(),
+            lower.into(),
+            upper.into(),
+            false,
+        )
     }
     pub fn or_where_between(
         self,
@@ -189,7 +195,13 @@ impl Builder {
         lower: impl Into<Value>,
         upper: impl Into<Value>,
     ) -> Self {
-        self.between(Boolean::Or, column.into(), lower.into(), upper.into(), false)
+        self.between(
+            Boolean::Or,
+            column.into(),
+            lower.into(),
+            upper.into(),
+            false,
+        )
     }
     pub fn where_not_between(
         self,
@@ -197,7 +209,13 @@ impl Builder {
         lower: impl Into<Value>,
         upper: impl Into<Value>,
     ) -> Self {
-        self.between(Boolean::And, column.into(), lower.into(), upper.into(), true)
+        self.between(
+            Boolean::And,
+            column.into(),
+            lower.into(),
+            upper.into(),
+            true,
+        )
     }
     pub fn or_where_not_between(
         self,
