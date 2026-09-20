@@ -44,3 +44,22 @@ fn column_definitions_validate_lengths_and_decimals() {
         .validate()
         .is_err());
 }
+
+
+#[test]
+fn migration_identifiers_use_portable_limits() {
+    let too_long = "a".repeat(64);
+    assert!(Table::create(too_long)
+        .columns([Column::id()])
+        .validate()
+        .is_err());
+}
+
+#[test]
+fn duplicate_composite_key_columns_are_rejected() {
+    assert!(Table::create("memberships")
+        .columns([Column::big_integer("user_id")])
+        .primary(["user_id", "user_id"])
+        .validate()
+        .is_err());
+}
