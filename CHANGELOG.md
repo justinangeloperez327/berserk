@@ -4,7 +4,28 @@ Berserk follows the spirit of Keep a Changelog. Versioning and compatibility pol
 
 ## Unreleased
 
-No documented changes after v0.7.0.
+No documented changes after v0.8.0.
+
+## 0.8.0
+
+### Added
+
+- Programmatic health snapshots with per-check status and aggregate readiness.
+- Metrics summary helpers for completed requests, average duration, and simple health state.
+- Drain/clear operations for the in-memory log sink.
+- Trace-context flag and sampling inspection.
+
+### Changed
+
+- HTTP readiness rendering now uses the same programmatic health snapshot model.
+- Workspace package metadata and package validation are aligned to v0.8.0.
+
+### Compatibility
+
+- Rust 1.88 remains the MSRV.
+- Existing health, logging, metrics, and tracing APIs remain available.
+
+See `docs/v0.8.0.md`.
 
 ## 0.7.0
 
