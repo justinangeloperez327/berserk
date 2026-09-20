@@ -1,5 +1,7 @@
+mod compiler;
 mod schema;
 
+pub use compiler::compile_create;
 pub use schema::{Column, ColumnType, CreateTable, Table};
 
 use crate::{
