@@ -1,4 +1,4 @@
-use super::{Column, ForeignKey, Index};
+use super::{Check, Column, ColumnDefault, ForeignKey, Index, Unique};
 use crate::{DatabaseError, ErrorKind, Result};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -11,6 +11,14 @@ pub enum AlterOperation {
     DropIndex(String),
     AddForeignKey(ForeignKey),
     DropForeignKey(String),
+    RenameIndex { from: String, to: String },
+    SetDefault { column: String, default: ColumnDefault },
+    DropDefault(String),
+    SetNullable { column: String, nullable: bool },
+    AddCheck(Check),
+    DropCheck(String),
+    AddUnique(Unique),
+    DropUnique(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -70,6 +78,68 @@ impl AlterTable {
         self
     }
 
+    pub fn rename_index(mut self, from: impl Into<String>, to: impl Into<String>) -> Self {
+        self.operations.push(AlterOperation::RenameIndex {
+            from: from.into(),
+            to: to.into(),
+        });
+        self
+    }
+
+    pub fn set_default(
+        mut self,
+        column: impl Into<String>,
+        default: impl Into<crate::Value>,
+    ) -> Self {
+        self.operations.push(AlterOperation::SetDefault {
+            column: column.into(),
+            default: ColumnDefault::Value(default.into()),
+        });
+        self
+    }
+
+    pub fn set_default_current_timestamp(mut self, column: impl Into<String>) -> Self {
+        self.operations.push(AlterOperation::SetDefault {
+            column: column.into(),
+            default: ColumnDefault::CurrentTimestamp,
+        });
+        self
+    }
+
+    pub fn drop_default(mut self, column: impl Into<String>) -> Self {
+        self.operations
+            .push(AlterOperation::DropDefault(column.into()));
+        self
+    }
+
+    pub fn set_nullable(mut self, column: impl Into<String>, nullable: bool) -> Self {
+        self.operations.push(AlterOperation::SetNullable {
+            column: column.into(),
+            nullable,
+        });
+        self
+    }
+
+    pub fn add_check(mut self, check: Check) -> Self {
+        self.operations.push(AlterOperation::AddCheck(check));
+        self
+    }
+
+    pub fn drop_check(mut self, name: impl Into<String>) -> Self {
+        self.operations.push(AlterOperation::DropCheck(name.into()));
+        self
+    }
+
+    pub fn add_unique(mut self, unique: Unique) -> Self {
+        self.operations.push(AlterOperation::AddUnique(unique));
+        self
+    }
+
+    pub fn drop_unique(mut self, name: impl Into<String>) -> Self {
+        self.operations.push(AlterOperation::DropUnique(name.into()));
+        self
+    }
+
     pub fn validate(&self) -> Result<()> {
         validate_identifier("table", &self.name)?;
         if self.operations.is_empty() {
@@ -120,6 +190,39 @@ impl AlterTable {
                     }
                 }
                 AlterOperation::DropForeignKey(name) => validate_identifier("foreign key", name)?,
+                AlterOperation::RenameIndex { from, to } => {
+                    validate_identifier("index", from)?;
+                    validate_identifier("index", to)?;
+                    if from == to {
+                        return Err(error("renamed index must have a different name"));
+                    }
+                }
+                AlterOperation::SetDefault { column, .. }
+                | AlterOperation::DropDefault(column)
+                | AlterOperation::SetNullable { column, .. } => {
+                    validate_identifier("column", column)?;
+                }
+                AlterOperation::AddCheck(check) => {
+                    validate_identifier("check constraint", &check.name)?;
+                    if check.expression.trim().is_empty() {
+                        return Err(error("check constraint expressions cannot be empty"));
+                    }
+                }
+                AlterOperation::DropCheck(name) => validate_identifier("check constraint", name)?,
+                AlterOperation::AddUnique(unique) => {
+                    if unique.columns.is_empty() {
+                        return Err(error("a unique constraint must contain at least one column"));
+                    }
+                    for column in &unique.columns {
+                        validate_identifier("unique constraint column", column)?;
+                    }
+                    if let Some(name) = &unique.name {
+                        validate_identifier("unique constraint", name)?;
+                    }
+                }
+                AlterOperation::DropUnique(name) => {
+                    validate_identifier("unique constraint", name)?;
+                }
             }
         }
         Ok(())
