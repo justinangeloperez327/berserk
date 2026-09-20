@@ -2,7 +2,7 @@
 
 The [v0.9.0 stabilization guide](v0.9.0.md) documents the current Berserk pre-1.0 API, building on the authentication/security work in v0.4.0 and the developer-experience baseline from v0.3.0.
 
-Status: v0.9.0 pre-1.0 stabilization API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
+Status: 1.0 release-candidate API freeze, based on the v0.9.0 stabilization baseline. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
 
 ## Stabilization boundary
 
@@ -219,7 +219,7 @@ The main `berserk` facade enables `server` by default; it can be disabled for in
 
 ## Stability and compatibility
 
-- Package and release metadata must remain aligned with the current v0.9.0 baseline.
+- Package and release metadata remain at v0.9.0 until the 1.0 release audit is complete; the `release/1.0` branch freezes the intended stable API.
 - Minimum supported Rust version: 1.88.
 - Publication is an explicit owner-controlled release action; repository automation validates artifacts but does not publish by default.
 - v0.9.0 remains pre-1.0 and is the stabilization window for the intended 1.0 surface.
