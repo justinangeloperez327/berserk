@@ -1,5 +1,7 @@
 use berserk_database::{
-    migrations::{\n        compile_create, compile_indexes, Column, ForeignAction, ForeignKey, Index, Table,\n    },
+    migrations::{
+        compile_create, compile_indexes, Column, ForeignAction, ForeignKey, Index, Table,
+    },
     Driver,
 };
 
