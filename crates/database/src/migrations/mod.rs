@@ -3,8 +3,10 @@ mod operations;
 mod plan;
 mod schema;
 
-pub use compiler::{compile_alter, compile_create, compile_indexes, compile_table_operation};
-pub use operations::{AlterOperation, AlterTable, TableOperation};
+pub use compiler::{
+    compile_alter, compile_create, compile_indexes, compile_rebuild, compile_table_operation,
+};
+pub use operations::{AlterOperation, AlterTable, RebuildTable, TableOperation};
 pub use plan::{MigrationOperation, MigrationPlan};
 pub use schema::{
     Check, Column, ColumnDefault, ColumnType, CreateTable, ForeignAction, ForeignKey, Index, Table,
