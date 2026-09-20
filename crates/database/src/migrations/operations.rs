@@ -59,19 +59,23 @@ impl AlterTable {
     }
 
     pub fn add_foreign_key(mut self, foreign_key: ForeignKey) -> Self {
-        self.operations.push(AlterOperation::AddForeignKey(foreign_key));
+        self.operations
+            .push(AlterOperation::AddForeignKey(foreign_key));
         self
     }
 
     pub fn drop_foreign_key(mut self, name: impl Into<String>) -> Self {
-        self.operations.push(AlterOperation::DropForeignKey(name.into()));
+        self.operations
+            .push(AlterOperation::DropForeignKey(name.into()));
         self
     }
 
     pub fn validate(&self) -> Result<()> {
         validate_identifier("table", &self.name)?;
         if self.operations.is_empty() {
-            return Err(error("an alter table migration must contain at least one operation"));
+            return Err(error(
+                "an alter table migration must contain at least one operation",
+            ));
         }
         for operation in &self.operations {
             match operation {

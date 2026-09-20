@@ -476,7 +476,6 @@ fn rust_keyword(name: &str) -> bool {
     )
 }
 
-
 fn migration_source(type_name: &str, timestamp: u64, name: &str) -> String {
     let migration_name = format!("{timestamp}_{name}");
     if let Some(table) = name

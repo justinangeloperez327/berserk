@@ -1,6 +1,6 @@
 use super::{
-    compile_alter, compile_create, compile_indexes, compile_table_operation, AlterTable, CreateTable,
-    TableOperation,
+    compile_alter, compile_create, compile_indexes, compile_table_operation, AlterTable,
+    CreateTable, TableOperation,
 };
 use crate::{Driver, Result, Statement};
 
@@ -38,7 +38,8 @@ impl MigrationPlan {
     }
 
     pub fn statement(mut self, statement: Statement) -> Self {
-        self.operations.push(MigrationOperation::Statement(statement));
+        self.operations
+            .push(MigrationOperation::Statement(statement));
         self
     }
 

@@ -13,12 +13,10 @@ fn foreign_keys_compile_with_referential_actions() {
             Column::big_integer("user_id"),
             Column::string("slug"),
         ])
-        .foreign_keys([
-            ForeignKey::new(["user_id"])
-                .references("users", ["id"])
-                .on_delete(ForeignAction::Cascade)
-                .on_update(ForeignAction::Restrict),
-        ]);
+        .foreign_keys([ForeignKey::new(["user_id"])
+            .references("users", ["id"])
+            .on_delete(ForeignAction::Cascade)
+            .on_update(ForeignAction::Restrict)]);
 
     let statement = compile_create(&table, Driver::Postgres).unwrap();
     assert!(statement.sql().contains(
@@ -62,7 +60,6 @@ fn constraints_reject_unknown_local_columns() {
     assert!(table.validate().is_err());
 }
 
-
 #[test]
 fn named_foreign_keys_and_composite_primary_keys_compile() {
     let table = Table::create("role_user")
@@ -71,11 +68,9 @@ fn named_foreign_keys_and_composite_primary_keys_compile() {
             Column::big_integer("user_id"),
         ])
         .primary(["role_id", "user_id"])
-        .foreign_keys([
-            ForeignKey::new(["user_id"])
-                .references("users", ["id"])
-                .named("role_user_user_fk"),
-        ]);
+        .foreign_keys([ForeignKey::new(["user_id"])
+            .references("users", ["id"])
+            .named("role_user_user_fk")]);
 
     let statement = compile_create(&table, Driver::Postgres).unwrap();
 

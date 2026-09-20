@@ -97,7 +97,9 @@ impl<'a> MigrationRunner<'a> {
             .map(|migration| {
                 let statements = migration.up(driver)?;
                 if statements.is_empty() {
-                    return Err(error("a migration direction must contain at least one statement"));
+                    return Err(error(
+                        "a migration direction must contain at least one statement",
+                    ));
                 }
                 Ok(PlannedMigration {
                     name: migration.name().into(),

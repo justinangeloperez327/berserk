@@ -1,4 +1,6 @@
-use super::{AlterOperation, AlterTable, Column, ColumnType, CreateTable, ForeignAction, TableOperation};
+use super::{
+    AlterOperation, AlterTable, Column, ColumnType, CreateTable, ForeignAction, TableOperation,
+};
 use crate::{DatabaseError, Driver, ErrorKind, Result, Statement, Value};
 
 pub fn compile_create(table: &CreateTable, driver: Driver) -> Result<Statement> {
@@ -208,7 +210,6 @@ fn quote_identifier(identifier: &str, driver: Driver) -> Result<String> {
 fn error(message: impl Into<String>) -> DatabaseError {
     DatabaseError::new(ErrorKind::Query, message)
 }
-
 
 pub fn compile_alter(table: &AlterTable, driver: Driver) -> Result<Vec<Statement>> {
     table.validate()?;
