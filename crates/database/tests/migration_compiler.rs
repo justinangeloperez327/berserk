@@ -40,3 +40,16 @@ fn sqlite_create_table_is_compiled() {
         "CREATE TABLE \"users\" (\"id\" INTEGER PRIMARY KEY, \"name\" VARCHAR(255) NOT NULL, \"email\" VARCHAR(255) NOT NULL UNIQUE, \"active\" BOOLEAN NOT NULL DEFAULT TRUE, \"created_at\" TEXT NOT NULL, \"updated_at\" TEXT NOT NULL)"
     );
 }
+
+
+#[test]
+fn current_timestamp_default_is_portable() {
+    for driver in [Driver::Postgres, Driver::MySql, Driver::Sqlite] {
+        let table = Table::create("events").columns([
+            Column::id(),
+            Column::timestamp("created_at").default_current_timestamp(),
+        ]);
+        let statement = compile_create(&table, driver).unwrap();
+        assert!(statement.sql().contains("DEFAULT CURRENT_TIMESTAMP"));
+    }
+}
