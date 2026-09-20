@@ -121,10 +121,11 @@ mod tests {
         let metrics = Arc::new(Metrics::default());
         let mut app = App::new();
         app.middleware(MetricsLayer::new(metrics.clone()));
-        app.route().get("/forbidden", || -> Result<Response> {
-            Err(crate::Error::forbidden())
-        })
-        .unwrap();
+        app.route()
+            .get("/forbidden", || -> Result<Response> {
+                Err(crate::Error::forbidden())
+            })
+            .unwrap();
 
         let error = app.handle(request("/forbidden")).unwrap_err();
         assert_eq!(error.status_code(), 403);
@@ -140,10 +141,11 @@ mod tests {
         let metrics = Arc::new(Metrics::default());
         let mut app = App::new();
         app.middleware(MetricsLayer::new(metrics.clone()));
-        app.route().get("/failed", || -> Result<Response> {
-            Err(crate::Error::rejected(500, "failed"))
-        })
-        .unwrap();
+        app.route()
+            .get("/failed", || -> Result<Response> {
+                Err(crate::Error::rejected(500, "failed"))
+            })
+            .unwrap();
 
         let error = app.handle(request("/failed")).unwrap_err();
         assert_eq!(error.status_code(), 500);
