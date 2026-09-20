@@ -1,6 +1,6 @@
 # Berserk support policy
 
-This policy defines the support boundary for the current Berserk v0.3.0 pre-1.0 baseline. It is deliberately narrower than the set of systems where Berserk may happen to compile.
+This policy defines the support boundary for the current Berserk v0.9.0 pre-1.0 stabilization baseline. It is deliberately narrower than the set of systems where Berserk may happen to compile.
 
 ## Rust toolchain
 
@@ -21,7 +21,7 @@ Tier 1 means the release-blocking quality, MSRV, live-database, security, fuzzin
 - **Windows**, validated on the current GitHub-hosted `windows-latest` runner.
 - **macOS**, validated on the current GitHub-hosted `macos-latest` runner.
 
-Tier 2 runs workspace compile and test coverage with all features. These platforms are supported for development compatibility, but `0.1.0` does not make the same operational-validation claim as Tier 1 because live database services, fuzzing, package verification, load, and soak testing are not executed there.
+Tier 2 runs workspace compile and test coverage with all features. These platforms are supported for development compatibility, but v0.9.0 does not make the same operational-validation claim as Tier 1 because live database services, fuzzing, package verification, load, and soak testing are not executed there.
 
 The standalone minimal API and fresh external-consumer checks run on the Tier-1 Linux CI path rather than being duplicated on every Tier-2 runner.
 
@@ -43,7 +43,7 @@ PostgreSQL 14 and older are not part of the current support contract. PostgreSQL
 
 MySQL versions other than 8.4 LTS, including MySQL 8.0 and 9.x/other later lines, are not claimed as supported until they are added to the live-database matrix. MariaDB is not claimed as MySQL-compatible for the current baseline.
 
-The SQLite feature uses `rusqlite` with its `bundled` feature. Berserk therefore supports the SQLite library compiled by that dependency; compatibility with an arbitrary system-installed SQLite library is not part of the `0.1.0` contract.
+The SQLite feature uses `rusqlite` with its `bundled` feature. Berserk therefore supports the SQLite library compiled by that dependency; compatibility with an arbitrary system-installed SQLite library is not part of the v0.9.0 contract.
 
 ## What CI enforces
 
