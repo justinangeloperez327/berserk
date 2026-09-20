@@ -190,6 +190,20 @@ impl App {
         self.state(database)
     }
 
+    /// Configure the authentication backend used by route-level auth helpers.
+    #[cfg(feature = "auth")]
+    pub fn auth<G: berserk_auth::Guard>(&mut self, guard: G) -> Result<()> {
+        if !self
+            .state
+            .insert(crate::middleware::ConfiguredAuth::new(guard))
+        {
+            return Err(
+                crate::ConfigError::new("auth", "authentication is already configured").into(),
+            );
+        }
+        Ok(())
+    }
+
     /// Build routes transactionally. The child application's config and state are not inherited.
     pub fn group(
         &mut self,
