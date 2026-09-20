@@ -169,6 +169,42 @@ impl<'a> Route<'a> {
         }
     }
 
+    /// Require the authentication backend configured with `App::auth`.
+    ///
+    /// ```ignore
+    /// app.auth(tokens)?;
+    /// app.route().auth().get("/profile", ProfileController::show)?;
+    /// ```
+    #[cfg(feature = "auth")]
+    pub fn auth<'b>(&'b mut self) -> Route<'b> {
+        self.middleware(crate::middleware::ConfiguredAuthenticated)
+    }
+
+    /// Allow only unauthenticated requests using the backend configured with `App::auth`.
+    #[cfg(feature = "auth")]
+    pub fn guest<'b>(&'b mut self) -> Route<'b> {
+        self.middleware(crate::middleware::ConfiguredGuest)
+    }
+
+    /// Require authentication plus one explicit ability.
+    ///
+    /// `can` includes authentication, so a separate `.auth()` scope is not required.
+    #[cfg(feature = "auth")]
+    pub fn can<'b>(&'b mut self, ability: impl Into<String>) -> Result<Route<'b>> {
+        let mut layers = self.layers.clone();
+        layers
+            .0
+            .push(Arc::new(crate::middleware::ConfiguredAuthenticated));
+        layers
+            .0
+            .push(Arc::new(crate::middleware::RequireAbility::new(ability)?));
+        Ok(Route {
+            router: self.router,
+            prefixes: self.prefixes.clone(),
+            layers,
+        })
+    }
+
     /// Registers a group atomically. If configuration fails, none of the
     /// routes created inside the group are added to the parent router.
     pub fn group(&mut self, configure: impl FnOnce(&mut Route<'_>) -> Result<()>) -> Result<()> {

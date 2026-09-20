@@ -122,7 +122,73 @@ impl<G: berserk_auth::Guard> Middleware for Guest<G> {
 }
 
 #[cfg(feature = "auth")]
-fn authenticate_request<G: berserk_auth::Guard>(
+#[derive(Clone)]
+pub(crate) struct ConfiguredAuth {
+    guard: Arc<dyn berserk_auth::Guard>,
+}
+
+#[cfg(feature = "auth")]
+impl ConfiguredAuth {
+    pub(crate) fn new<G: berserk_auth::Guard>(guard: G) -> Self {
+        Self {
+            guard: Arc::new(guard),
+        }
+    }
+
+    fn guard(&self) -> &(dyn berserk_auth::Guard) {
+        self.guard.as_ref()
+    }
+}
+
+#[cfg(feature = "auth")]
+pub(crate) struct ConfiguredAuthenticated;
+
+#[cfg(feature = "auth")]
+impl Middleware for ConfiguredAuthenticated {
+    fn handle(&self, mut request: Request, next: Next<'_>) -> Result<Response> {
+        let outcome = {
+            let auth = request.state::<ConfiguredAuth>().ok_or_else(|| {
+                crate::ConfigError::new("auth", "authentication guard is not configured")
+            })?;
+            authenticate_request(&request, auth.guard())
+        };
+
+        match outcome {
+            Ok(Some(principal)) => {
+                request.set_principal(principal);
+                next.run(request)
+            }
+            Ok(None) => Ok(crate::Error::unauthorized().response()),
+            Err(error) if error.status_code() == 401 => Ok(error.response()),
+            Err(error) => Err(error),
+        }
+    }
+}
+
+#[cfg(feature = "auth")]
+pub(crate) struct ConfiguredGuest;
+
+#[cfg(feature = "auth")]
+impl Middleware for ConfiguredGuest {
+    fn handle(&self, request: Request, next: Next<'_>) -> Result<Response> {
+        let outcome = {
+            let auth = request.state::<ConfiguredAuth>().ok_or_else(|| {
+                crate::ConfigError::new("auth", "authentication guard is not configured")
+            })?;
+            authenticate_request(&request, auth.guard())
+        };
+
+        match outcome {
+            Ok(None) if request.user().is_none() => next.run(request),
+            Ok(_) => Ok(crate::Error::forbidden().response()),
+            Err(error) if error.status_code() == 401 => Ok(error.response()),
+            Err(error) => Err(error),
+        }
+    }
+}
+
+#[cfg(feature = "auth")]
+fn authenticate_request<G: berserk_auth::Guard + ?Sized>(
     request: &Request,
     guard: &G,
 ) -> Result<Option<berserk_auth::Principal>> {
@@ -217,6 +283,12 @@ mod auth_tests {
                         .with_abilities(["posts.update"])
                         .unwrap(),
                 )),
+                "read-only" => Ok(Some(
+                    Principal::new("user:2")
+                        .unwrap()
+                        .with_abilities(["posts.read"])
+                        .unwrap(),
+                )),
                 "expired" => Err(AuthError::new(ErrorKind::ExpiredToken, "private detail")),
                 "store-error" => Err(AuthError::new(ErrorKind::Store, "private detail")),
                 _ => Ok(None),
@@ -230,6 +302,53 @@ mod auth_tests {
             headers.append("Authorization", value).unwrap();
         }
         Request::new(Method::new("GET").unwrap(), path, headers, vec![]).unwrap()
+    }
+
+    #[test]
+    fn configured_auth_keeps_route_definitions_concise() {
+        let mut app = App::new();
+        app.auth(TestGuard).unwrap();
+        assert!(app.auth(TestGuard).is_err());
+
+        app.route()
+            .auth()
+            .get("/profile", |req: Request| {
+                Response::text(req.user().unwrap().subject())
+            })
+            .unwrap();
+        app.route()
+            .guest()
+            .get("/login", || Response::text("guest"))
+            .unwrap();
+        app.route()
+            .can("posts.update")
+            .unwrap()
+            .get("/posts/1", || Response::text("allowed"))
+            .unwrap();
+
+        assert_eq!(app.respond(request("/profile", &[])).status_code(), 401);
+        assert_eq!(
+            app.respond(request("/profile", &["Bearer accepted"]))
+                .body(),
+            b"user:1"
+        );
+        assert_eq!(app.respond(request("/login", &[])).status_code(), 200);
+        assert_eq!(
+            app.respond(request("/login", &["Bearer accepted"]))
+                .status_code(),
+            403
+        );
+        assert_eq!(
+            app.respond(request("/posts/1", &["Bearer accepted"]))
+                .status_code(),
+            200
+        );
+        assert_eq!(
+            app.respond(request("/posts/1", &["Bearer read-only"]))
+                .status_code(),
+            403
+        );
+        assert!(app.route().can("bad ability").is_err());
     }
 
     #[test]
