@@ -24,14 +24,15 @@ impl ValidateInput for CreateUser {
 }
 fn main() -> Result<()> {
     let mut app = App::new();
-    app.post("/users", |req: Request| -> Result<Response> {
-        let input: CreateUser = req.validated()?;
-        Response::json(&Json::Object(
-            [("name".into(), Json::String(input.name))]
-                .into_iter()
-                .collect(),
-        ))
-        .map(|r| r.status(201))
-    })?;
+    app.route()
+        .post("/users", |req: Request| -> Result<Response> {
+            let input: CreateUser = req.validated()?;
+            Response::json(&Json::Object(
+                [("name".into(), Json::String(input.name))]
+                    .into_iter()
+                    .collect(),
+            ))
+            .map(|r| r.status(201))
+        })?;
     app.listen("127.0.0.1:3000")
 }

@@ -13,7 +13,8 @@ use std::{collections::BTreeMap, sync::Arc};
 #[test]
 fn in_memory_requests_support_fluent_assertions() {
     let mut app = App::new();
-    app.get("/hello", || Response::text("hello").header("x-test", "yes"))
+    app.route()
+        .get("/hello", || Response::text("hello").header("x-test", "yes"))
         .unwrap();
     let response = TestClient::new(&app).get("/hello").unwrap();
     assert_eq!(response.status(), 200);
@@ -33,7 +34,8 @@ fn json_assertions_compare_structure() {
     let expected = Json::Object(BTreeMap::from([("ok".into(), Json::Bool(true))]));
     let response_value = expected.clone();
     let mut app = App::new();
-    app.get("/json", move || Response::json(&response_value))
+    app.route()
+        .get("/json", move || Response::json(&response_value))
         .unwrap();
     TestClient::new(&app)
         .get("/json")
@@ -49,12 +51,17 @@ fn http_helpers_cover_redirects_errors_and_options() {
     app.route()
         .options("/health", || Response::empty().status(204))
         .unwrap();
-    app.get("/redirect", || {
-        Response::empty().status(302).header("location", "/next")
-    })
-    .unwrap();
-    app.get("/bad", || Response::empty().status(422)).unwrap();
-    app.get("/boom", || Response::empty().status(503)).unwrap();
+    app.route()
+        .get("/redirect", || {
+            Response::empty().status(302).header("location", "/next")
+        })
+        .unwrap();
+    app.route()
+        .get("/bad", || Response::empty().status(422))
+        .unwrap();
+    app.route()
+        .get("/boom", || Response::empty().status(503))
+        .unwrap();
 
     let client = TestClient::new(&app);
     client

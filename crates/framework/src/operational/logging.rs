@@ -106,8 +106,8 @@ impl<S: LogSink> Middleware for RequestLogger<S> {
             Ok(response) => {
                 fields.insert("status".into(), response.status_code().to_string());
             }
-            Err(_) => {
-                fields.insert("status".into(), "500".into());
+            Err(error) => {
+                fields.insert("status".into(), error.status_code().to_string());
                 fields.insert("outcome".into(), "error".into());
             }
         }
@@ -124,4 +124,41 @@ fn now_ms() -> u128 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_or(0, |value| value.as_millis())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{App, Headers, Method};
+    use std::sync::Arc;
+
+    fn request(path: &str) -> Request {
+        Request::new(Method::new("GET").unwrap(), path, Headers::new(), vec![]).unwrap()
+    }
+
+    #[test]
+    fn request_logger_preserves_client_error_status() {
+        let sink = Arc::new(MemoryLogSink::default());
+        let mut app = App::new();
+        app.middleware(RequestLogger::new(sink.clone()));
+        app.route()
+            .get("/forbidden", || -> Result<Response> {
+                Err(crate::Error::forbidden())
+            })
+            .unwrap();
+
+        let error = app.handle(request("/forbidden")).unwrap_err();
+        assert_eq!(error.status_code(), 403);
+
+        let events = sink.events();
+        assert_eq!(events.len(), 1);
+        assert_eq!(
+            events[0].fields.get("status").map(String::as_str),
+            Some("403")
+        );
+        assert_eq!(
+            events[0].fields.get("outcome").map(String::as_str),
+            Some("error")
+        );
+    }
 }

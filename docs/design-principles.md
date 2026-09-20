@@ -11,9 +11,9 @@
 9. Keep data models separate from public API representations by default.
 10. Tests, documentation, security review, and compatibility notes accompany implementation. The project owner controls publication.
 
-## Preferred public surface
+## Stable public surface
 
-Berserk's preferred application-facing APIs are instance- and request-scoped:
+Berserk's stable application-facing APIs are instance- and request-scoped:
 
 - register routes through `app.route()`;
 - read request context through `Request`;
@@ -22,7 +22,7 @@ Berserk's preferred application-facing APIs are instance- and request-scoped:
 - use Claw query builders with bound values;
 - opt into operational middleware explicitly.
 
-Compatibility shortcuts can remain during pre-1.0 development, but they do not define Berserk's long-term identity.
+Pre-1.0 routing and authentication compatibility shortcuts were removed for v1.0.0; new aliases should be added only when they solve a concrete API gap without creating duplicate ways to express the same operation.
 
 ## Utilities
 

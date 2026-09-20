@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import tempfile
+import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -13,6 +14,7 @@ def run(*args, cwd=ROOT):
 
 
 def main():
+    workspace_package = tomllib.loads((ROOT / "Cargo.toml").read_text())["workspace"]["package"]
     run("cargo", "build", "-p", "berserk-cli", "--bin", "berserk")
     target = Path(os.environ.get("CARGO_TARGET_DIR", ROOT / "target"))
     if not target.is_absolute():
@@ -23,11 +25,20 @@ def main():
         run(str(cli), "new", "consumer", cwd=base)
         consumer = base / "consumer"
         manifest = consumer / "Cargo.toml"
+        generated_text = manifest.read_text()
+        generated = tomllib.loads(generated_text)
+        framework = generated["dependencies"]["berserk"]
+        if framework.get("version") != workspace_package["version"]:
+            raise RuntimeError("generated Berserk dependency does not match the workspace version")
+        if "path" in framework or "git" in framework:
+            raise RuntimeError("generated Berserk dependency must target the package registry")
+        if generated["package"]["rust-version"] != workspace_package["rust-version"]:
+            raise RuntimeError("generated minimum Rust version does not match the workspace")
         dependency = (ROOT / "crates/framework").as_posix()
         manifest_text, replacements = re.subn(
             r"^berserk\s*=\s*.+$",
-            lambda _: f'berserk = {{ path = "{dependency}", features = ["claw", "auth"] }}',
-            manifest.read_text(),
+            lambda _: f'berserk = {{ version = "{framework["version"]}", path = "{dependency}", features = ["claw", "auth"] }}',
+            generated_text,
             flags=re.MULTILINE,
         )
         if replacements != 1:

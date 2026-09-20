@@ -233,12 +233,6 @@ impl Request {
         self.principal.as_ref()
     }
 
-    /// Compatibility alias for `user`. New code should use `user`.
-    #[cfg(feature = "auth")]
-    pub fn principal(&self) -> Option<&berserk_auth::Principal> {
-        self.user()
-    }
-
     /// Check an explicit ability; guests and unscoped identities return false.
     #[cfg(feature = "auth")]
     pub fn can(&self, ability: &str) -> bool {

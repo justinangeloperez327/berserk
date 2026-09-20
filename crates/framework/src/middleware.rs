@@ -357,7 +357,6 @@ mod auth_tests {
         app.route()
             .middleware(Authenticated::new(TestGuard))
             .get("/private", |req: Request| {
-                assert_eq!(req.user(), req.principal());
                 assert!(req.can("posts.update"));
                 Response::text(req.user().unwrap().subject())
             })

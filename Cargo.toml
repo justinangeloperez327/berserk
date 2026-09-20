@@ -4,7 +4,7 @@ exclude = ["examples/minimal-api"]
 members = ["crates/core", "crates/validation", "crates/database", "crates/claw", "crates/auth", "crates/openapi", "crates/cache", "crates/storage", "crates/events", "crates/jobs", "crates/client", "crates/notifications", "crates/cli", "crates/testing", "crates/framework", "examples/foundation", "benchmarks"]
 
 [workspace.package]
-version = "0.9.0"
+version = "1.0.0"
 edition = "2021"
 rust-version = "1.88"
 authors = ["Justin Angelo Perez"]
@@ -17,17 +17,17 @@ publish = false
 unsafe_code = "forbid"
 
 [workspace.dependencies]
-berserk-core = { path = "crates/core", version = "=0.9.0" }
-berserk-database = { path = "crates/database", version = "=0.9.0" }
-claw-orm = { path = "crates/claw", version = "=0.9.0" }
-berserk-auth = { path = "crates/auth", version = "=0.9.0" }
-berserk-openapi = { path = "crates/openapi", version = "=0.9.0" }
-berserk-cache = { path = "crates/cache", version = "=0.9.0" }
-berserk-storage = { path = "crates/storage", version = "=0.9.0" }
-berserk-events = { path = "crates/events", version = "=0.9.0" }
-berserk-jobs = { path = "crates/jobs", version = "=0.9.0" }
-berserk-client = { path = "crates/client", version = "=0.9.0" }
-berserk-notifications = { path = "crates/notifications", version = "=0.9.0" }
-berserk-cli = { path = "crates/cli", version = "=0.9.0" }
-berserk-testing = { path = "crates/testing", version = "=0.9.0" }
-berserk = { path = "crates/framework", version = "=0.9.0" }
+berserk-core = { path = "crates/core", version = "=1.0.0" }
+berserk-database = { path = "crates/database", version = "=1.0.0" }
+claw-orm = { path = "crates/claw", version = "=1.0.0" }
+berserk-auth = { path = "crates/auth", version = "=1.0.0" }
+berserk-openapi = { path = "crates/openapi", version = "=1.0.0" }
+berserk-cache = { path = "crates/cache", version = "=1.0.0" }
+berserk-storage = { path = "crates/storage", version = "=1.0.0" }
+berserk-events = { path = "crates/events", version = "=1.0.0" }
+berserk-jobs = { path = "crates/jobs", version = "=1.0.0" }
+berserk-client = { path = "crates/client", version = "=1.0.0" }
+berserk-notifications = { path = "crates/notifications", version = "=1.0.0" }
+berserk-cli = { path = "crates/cli", version = "=1.0.0" }
+berserk-testing = { path = "crates/testing", version = "=1.0.0" }
+berserk = { path = "crates/framework", version = "=1.0.0" }

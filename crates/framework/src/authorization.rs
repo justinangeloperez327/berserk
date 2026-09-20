@@ -52,7 +52,7 @@ impl Request {
         ability: impl AsRef<str>,
         resource: &R,
     ) -> Result<()> {
-        authorize(self.principal(), policy, ability, resource)
+        authorize(self.user(), policy, ability, resource)
     }
 }
 pub(crate) fn scope_principal<T>(principal: Option<Principal>, operation: impl FnOnce() -> T) -> T {

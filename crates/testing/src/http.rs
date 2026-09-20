@@ -256,13 +256,14 @@ mod tests {
     #[test]
     fn bearer_replaces_duplicate_credentials_and_preserves_other_headers() {
         let mut app = App::new();
-        app.get("/profile", |request: Request| {
-            assert_eq!(request.headers().get_all("authorization").count(), 1);
-            assert_eq!(request.header("authorization"), Some("Bearer new-token"));
-            assert_eq!(request.header("x-test"), Some("kept"));
-            Response::text("profile")
-        })
-        .unwrap();
+        app.route()
+            .get("/profile", |request: Request| {
+                assert_eq!(request.headers().get_all("authorization").count(), 1);
+                assert_eq!(request.header("authorization"), Some("Bearer new-token"));
+                assert_eq!(request.header("x-test"), Some("kept"));
+                Response::text("profile")
+            })
+            .unwrap();
         TestClient::new(&app)
             .request("GET", "/profile")
             .unwrap()

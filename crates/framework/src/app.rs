@@ -109,46 +109,6 @@ impl App {
         }
         Ok(response)
     }
-
-    /// Compatibility shortcut. Prefer `app.route().get(...)` for route registration.
-    pub fn get<H, A>(&mut self, path: &str, handler: H) -> Result<()>
-    where
-        H: crate::controller::Handler<A>,
-    {
-        self.register_route(crate::Method::new("GET")?, path, handler)
-    }
-
-    /// Compatibility shortcut. Prefer `app.route().post(...)` for route registration.
-    pub fn post<H, A>(&mut self, path: &str, handler: H) -> Result<()>
-    where
-        H: crate::controller::Handler<A>,
-    {
-        self.register_route(crate::Method::new("POST")?, path, handler)
-    }
-
-    /// Compatibility shortcut. Prefer `app.route().put(...)` for route registration.
-    pub fn put<H, A>(&mut self, path: &str, handler: H) -> Result<()>
-    where
-        H: crate::controller::Handler<A>,
-    {
-        self.register_route(crate::Method::new("PUT")?, path, handler)
-    }
-
-    /// Compatibility shortcut. Prefer `app.route().patch(...)` for route registration.
-    pub fn patch<H, A>(&mut self, path: &str, handler: H) -> Result<()>
-    where
-        H: crate::controller::Handler<A>,
-    {
-        self.register_route(crate::Method::new("PATCH")?, path, handler)
-    }
-
-    /// Compatibility shortcut. Prefer `app.route().delete(...)` for route registration.
-    pub fn delete<H, A>(&mut self, path: &str, handler: H) -> Result<()>
-    where
-        H: crate::controller::Handler<A>,
-    {
-        self.register_route(crate::Method::new("DELETE")?, path, handler)
-    }
 }
 
 #[cfg(feature = "server")]
@@ -293,82 +253,5 @@ impl App {
         })
         .await
         .map_err(|_| crate::ConfigError::new("async", "request worker failed"))?
-    }
-}
-
-#[cfg(feature = "async")]
-impl App {
-    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
-    pub fn get_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
-    where
-        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
-    {
-        self.route().get_async(path, handler)
-    }
-}
-
-#[cfg(feature = "async")]
-impl App {
-    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
-    pub fn post_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
-    where
-        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
-    {
-        self.route().post_async(path, handler)
-    }
-}
-
-#[cfg(feature = "async")]
-impl App {
-    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
-    pub fn put_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
-    where
-        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
-    {
-        self.route().put_async(path, handler)
-    }
-}
-
-#[cfg(feature = "async")]
-impl App {
-    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
-    pub fn patch_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
-    where
-        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
-    {
-        self.route().patch_async(path, handler)
-    }
-}
-
-#[cfg(feature = "async")]
-impl App {
-    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
-    pub fn delete_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
-    where
-        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
-    {
-        self.route().delete_async(path, handler)
-    }
-}
-
-#[cfg(feature = "async")]
-impl App {
-    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
-    pub fn head_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
-    where
-        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
-    {
-        self.route().head_async(path, handler)
-    }
-}
-
-#[cfg(feature = "async")]
-impl App {
-    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
-    pub fn options_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
-    where
-        crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
-    {
-        self.route().options_async(path, handler)
     }
 }
