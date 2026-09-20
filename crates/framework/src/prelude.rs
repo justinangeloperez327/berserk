@@ -4,7 +4,10 @@ pub use crate::{
     Resource, ResourceCollection, ResourceController, Response, Result, Route, ServerConfig, State,
     Str, Validated,
 };
-pub use crate::{Metrics, MetricsLayer, RateLimitLayer, RateLimiter, RequestLogger, TraceLayer};
+pub use crate::{
+    HealthRegistry, HealthSnapshot, Metrics, MetricsLayer, RateLimitLayer, RateLimiter,
+    RequestLogger, TraceLayer,
+};
 #[cfg(feature = "auth")]
 pub use berserk_auth::Principal;
 #[cfg(feature = "claw")]
