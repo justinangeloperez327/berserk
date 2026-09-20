@@ -25,11 +25,12 @@ fn layers_wrap_in_registration_order() {
         );
     }
     let events = log.clone();
-    app.route().get("/", move || {
-        events.lock().unwrap().push("handler");
-        Response::empty()
-    })
-    .unwrap();
+    app.route()
+        .get("/", move || {
+            events.lock().unwrap().push("handler");
+            Response::empty()
+        })
+        .unwrap();
     app.handle(req("/")).unwrap();
     assert_eq!(
         *log.lock().unwrap(),
@@ -42,7 +43,8 @@ fn early_response_and_head_apply_to_whole_pipeline() {
     app.middleware(|_: Request, _: Next<'_>| -> Result<Response> {
         Ok(Response::text("blocked").status(403))
     });
-    app.route().get("/", || -> Response { panic!("must not run") })
+    app.route()
+        .get("/", || -> Response { panic!("must not run") })
         .unwrap();
     let request = Request::new(
         Method::new("HEAD").unwrap(),
