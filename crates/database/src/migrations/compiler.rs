@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, AlterTable, Column, ColumnDefault, ColumnType, CreateTable, ForeignAction,
-    TableOperation,
+    RebuildTable, TableOperation,
 };
 use crate::{DatabaseError, Driver, ErrorKind, Result, Statement, Value};
 
@@ -19,6 +19,26 @@ pub fn compile_create(table: &CreateTable, driver: Driver) -> Result<Statement> 
             .collect::<Result<Vec<_>>>()?
             .join(", ");
         definitions.push(format!("PRIMARY KEY ({columns})"));
+    }
+    for unique in &table.uniques {
+        let columns = unique
+            .columns
+            .iter()
+            .map(|column| quote_identifier(column, driver))
+            .collect::<Result<Vec<_>>>()?
+            .join(", ");
+        let constraint = match &unique.name {
+            Some(name) => format!("CONSTRAINT {} ", quote_identifier(name, driver)?),
+            None => String::new(),
+        };
+        definitions.push(format!("{constraint}UNIQUE ({columns})"));
+    }
+    for check in &table.checks {
+        definitions.push(format!(
+            "CONSTRAINT {} CHECK ({})",
+            quote_identifier(&check.name, driver)?,
+            check.expression
+        ));
     }
     for foreign_key in &table.foreign_keys {
         let local = foreign_key
@@ -52,10 +72,16 @@ pub fn compile_create(table: &CreateTable, driver: Driver) -> Result<Statement> 
         definitions.push(definition);
     }
     let columns = definitions.join(", ");
-    Ok(Statement::new(format!(
+    let mut sql = format!(
         "CREATE TABLE {} ({columns})",
         quote_identifier(table.name(), driver)?
-    )))
+    );
+    if matches!(driver, Driver::MySql) {
+        if let Some(comment) = &table.comment {
+            sql.push_str(&format!(" COMMENT='{}'", comment.replace('\'', "''")));
+        }
+    }
+    Ok(Statement::new(sql))
 }
 
 fn compile_column(column: &Column, driver: Driver) -> Result<String> {
@@ -76,6 +102,27 @@ fn compile_column(column: &Column, driver: Driver) -> Result<String> {
     if let Some(default) = &column.default {
         sql.push_str(" DEFAULT ");
         sql.push_str(&compile_default(default)?);
+    }
+    if let Some(expression) = &column.generated {
+        sql.push_str(" GENERATED ALWAYS AS (");
+        sql.push_str(expression);
+        sql.push_str(") STORED");
+    }
+    if let ColumnType::Enum(values) = &column.kind {
+        let values = values
+            .iter()
+            .map(|value| format!("'{}'", value.replace('\'', "''")))
+            .collect::<Vec<_>>()
+            .join(", ");
+        sql.push_str(&format!(
+            " CHECK ({} IN ({values}))",
+            quote_identifier(column.name(), driver)?
+        ));
+    }
+    if matches!(driver, Driver::MySql) {
+        if let Some(comment) = &column.comment {
+            sql.push_str(&format!(" COMMENT '{}'", comment.replace('\'', "''")));
+        }
     }
     Ok(sql)
 }
@@ -140,8 +187,43 @@ fn compile_type(column: &Column, driver: Driver) -> Result<String> {
             Driver::MySql => "CHAR(36)".into(),
             Driver::Sqlite => "TEXT".into(),
         },
+        ColumnType::Enum(_) => "VARCHAR(255)".into(),
+        ColumnType::Custom(sql_type) => sql_type.clone(),
     };
     Ok(sql)
+}
+
+pub fn compile_comments(table: &CreateTable, driver: Driver) -> Result<Vec<Statement>> {
+    let has_comments = table.comment.is_some()
+        || table
+            .column_definitions()
+            .iter()
+            .any(|column| column.comment.is_some());
+    if !has_comments || matches!(driver, Driver::MySql) {
+        return Ok(Vec::new());
+    }
+    if matches!(driver, Driver::Sqlite) {
+        return Err(error("SQLite does not support table or column comments"));
+    }
+
+    let table_name = quote_identifier(table.name(), driver)?;
+    let mut statements = Vec::new();
+    if let Some(comment) = &table.comment {
+        statements.push(Statement::new(format!(
+            "COMMENT ON TABLE {table_name} IS '{}'",
+            comment.replace('\'', "''")
+        )));
+    }
+    for column in table.column_definitions() {
+        if let Some(comment) = &column.comment {
+            statements.push(Statement::new(format!(
+                "COMMENT ON COLUMN {table_name}.{} IS '{}'",
+                quote_identifier(column.name(), driver)?,
+                comment.replace('\'', "''")
+            )));
+        }
+    }
+    Ok(statements)
 }
 
 pub fn compile_indexes(table: &CreateTable, driver: Driver) -> Result<Vec<Statement>> {
@@ -218,116 +300,283 @@ fn error(message: impl Into<String>) -> DatabaseError {
 
 pub fn compile_alter(table: &AlterTable, driver: Driver) -> Result<Vec<Statement>> {
     table.validate()?;
-    table
-        .operations
-        .iter()
-        .map(|operation| {
-            let table_name = quote_identifier(&table.name, driver)?;
-            let clause = match operation {
-                AlterOperation::Add(column) => {
-                    format!("ADD COLUMN {}", compile_column(column, driver)?)
+    let table_name = quote_identifier(&table.name, driver)?;
+    let mut statements = Vec::new();
+
+    for operation in &table.operations {
+        match operation {
+            AlterOperation::Add(column) => statements.push(Statement::new(format!(
+                "ALTER TABLE {table_name} ADD COLUMN {}",
+                compile_column(column, driver)?
+            ))),
+            AlterOperation::Drop(column) => statements.push(Statement::new(format!(
+                "ALTER TABLE {table_name} DROP COLUMN {}",
+                quote_identifier(column, driver)?
+            ))),
+            AlterOperation::Rename { from, to } => statements.push(Statement::new(format!(
+                "ALTER TABLE {table_name} RENAME COLUMN {} TO {}",
+                quote_identifier(from, driver)?,
+                quote_identifier(to, driver)?
+            ))),
+            AlterOperation::Modify(column) => match driver {
+                Driver::Postgres => {
+                    let column_name = quote_identifier(column.name(), driver)?;
+                    statements.push(Statement::new(format!(
+                        "ALTER TABLE {table_name} ALTER COLUMN {column_name} TYPE {}",
+                        compile_type(column, driver)?
+                    )));
+                    statements.push(Statement::new(format!(
+                        "ALTER TABLE {table_name} ALTER COLUMN {column_name} {} NOT NULL",
+                        if column.nullable { "DROP" } else { "SET" }
+                    )));
+                    if let Some(default) = &column.default {
+                        statements.push(Statement::new(format!(
+                            "ALTER TABLE {table_name} ALTER COLUMN {column_name} SET DEFAULT {}",
+                            compile_default(default)?
+                        )));
+                    }
                 }
-                AlterOperation::Drop(column) => {
-                    format!("DROP COLUMN {}", quote_identifier(column, driver)?)
+                Driver::MySql => statements.push(Statement::new(format!(
+                    "ALTER TABLE {table_name} MODIFY COLUMN {}",
+                    compile_column(column, driver)?
+                ))),
+                Driver::Sqlite => {
+                    return Err(error(
+                        "SQLite column modification requires an explicit table rebuild migration",
+                    ));
                 }
-                AlterOperation::Rename { from, to } => format!(
-                    "RENAME COLUMN {} TO {}",
+            },
+            AlterOperation::AddIndex(index) => {
+                let columns = index
+                    .columns
+                    .iter()
+                    .map(|column| quote_identifier(column, driver))
+                    .collect::<Result<Vec<_>>>()?
+                    .join(", ");
+                let generated_name = format!("idx_{}_{}", table.name, index.columns.join("_"));
+                let name = index.name.as_deref().unwrap_or(&generated_name);
+                let unique = if index.unique { "UNIQUE " } else { "" };
+                statements.push(Statement::new(format!(
+                    "CREATE {unique}INDEX {} ON {table_name} ({columns})",
+                    quote_identifier(name, driver)?
+                )));
+            }
+            AlterOperation::DropIndex(name) => statements.push(Statement::new(match driver {
+                Driver::MySql => format!(
+                    "DROP INDEX {} ON {table_name}",
+                    quote_identifier(name, driver)?
+                ),
+                Driver::Postgres | Driver::Sqlite => {
+                    format!("DROP INDEX {}", quote_identifier(name, driver)?)
+                }
+            })),
+            AlterOperation::RenameIndex { from, to } => match driver {
+                Driver::Postgres => statements.push(Statement::new(format!(
+                    "ALTER INDEX {} RENAME TO {}",
                     quote_identifier(from, driver)?,
                     quote_identifier(to, driver)?
-                ),
-                AlterOperation::Modify(column) => match driver {
-                    Driver::Postgres => format!(
-                        "ALTER COLUMN {} TYPE {}",
-                        quote_identifier(column.name(), driver)?,
-                        compile_type(column, driver)?
-                    ),
-                    Driver::MySql => format!("MODIFY COLUMN {}", compile_column(column, driver)?),
-                    Driver::Sqlite => {
-                        return Err(error(
-                            "SQLite does not support direct column modification; use a table rebuild migration",
-                        ));
-                    }
-                },
-                AlterOperation::AddIndex(index) => {
-                    let columns = index
-                        .columns
-                        .iter()
-                        .map(|column| quote_identifier(column, driver))
-                        .collect::<Result<Vec<_>>>()?
-                        .join(", ");
-                    let generated_name =
-                        format!("idx_{}_{}", table.name, index.columns.join("_"));
-                    let name = index.name.as_deref().unwrap_or(&generated_name);
-                    let unique = if index.unique { "UNIQUE " } else { "" };
-                    return Ok(Statement::new(format!(
-                        "CREATE {unique}INDEX {} ON {table_name} ({columns})",
-                        quote_identifier(name, driver)?
-                    )));
+                ))),
+                Driver::MySql => statements.push(Statement::new(format!(
+                    "ALTER TABLE {table_name} RENAME INDEX {} TO {}",
+                    quote_identifier(from, driver)?,
+                    quote_identifier(to, driver)?
+                ))),
+                Driver::Sqlite => {
+                    return Err(error(
+                        "SQLite does not support renaming indexes; drop and recreate the index",
+                    ));
                 }
-                AlterOperation::DropIndex(name) => {
-                    return Ok(Statement::new(match driver {
-                        Driver::MySql => format!(
-                            "DROP INDEX {} ON {table_name}",
-                            quote_identifier(name, driver)?
-                        ),
-                        Driver::Postgres | Driver::Sqlite => {
-                            format!("DROP INDEX {}", quote_identifier(name, driver)?)
-                        }
-                    }));
+            },
+            AlterOperation::AddForeignKey(foreign_key) => {
+                if matches!(driver, Driver::Sqlite) {
+                    return Err(error(
+                        "SQLite foreign key changes require an explicit table rebuild migration",
+                    ));
                 }
-                AlterOperation::AddForeignKey(foreign_key) => {
-                    if matches!(driver, Driver::Sqlite) {
-                        return Err(error(
-                            "SQLite does not support adding foreign keys with ALTER TABLE; use a table rebuild migration",
-                        ));
-                    }
-                    let local = foreign_key
-                        .columns
-                        .iter()
-                        .map(|column| quote_identifier(column, driver))
-                        .collect::<Result<Vec<_>>>()?
-                        .join(", ");
-                    let referenced = foreign_key
-                        .referenced_columns
-                        .iter()
-                        .map(|column| quote_identifier(column, driver))
-                        .collect::<Result<Vec<_>>>()?
-                        .join(", ");
-                    let constraint = match &foreign_key.name {
-                        Some(name) => format!("CONSTRAINT {} ", quote_identifier(name, driver)?),
-                        None => String::new(),
-                    };
-                    let mut clause = format!(
-                        "ADD {constraint}FOREIGN KEY ({local}) REFERENCES {} ({referenced})",
-                        quote_identifier(&foreign_key.referenced_table, driver)?
-                    );
-                    if let Some(action) = foreign_key.on_delete {
-                        clause.push_str(" ON DELETE ");
-                        clause.push_str(compile_foreign_action(action));
-                    }
-                    if let Some(action) = foreign_key.on_update {
-                        clause.push_str(" ON UPDATE ");
-                        clause.push_str(compile_foreign_action(action));
-                    }
-                    clause
+                let local = foreign_key
+                    .columns
+                    .iter()
+                    .map(|column| quote_identifier(column, driver))
+                    .collect::<Result<Vec<_>>>()?
+                    .join(", ");
+                let referenced = foreign_key
+                    .referenced_columns
+                    .iter()
+                    .map(|column| quote_identifier(column, driver))
+                    .collect::<Result<Vec<_>>>()?
+                    .join(", ");
+                let constraint = match &foreign_key.name {
+                    Some(name) => format!("CONSTRAINT {} ", quote_identifier(name, driver)?),
+                    None => String::new(),
+                };
+                let mut clause = format!(
+                    "ALTER TABLE {table_name} ADD {constraint}FOREIGN KEY ({local}) REFERENCES {} ({referenced})",
+                    quote_identifier(&foreign_key.referenced_table, driver)?
+                );
+                if let Some(action) = foreign_key.on_delete {
+                    clause.push_str(" ON DELETE ");
+                    clause.push_str(compile_foreign_action(action));
                 }
-                AlterOperation::DropForeignKey(name) => match driver {
-                    Driver::Postgres => {
-                        format!("DROP CONSTRAINT {}", quote_identifier(name, driver)?)
-                    }
-                    Driver::MySql => {
-                        format!("DROP FOREIGN KEY {}", quote_identifier(name, driver)?)
-                    }
-                    Driver::Sqlite => {
-                        return Err(error(
-                            "SQLite does not support dropping foreign keys with ALTER TABLE; use a table rebuild migration",
-                        ));
-                    }
-                },
-            };
-            Ok(Statement::new(format!("ALTER TABLE {table_name} {clause}")))
-        })
-        .collect()
+                if let Some(action) = foreign_key.on_update {
+                    clause.push_str(" ON UPDATE ");
+                    clause.push_str(compile_foreign_action(action));
+                }
+                statements.push(Statement::new(clause));
+            }
+            AlterOperation::DropForeignKey(name) => match driver {
+                Driver::Postgres => statements.push(Statement::new(format!(
+                    "ALTER TABLE {table_name} DROP CONSTRAINT {}",
+                    quote_identifier(name, driver)?
+                ))),
+                Driver::MySql => statements.push(Statement::new(format!(
+                    "ALTER TABLE {table_name} DROP FOREIGN KEY {}",
+                    quote_identifier(name, driver)?
+                ))),
+                Driver::Sqlite => {
+                    return Err(error(
+                        "SQLite foreign key changes require an explicit table rebuild migration",
+                    ));
+                }
+            },
+            AlterOperation::SetDefault { column, default } => {
+                if matches!(driver, Driver::Sqlite) {
+                    return Err(error(
+                        "SQLite default changes require an explicit table rebuild migration",
+                    ));
+                }
+                statements.push(Statement::new(format!(
+                    "ALTER TABLE {table_name} ALTER COLUMN {} SET DEFAULT {}",
+                    quote_identifier(column, driver)?,
+                    compile_default(default)?
+                )));
+            }
+            AlterOperation::DropDefault(column) => {
+                if matches!(driver, Driver::Sqlite) {
+                    return Err(error(
+                        "SQLite default changes require an explicit table rebuild migration",
+                    ));
+                }
+                statements.push(Statement::new(format!(
+                    "ALTER TABLE {table_name} ALTER COLUMN {} DROP DEFAULT",
+                    quote_identifier(column, driver)?
+                )));
+            }
+            AlterOperation::AddCheck(check) => {
+                if matches!(driver, Driver::Sqlite) {
+                    return Err(error(
+                        "SQLite check constraint changes require an explicit table rebuild migration",
+                    ));
+                }
+                statements.push(Statement::new(format!(
+                    "ALTER TABLE {table_name} ADD CONSTRAINT {} CHECK ({})",
+                    quote_identifier(&check.name, driver)?,
+                    check.expression
+                )));
+            }
+            AlterOperation::DropCheck(name) => match driver {
+                Driver::Postgres => statements.push(Statement::new(format!(
+                    "ALTER TABLE {table_name} DROP CONSTRAINT {}",
+                    quote_identifier(name, driver)?
+                ))),
+                Driver::MySql => statements.push(Statement::new(format!(
+                    "ALTER TABLE {table_name} DROP CHECK {}",
+                    quote_identifier(name, driver)?
+                ))),
+                Driver::Sqlite => {
+                    return Err(error(
+                        "SQLite check constraint changes require an explicit table rebuild migration",
+                    ));
+                }
+            },
+            AlterOperation::AddUnique(unique) => {
+                if matches!(driver, Driver::Sqlite) {
+                    return Err(error(
+                        "SQLite unique constraint changes require an explicit table rebuild migration",
+                    ));
+                }
+                let columns = unique
+                    .columns
+                    .iter()
+                    .map(|column| quote_identifier(column, driver))
+                    .collect::<Result<Vec<_>>>()?
+                    .join(", ");
+                let name = unique.name.as_ref().ok_or_else(|| {
+                    error("alter-table unique constraints must have an explicit name")
+                })?;
+                statements.push(Statement::new(format!(
+                    "ALTER TABLE {table_name} ADD CONSTRAINT {} UNIQUE ({columns})",
+                    quote_identifier(name, driver)?
+                )));
+            }
+            AlterOperation::DropUnique(name) => match driver {
+                Driver::Postgres => statements.push(Statement::new(format!(
+                    "ALTER TABLE {table_name} DROP CONSTRAINT {}",
+                    quote_identifier(name, driver)?
+                ))),
+                Driver::MySql => statements.push(Statement::new(format!(
+                    "ALTER TABLE {table_name} DROP INDEX {}",
+                    quote_identifier(name, driver)?
+                ))),
+                Driver::Sqlite => {
+                    return Err(error(
+                        "SQLite unique constraint changes require an explicit table rebuild migration",
+                    ));
+                }
+            },
+        }
+    }
+
+    Ok(statements)
+}
+
+pub fn compile_rebuild(rebuild: &RebuildTable, driver: Driver) -> Result<Vec<Statement>> {
+    rebuild.validate()?;
+    if !matches!(driver, Driver::Sqlite) {
+        return Err(error(
+            "table rebuild migrations are only supported for SQLite",
+        ));
+    }
+
+    let temporary_name = format!("__br_{}", rebuild.name);
+    let mut temporary = rebuild.replacement.clone();
+    temporary.name = temporary_name.clone();
+    temporary.indexes.clear();
+
+    let mut statements = vec![compile_create(&temporary, driver)?];
+    let source_columns = rebuild
+        .copy
+        .iter()
+        .map(|(from, _)| quote_identifier(from, driver))
+        .collect::<Result<Vec<_>>>()?
+        .join(", ");
+    let target_columns = rebuild
+        .copy
+        .iter()
+        .map(|(_, to)| quote_identifier(to, driver))
+        .collect::<Result<Vec<_>>>()?
+        .join(", ");
+
+    statements.push(Statement::new(format!(
+        "INSERT INTO {} ({target_columns}) SELECT {source_columns} FROM {}",
+        quote_identifier(&temporary_name, driver)?,
+        quote_identifier(&rebuild.name, driver)?
+    )));
+    statements.push(compile_table_operation(
+        &TableOperation::Drop {
+            name: rebuild.name.clone(),
+            if_exists: false,
+        },
+        driver,
+    )?);
+    statements.push(compile_table_operation(
+        &TableOperation::Rename {
+            from: temporary_name,
+            to: rebuild.name.clone(),
+        },
+        driver,
+    )?);
+    statements.extend(compile_indexes(&rebuild.replacement, driver)?);
+    Ok(statements)
 }
 
 pub fn compile_table_operation(operation: &TableOperation, driver: Driver) -> Result<Statement> {

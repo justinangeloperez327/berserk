@@ -1,16 +1,32 @@
-use super::{Column, ForeignKey, Index};
+use super::{Check, Column, ColumnDefault, CreateTable, ForeignKey, Index, Unique};
 use crate::{DatabaseError, ErrorKind, Result};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AlterOperation {
     Add(Column),
     Drop(String),
-    Rename { from: String, to: String },
+    Rename {
+        from: String,
+        to: String,
+    },
     Modify(Column),
     AddIndex(Index),
     DropIndex(String),
     AddForeignKey(ForeignKey),
     DropForeignKey(String),
+    RenameIndex {
+        from: String,
+        to: String,
+    },
+    SetDefault {
+        column: String,
+        default: ColumnDefault,
+    },
+    DropDefault(String),
+    AddCheck(Check),
+    DropCheck(String),
+    AddUnique(Unique),
+    DropUnique(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -70,6 +86,61 @@ impl AlterTable {
         self
     }
 
+    pub fn rename_index(mut self, from: impl Into<String>, to: impl Into<String>) -> Self {
+        self.operations.push(AlterOperation::RenameIndex {
+            from: from.into(),
+            to: to.into(),
+        });
+        self
+    }
+
+    pub fn set_default(
+        mut self,
+        column: impl Into<String>,
+        default: impl Into<crate::Value>,
+    ) -> Self {
+        self.operations.push(AlterOperation::SetDefault {
+            column: column.into(),
+            default: ColumnDefault::Value(default.into()),
+        });
+        self
+    }
+
+    pub fn set_default_current_timestamp(mut self, column: impl Into<String>) -> Self {
+        self.operations.push(AlterOperation::SetDefault {
+            column: column.into(),
+            default: ColumnDefault::CurrentTimestamp,
+        });
+        self
+    }
+
+    pub fn drop_default(mut self, column: impl Into<String>) -> Self {
+        self.operations
+            .push(AlterOperation::DropDefault(column.into()));
+        self
+    }
+
+    pub fn add_check(mut self, check: Check) -> Self {
+        self.operations.push(AlterOperation::AddCheck(check));
+        self
+    }
+
+    pub fn drop_check(mut self, name: impl Into<String>) -> Self {
+        self.operations.push(AlterOperation::DropCheck(name.into()));
+        self
+    }
+
+    pub fn add_unique(mut self, unique: Unique) -> Self {
+        self.operations.push(AlterOperation::AddUnique(unique));
+        self
+    }
+
+    pub fn drop_unique(mut self, name: impl Into<String>) -> Self {
+        self.operations
+            .push(AlterOperation::DropUnique(name.into()));
+        self
+    }
+
     pub fn validate(&self) -> Result<()> {
         validate_identifier("table", &self.name)?;
         if self.operations.is_empty() {
@@ -120,6 +191,39 @@ impl AlterTable {
                     }
                 }
                 AlterOperation::DropForeignKey(name) => validate_identifier("foreign key", name)?,
+                AlterOperation::RenameIndex { from, to } => {
+                    validate_identifier("index", from)?;
+                    validate_identifier("index", to)?;
+                    if from == to {
+                        return Err(error("renamed index must have a different name"));
+                    }
+                }
+                AlterOperation::SetDefault { column, .. } | AlterOperation::DropDefault(column) => {
+                    validate_identifier("column", column)?;
+                }
+                AlterOperation::AddCheck(check) => {
+                    validate_identifier("check constraint", &check.name)?;
+                    if check.expression.trim().is_empty() {
+                        return Err(error("check constraint expressions cannot be empty"));
+                    }
+                }
+                AlterOperation::DropCheck(name) => validate_identifier("check constraint", name)?,
+                AlterOperation::AddUnique(unique) => {
+                    if unique.columns.is_empty() {
+                        return Err(error(
+                            "a unique constraint must contain at least one column",
+                        ));
+                    }
+                    for column in &unique.columns {
+                        validate_identifier("unique constraint column", column)?;
+                    }
+                    if let Some(name) = &unique.name {
+                        validate_identifier("unique constraint", name)?;
+                    }
+                }
+                AlterOperation::DropUnique(name) => {
+                    validate_identifier("unique constraint", name)?;
+                }
             }
         }
         Ok(())
@@ -131,6 +235,54 @@ impl AlterTable {
 
     pub fn operations(&self) -> &[AlterOperation] {
         &self.operations
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct RebuildTable {
+    pub(crate) name: String,
+    pub(crate) replacement: CreateTable,
+    pub(crate) copy: Vec<(String, String)>,
+}
+
+impl RebuildTable {
+    pub fn copy<const N: usize>(mut self, columns: [(&str, &str); N]) -> Self {
+        self.copy.extend(
+            columns
+                .into_iter()
+                .map(|(from, to)| (from.to_owned(), to.to_owned())),
+        );
+        self
+    }
+
+    pub fn validate(&self) -> Result<()> {
+        validate_identifier("table", &self.name)?;
+        self.replacement.validate()?;
+        if self.replacement.name() != self.name {
+            return Err(error(
+                "SQLite rebuild replacement must use the original table name",
+            ));
+        }
+        if self.copy.is_empty() {
+            return Err(error(
+                "SQLite rebuild requires explicit column copy mappings",
+            ));
+        }
+        for (from, to) in &self.copy {
+            validate_identifier("source column", from)?;
+            validate_identifier("replacement column", to)?;
+            if !self
+                .replacement
+                .column_definitions()
+                .iter()
+                .any(|column| column.name() == to)
+            {
+                return Err(error(format!(
+                    "rebuild references unknown replacement column `{to}`"
+                )));
+            }
+        }
+        Ok(())
     }
 }
 
@@ -157,6 +309,14 @@ impl TableOperation {
 }
 
 impl super::Table {
+    pub fn rebuild(name: impl Into<String>, replacement: CreateTable) -> RebuildTable {
+        RebuildTable {
+            name: name.into(),
+            replacement,
+            copy: Vec::new(),
+        }
+    }
+
     pub fn alter(name: impl Into<String>) -> AlterTable {
         AlterTable {
             name: name.into(),

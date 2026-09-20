@@ -1,6 +1,6 @@
 use super::{
-    compile_alter, compile_create, compile_indexes, compile_table_operation, AlterTable,
-    CreateTable, TableOperation,
+    compile_alter, compile_comments, compile_create, compile_indexes, compile_rebuild,
+    compile_table_operation, AlterTable, CreateTable, RebuildTable, TableOperation,
 };
 use crate::{Driver, Result, Statement};
 
@@ -9,6 +9,7 @@ pub enum MigrationOperation {
     Create(CreateTable),
     Alter(AlterTable),
     Table(TableOperation),
+    Rebuild(RebuildTable),
     Statement(Statement),
 }
 
@@ -37,6 +38,11 @@ impl MigrationPlan {
         self
     }
 
+    pub fn rebuild(mut self, table: RebuildTable) -> Self {
+        self.operations.push(MigrationOperation::Rebuild(table));
+        self
+    }
+
     pub fn statement(mut self, statement: Statement) -> Self {
         self.operations
             .push(MigrationOperation::Statement(statement));
@@ -50,12 +56,16 @@ impl MigrationPlan {
                 MigrationOperation::Create(table) => {
                     statements.push(compile_create(table, driver)?);
                     statements.extend(compile_indexes(table, driver)?);
+                    statements.extend(compile_comments(table, driver)?);
                 }
                 MigrationOperation::Alter(table) => {
                     statements.extend(compile_alter(table, driver)?);
                 }
                 MigrationOperation::Table(operation) => {
                     statements.push(compile_table_operation(operation, driver)?);
+                }
+                MigrationOperation::Rebuild(table) => {
+                    statements.extend(compile_rebuild(table, driver)?);
                 }
                 MigrationOperation::Statement(statement) => statements.push(statement.clone()),
             }

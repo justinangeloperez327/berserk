@@ -116,3 +116,61 @@ berserk migrate:reset
 ```
 
 `migrate --dry-run` compiles pending migrations without applying their migration statements. `migrate:rollback` targets the latest batch, while `migrate:reset` is intended to roll back all registered applied migrations.
+
+
+## Advanced schema operations
+
+Table creation also supports explicit check constraints, unique constraints, generated stored columns, enum-like portable values, comments, and database-specific type escape hatches.
+
+```rust
+use berserk::database::migrations::{Check, Column, Table, Unique};
+
+Table::create("products")
+    .comment("Sellable products")
+    .columns([
+        Column::id(),
+        Column::enum_("status", ["draft", "active"]),
+        Column::decimal("price", 10, 2),
+        Column::integer("price_cents").generated_stored("price * 100"),
+        Column::custom("location", "GEOGRAPHY(POINT,4326)"),
+    ])
+    .uniques([
+        Unique::new(["status", "id"]).named("products_status_id_unique"),
+    ])
+    .checks([
+        Check::new("products_price_positive", "price >= 0"),
+    ]);
+```
+
+`Column::custom` is an explicit database-specific escape hatch. Its SQL type is emitted verbatim and should only contain developer-authored migration source.
+
+Existing tables support adding and dropping indexes, foreign keys, checks, and unique constraints, renaming indexes where the database supports it, and changing or dropping defaults. PostgreSQL and MySQL support direct column modification. SQLite structural changes that cannot be expressed safely with `ALTER TABLE` must use an explicit rebuild.
+
+## SQLite rebuilds
+
+SQLite table rebuilds require the replacement schema and explicit source-to-target copy mapping. Berserk never guesses how renamed or removed columns should be migrated.
+
+```rust
+let replacement = Table::create("users").columns([
+    Column::id(),
+    Column::string("full_name"),
+    Column::string("email"),
+]);
+
+MigrationPlan::new()
+    .rebuild(
+        Table::rebuild("users", replacement)
+            .copy([
+                ("id", "id"),
+                ("name", "full_name"),
+                ("email", "email"),
+            ]),
+    )
+    .compile(Driver::Sqlite)?;
+```
+
+The rebuild creates a temporary table, copies the explicitly mapped data, replaces the original table, and recreates declared indexes.
+
+## Execution safety
+
+Migration execution is serialized. PostgreSQL uses an advisory lock, MySQL uses `GET_LOCK`, and SQLite uses an immediate write transaction. PostgreSQL and SQLite migration DDL is protected by transactional DDL behavior. MySQL DDL can implicitly commit, so a failed multi-statement MySQL migration can leave already-executed DDL in place even though the migration is not recorded as applied. Keep MySQL migrations small and provide an explicit rollback path.

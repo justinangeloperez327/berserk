@@ -33,6 +33,7 @@ impl Connection for MySqlConnection {
     fn capabilities(&self) -> Capabilities {
         Capabilities::new()
             .with(Capability::Savepoints)
+            .with(Capability::AdvisoryLocks)
             .with(Capability::ReadOnlyTransactions)
     }
     fn execute(&mut self, statement: &Statement) -> Result<Execution> {

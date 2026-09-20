@@ -20,6 +20,8 @@ pub enum ColumnType {
     Json,
     Binary,
     Uuid,
+    Enum(Vec<String>),
+    Custom(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -36,6 +38,8 @@ pub struct Column {
     pub(crate) unique: bool,
     pub(crate) primary: bool,
     pub(crate) default: Option<ColumnDefault>,
+    pub(crate) generated: Option<String>,
+    pub(crate) comment: Option<String>,
 }
 
 impl Column {
@@ -47,6 +51,8 @@ impl Column {
             unique: false,
             primary: false,
             default: None,
+            generated: None,
+            comment: None,
         }
     }
 
@@ -125,6 +131,21 @@ impl Column {
         Self::new(name, ColumnType::Uuid)
     }
 
+    pub fn enum_<I, S>(name: impl Into<String>, values: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        Self::new(
+            name,
+            ColumnType::Enum(values.into_iter().map(Into::into).collect()),
+        )
+    }
+
+    pub fn custom(name: impl Into<String>, sql_type: impl Into<String>) -> Self {
+        Self::new(name, ColumnType::Custom(sql_type.into()))
+    }
+
     pub fn length(mut self, length: u32) -> Self {
         if matches!(self.kind, ColumnType::String(_)) {
             self.kind = ColumnType::String(Some(length));
@@ -154,6 +175,16 @@ impl Column {
 
     pub fn default_current_timestamp(mut self) -> Self {
         self.default = Some(ColumnDefault::CurrentTimestamp);
+        self
+    }
+
+    pub fn generated_stored(mut self, expression: impl Into<String>) -> Self {
+        self.generated = Some(expression.into());
+        self
+    }
+
+    pub fn comment(mut self, comment: impl Into<String>) -> Self {
+        self.comment = Some(comment.into());
         self
     }
 
@@ -223,6 +254,41 @@ impl ForeignKey {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Check {
+    pub(crate) name: String,
+    pub(crate) expression: String,
+}
+
+impl Check {
+    pub fn new(name: impl Into<String>, expression: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            expression: expression.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Unique {
+    pub(crate) columns: Vec<String>,
+    pub(crate) name: Option<String>,
+}
+
+impl Unique {
+    pub fn new<const N: usize>(columns: [&str; N]) -> Self {
+        Self {
+            columns: columns.into_iter().map(str::to_owned).collect(),
+            name: None,
+        }
+    }
+
+    pub fn named(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Index {
     pub(crate) columns: Vec<String>,
     pub(crate) unique: bool,
@@ -256,9 +322,17 @@ pub struct CreateTable {
     pub(crate) indexes: Vec<Index>,
     pub(crate) foreign_keys: Vec<ForeignKey>,
     pub(crate) primary_key: Option<Vec<String>>,
+    pub(crate) checks: Vec<Check>,
+    pub(crate) uniques: Vec<Unique>,
+    pub(crate) comment: Option<String>,
 }
 
 impl CreateTable {
+    pub fn comment(mut self, comment: impl Into<String>) -> Self {
+        self.comment = Some(comment.into());
+        self
+    }
+
     pub fn columns<const N: usize>(mut self, columns: [Column; N]) -> Self {
         self.columns.extend(columns);
         self
@@ -276,6 +350,16 @@ impl CreateTable {
 
     pub fn primary<const N: usize>(mut self, columns: [&str; N]) -> Self {
         self.primary_key = Some(columns.into_iter().map(str::to_owned).collect());
+        self
+    }
+
+    pub fn checks<const N: usize>(mut self, checks: [Check; N]) -> Self {
+        self.checks.extend(checks);
+        self
+    }
+
+    pub fn uniques<const N: usize>(mut self, uniques: [Unique; N]) -> Self {
+        self.uniques.extend(uniques);
         self
     }
 
@@ -306,6 +390,38 @@ impl CreateTable {
                     )));
                 }
             }
+            if let ColumnType::Enum(values) = &column.kind {
+                if values.is_empty() || values.iter().any(|value| value.is_empty()) {
+                    return Err(error(format!(
+                        "enum column `{}` must contain non-empty values",
+                        column.name
+                    )));
+                }
+            }
+            if let ColumnType::Custom(sql_type) = &column.kind {
+                if sql_type.trim().is_empty() {
+                    return Err(error(format!(
+                        "custom column `{}` must declare a SQL type",
+                        column.name
+                    )));
+                }
+            }
+            if column
+                .generated
+                .as_ref()
+                .is_some_and(|value| value.trim().is_empty())
+            {
+                return Err(error(format!(
+                    "generated column `{}` must contain an expression",
+                    column.name
+                )));
+            }
+            if column.generated.is_some() && column.default.is_some() {
+                return Err(error(format!(
+                    "generated column `{}` cannot also declare a default",
+                    column.name
+                )));
+            }
         }
         if let Some(primary_key) = &self.primary_key {
             if primary_key.is_empty() {
@@ -324,6 +440,30 @@ impl CreateTable {
                 if !self.columns.iter().any(|item| item.name == *column) {
                     return Err(error(format!(
                         "primary key references unknown column `{column}`"
+                    )));
+                }
+            }
+        }
+        for check in &self.checks {
+            validate_identifier("check constraint", &check.name)?;
+            if check.expression.trim().is_empty() {
+                return Err(error("check constraint expressions cannot be empty"));
+            }
+        }
+        for unique in &self.uniques {
+            if unique.columns.is_empty() {
+                return Err(error(
+                    "a unique constraint must contain at least one column",
+                ));
+            }
+            if let Some(name) = &unique.name {
+                validate_identifier("unique constraint", name)?;
+            }
+            for column in &unique.columns {
+                validate_identifier("unique constraint column", column)?;
+                if !self.columns.iter().any(|item| item.name == *column) {
+                    return Err(error(format!(
+                        "unique constraint references unknown column `{column}`"
                     )));
                 }
             }
@@ -416,6 +556,9 @@ impl Table {
             indexes: Vec::new(),
             foreign_keys: Vec::new(),
             primary_key: None,
+            checks: Vec::new(),
+            uniques: Vec::new(),
+            comment: None,
         }
     }
 }

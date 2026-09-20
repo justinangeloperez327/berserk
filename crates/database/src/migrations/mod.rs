@@ -3,15 +3,20 @@ mod operations;
 mod plan;
 mod schema;
 
-pub use compiler::{compile_alter, compile_create, compile_indexes, compile_table_operation};
-pub use operations::{AlterOperation, AlterTable, TableOperation};
+pub use compiler::{
+    compile_alter, compile_comments, compile_create, compile_indexes, compile_rebuild,
+    compile_table_operation,
+};
+pub use operations::{AlterOperation, AlterTable, RebuildTable, TableOperation};
 pub use plan::{MigrationOperation, MigrationPlan};
 pub use schema::{
-    Column, ColumnDefault, ColumnType, CreateTable, ForeignAction, ForeignKey, Index, Table,
+    Check, Column, ColumnDefault, ColumnType, CreateTable, ForeignAction, ForeignKey, Index, Table,
+    Unique,
 };
 
 use crate::{
-    Connection, DatabaseError, Direction, Driver, ErrorKind, Query, Result, Row, Statement, Value,
+    Capability, Connection, DatabaseError, Direction, Driver, ErrorKind, Query, Result, Row,
+    Statement, TransactionOptions, Value,
 };
 
 const TABLE: &str = "__framework_migrations";
@@ -112,6 +117,10 @@ impl<'a> MigrationRunner<'a> {
     }
 
     pub fn migrate(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {
+        with_migration_lock(connection, |connection| self.migrate_locked(connection))
+    }
+
+    fn migrate_locked(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {
         let applied = self.applied(connection)?;
         let batch = applied
             .iter()
@@ -125,21 +134,19 @@ impl<'a> MigrationRunner<'a> {
             if applied.iter().any(|item| item.name == migration.name()) {
                 continue;
             }
-            let driver = connection.driver();
-            let steps = migration.up(driver)?;
-            execute_steps(connection, steps)?;
-            Query::table(TABLE)
-                .insert([
-                    ("name", Value::from(migration.name())),
-                    ("batch", Value::from(batch)),
-                ])
-                .execute(connection)?;
+            apply_migration(connection, *migration, batch)?;
             report.applied.push(migration.name().into());
         }
         Ok(report)
     }
 
     pub fn rollback_last(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {
+        with_migration_lock(connection, |connection| {
+            self.rollback_last_locked(connection)
+        })
+    }
+
+    fn rollback_last_locked(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {
         let applied = self.applied(connection)?;
         let Some(batch) = applied.iter().map(|item| item.batch).max() else {
             return Ok(MigrationReport::default());
@@ -164,27 +171,162 @@ impl<'a> MigrationRunner<'a> {
             .rev()
             .filter(|migration| batch_items.iter().any(|item| item.name == migration.name()))
         {
-            let driver = connection.driver();
-            let steps = migration.down(driver)?;
-            execute_steps(connection, steps)?;
-            Query::table(TABLE)
-                .where_("name", "=", migration.name())
-                .delete()
-                .execute(connection)?;
+            revert_migration(connection, *migration)?;
             report.rolled_back.push(migration.name().into());
         }
         Ok(report)
     }
 
     pub fn rollback_all(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {
+        with_migration_lock(connection, |connection| {
+            self.rollback_all_locked(connection)
+        })
+    }
+
+    fn rollback_all_locked(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {
         let mut report = MigrationReport::default();
         loop {
-            let batch = self.rollback_last(connection)?;
+            let batch = self.rollback_last_locked(connection)?;
             if batch.rolled_back.is_empty() {
                 return Ok(report);
             }
             report.rolled_back.extend(batch.rolled_back);
         }
+    }
+}
+
+fn apply_migration(
+    connection: &mut dyn Connection,
+    migration: &dyn Migration,
+    batch: u64,
+) -> Result<()> {
+    let driver = connection.driver();
+    let steps = migration.up(driver)?;
+    if steps.is_empty() {
+        return Err(error(
+            "a migration direction must contain at least one statement",
+        ));
+    }
+    let tracking = Query::table(TABLE)
+        .insert([
+            ("name", Value::from(migration.name())),
+            ("batch", Value::from(batch)),
+        ])
+        .to_statement(driver)?;
+
+    if connection
+        .capabilities()
+        .supports(Capability::TransactionalDdl)
+        && !matches!(driver, Driver::Sqlite)
+    {
+        let mut transaction = connection.begin(TransactionOptions::default())?;
+        for statement in steps {
+            if let Err(error) = transaction.execute(&statement) {
+                let _ = transaction.rollback();
+                return Err(error);
+            }
+        }
+        if let Err(error) = transaction.execute(&tracking) {
+            let _ = transaction.rollback();
+            return Err(error);
+        }
+        transaction.commit()
+    } else {
+        execute_steps(connection, steps)?;
+        connection.execute(&tracking).map(|_| ())
+    }
+}
+
+fn revert_migration(connection: &mut dyn Connection, migration: &dyn Migration) -> Result<()> {
+    let driver = connection.driver();
+    let steps = migration.down(driver)?;
+    if steps.is_empty() {
+        return Err(error(
+            "a migration direction must contain at least one statement",
+        ));
+    }
+    let tracking = Query::table(TABLE)
+        .where_("name", "=", migration.name())
+        .delete()
+        .to_statement(driver)?;
+
+    if connection
+        .capabilities()
+        .supports(Capability::TransactionalDdl)
+        && !matches!(driver, Driver::Sqlite)
+    {
+        let mut transaction = connection.begin(TransactionOptions::default())?;
+        for statement in steps {
+            if let Err(error) = transaction.execute(&statement) {
+                let _ = transaction.rollback();
+                return Err(error);
+            }
+        }
+        if let Err(error) = transaction.execute(&tracking) {
+            let _ = transaction.rollback();
+            return Err(error);
+        }
+        transaction.commit()
+    } else {
+        execute_steps(connection, steps)?;
+        connection.execute(&tracking).map(|_| ())
+    }
+}
+
+fn with_migration_lock<T>(
+    connection: &mut dyn Connection,
+    operation: impl FnOnce(&mut dyn Connection) -> Result<T>,
+) -> Result<T> {
+    acquire_migration_lock(connection)?;
+    let result = operation(connection);
+    let release = release_migration_lock(connection, result.is_ok());
+    match (result, release) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Err(error), _) => Err(error),
+        (Ok(_), Err(error)) => Err(error),
+    }
+}
+
+fn acquire_migration_lock(connection: &mut dyn Connection) -> Result<()> {
+    match connection.driver() {
+        Driver::Postgres => connection
+            .query(&Statement::new("SELECT pg_advisory_lock(1650553701)"))
+            .map(|_| ()),
+        Driver::MySql => {
+            let rows = connection.query(&Statement::new(
+                "SELECT GET_LOCK('berserk_migrations', 30) AS acquired",
+            ))?;
+            let acquired = rows
+                .first()
+                .and_then(|row| row.get("acquired"))
+                .is_some_and(|value| {
+                    matches!(value, Value::I64(1) | Value::U64(1) | Value::Bool(true))
+                });
+            if acquired {
+                Ok(())
+            } else {
+                Err(error("could not acquire the migration lock"))
+            }
+        }
+        Driver::Sqlite => connection
+            .execute(&Statement::new("BEGIN IMMEDIATE"))
+            .map(|_| ()),
+    }
+}
+
+fn release_migration_lock(connection: &mut dyn Connection, commit: bool) -> Result<()> {
+    match connection.driver() {
+        Driver::Postgres => connection
+            .query(&Statement::new("SELECT pg_advisory_unlock(1650553701)"))
+            .map(|_| ()),
+        Driver::MySql => connection
+            .query(&Statement::new(
+                "SELECT RELEASE_LOCK('berserk_migrations') AS released",
+            ))
+            .map(|_| ()),
+        Driver::Sqlite => connection
+            .execute(&Statement::new(if commit { "COMMIT" } else { "ROLLBACK" }))
+            .map(|_| ()),
     }
 }
 

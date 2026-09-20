@@ -1,4 +1,6 @@
-use berserk_database::{Connection, Driver, Migration, MigrationRunner, Result, Statement};
+use berserk_database::{
+    Capability, Connection, Driver, Migration, MigrationRunner, Result, Statement,
+};
 
 const FIRST_TABLE: &str = "berserk_migration_first";
 const SECOND_TABLE: &str = "berserk_migration_second";
@@ -97,6 +99,14 @@ pub fn run_live_migration_contract(connection: &mut dyn Connection) {
     let runner = MigrationRunner::new([&failing as &dyn Migration]).unwrap();
     assert!(runner.migrate(connection).is_err());
     assert!(runner.applied(connection).unwrap().is_empty());
+    if connection
+        .capabilities()
+        .supports(Capability::TransactionalDdl)
+    {
+        assert!(connection
+            .query(&Statement::new(format!("SELECT id FROM {FAILED_TABLE}")))
+            .is_err());
+    }
 
     clean(connection);
 }

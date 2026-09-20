@@ -92,14 +92,16 @@ fn migrations_are_tracked_only_after_their_up_steps() {
     let report = runner.migrate(&mut connection).unwrap();
 
     assert_eq!(report.applied, vec!["202609120001_create_users"]);
-    assert_eq!(connection.executed[0].sql(), "CREATE TABLE IF NOT EXISTS \"__framework_migrations\" (\"name\" TEXT PRIMARY KEY, \"batch\" INTEGER NOT NULL)");
+    assert_eq!(connection.executed[0].sql(), "BEGIN IMMEDIATE");
+    assert_eq!(connection.executed[1].sql(), "CREATE TABLE IF NOT EXISTS \"__framework_migrations\" (\"name\" TEXT PRIMARY KEY, \"batch\" INTEGER NOT NULL)");
     assert_eq!(
-        connection.executed[1].sql(),
+        connection.executed[2].sql(),
         "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)"
     );
-    assert!(connection.executed[2]
+    assert!(connection.executed[3]
         .sql()
         .starts_with("INSERT INTO \"__framework_migrations\""));
+    assert_eq!(connection.executed[4].sql(), "COMMIT");
 }
 
 #[test]
@@ -109,10 +111,11 @@ fn rollback_uses_the_latest_batch_in_reverse_order() {
     let mut connection = FakeConnection::with_results(vec![vec![applied_row(migration.name(), 3)]]);
     let report = runner.rollback_last(&mut connection).unwrap();
     assert_eq!(report.rolled_back, vec![migration.name()]);
-    assert_eq!(connection.executed[1].sql(), "DROP TABLE users");
-    assert!(connection.executed[2]
+    assert_eq!(connection.executed[2].sql(), "DROP TABLE users");
+    assert!(connection.executed[3]
         .sql()
         .starts_with("DELETE FROM \"__framework_migrations\""));
+    assert_eq!(connection.executed[4].sql(), "COMMIT");
 }
 
 #[test]
