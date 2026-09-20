@@ -259,7 +259,7 @@ fn call_handler<H: crate::controller::Handler<A>, A>(
 ) -> Result<Response> {
     #[cfg(feature = "auth")]
     {
-        crate::authorization::scope_principal(request.principal().cloned(), || {
+        crate::authorization::scope_principal(request.user().cloned(), || {
             handler.call(request)
         })
     }
