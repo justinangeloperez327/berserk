@@ -2,7 +2,7 @@
 
 Berserk is a Rust web framework focused on a clear developer experience, explicit behavior, type safety, and predictable performance.
 
-> **Current version:** v0.6.0. Berserk is pre-1.0, so public APIs may still evolve. Rust 1.88 is the minimum supported Rust version (MSRV).
+> **Current version:** v0.7.0. Berserk is pre-1.0, so public APIs may still evolve. Rust 1.88 is the minimum supported Rust version (MSRV).
 
 ## Why Berserk?
 
@@ -25,14 +25,14 @@ When using the published package:
 
 ```toml
 [dependencies]
-berserk = "0.6"
+berserk = "0.7"
 ```
 
 Enable optional components as needed:
 
 ```toml
 [dependencies]
-berserk = { version = "0.6", features = ["postgres", "auth", "cache", "storage"] }
+berserk = { version = "0.7", features = ["postgres", "auth", "cache", "storage"] }
 ```
 
 Repository consumers can use the framework crate by path while developing Berserk itself.
@@ -137,6 +137,21 @@ let page = User::query().paginate(20)?;
 
 Query values are bound separately from SQL text. Explicit connection APIs remain available when request-scoped access is not appropriate.
 
+## Testing
+
+The `berserk-testing` crate provides an in-memory HTTP client with fluent assertions:
+
+```rust,ignore
+TestClient::new(&app)
+    .get("/users/1")?
+    .assert_ok()
+    .assert_header("content-type", "application/json")
+    .assert_json_path("data.id", 1)
+    .assert_json_path_missing("errors");
+```
+
+Testing helpers also include event recorders, job probes, outbound HTTP fakes, temporary directories, and the in-memory mail transport. These are ordinary Rust types rather than a macro-specific test DSL.
+
 ## CLI
 
 The CLI includes application and code-generation commands such as:
@@ -158,7 +173,7 @@ The generated application remains explicit: controllers, models, requests, middl
 
 Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
 
-See [docs/public-api.md](docs/public-api.md) for the current API contract and [docs/v0.6.0.md](docs/v0.6.0.md) for v0.6.0 details.
+See [docs/public-api.md](docs/public-api.md) for the current API contract and [docs/v0.7.0.md](docs/v0.7.0.md) for v0.7.0 details.
 
 ## Workspace
 
