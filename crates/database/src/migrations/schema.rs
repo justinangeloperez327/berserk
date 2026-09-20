@@ -364,16 +364,22 @@ impl CreateTable {
             if let Some(name) = &foreign_key.name {
                 validate_identifier("foreign key", name)?;
             }
-            for column in &foreign_key.columns {
+            for (position, column) in foreign_key.columns.iter().enumerate() {
                 validate_identifier("foreign key column", column)?;
+                if foreign_key.columns[..position].contains(column) {
+                    return Err(error(format!("duplicate foreign key column `{column}`")));
+                }
                 if !self.columns.iter().any(|item| item.name == *column) {
                     return Err(error(format!(
                         "foreign key references unknown local column `{column}`"
                     )));
                 }
             }
-            for column in &foreign_key.referenced_columns {
+            for (position, column) in foreign_key.referenced_columns.iter().enumerate() {
                 validate_identifier("referenced column", column)?;
+                if foreign_key.referenced_columns[..position].contains(column) {
+                    return Err(error(format!("duplicate referenced column `{column}`")));
+                }
             }
             if matches!(foreign_key.on_delete, Some(ForeignAction::SetNull))
                 && foreign_key.columns.iter().any(|name| {
