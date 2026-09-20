@@ -4,6 +4,10 @@ Berserk follows the spirit of Keep a Changelog. Versioning and compatibility pol
 
 ## Unreleased
 
+No documented changes after v1.0.0.
+
+## 1.0.0
+
 ### Changed
 
 - Froze route registration on the `app.route()` registrar and removed direct application verb compatibility shortcuts.
@@ -11,6 +15,15 @@ Berserk follows the spirit of Keep a Changelog. Versioning and compatibility pol
 - Request logging now preserves propagated HTTP error status codes.
 - Metrics count propagated errors as failures only when they resolve to 5xx server errors.
 - Hardened generated-project verification against the local framework contract.
+- Aligned all workspace package and internal dependency versions to v1.0.0.
+
+### Compatibility
+
+- Rust 1.88 remains the MSRV.
+- v1.0.0 establishes the stable public API baseline under semantic versioning.
+- Breaking public API changes require a new major release.
+
+See `docs/v1.0.0.md`, `docs/compatibility.md`, and `docs/upgrade-notes.md`.
 
 ## 0.9.0
 
