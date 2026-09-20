@@ -1,4 +1,4 @@
-use super::Column;
+use super::{Column, ForeignKey, Index};
 use crate::{DatabaseError, ErrorKind, Result};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -7,6 +7,10 @@ pub enum AlterOperation {
     Drop(String),
     Rename { from: String, to: String },
     Modify(Column),
+    AddIndex(Index),
+    DropIndex(String),
+    AddForeignKey(ForeignKey),
+    DropForeignKey(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -44,6 +48,26 @@ impl AlterTable {
         self
     }
 
+    pub fn add_index(mut self, index: Index) -> Self {
+        self.operations.push(AlterOperation::AddIndex(index));
+        self
+    }
+
+    pub fn drop_index(mut self, name: impl Into<String>) -> Self {
+        self.operations.push(AlterOperation::DropIndex(name.into()));
+        self
+    }
+
+    pub fn add_foreign_key(mut self, foreign_key: ForeignKey) -> Self {
+        self.operations.push(AlterOperation::AddForeignKey(foreign_key));
+        self
+    }
+
+    pub fn drop_foreign_key(mut self, name: impl Into<String>) -> Self {
+        self.operations.push(AlterOperation::DropForeignKey(name.into()));
+        self
+    }
+
     pub fn validate(&self) -> Result<()> {
         validate_identifier("table", &self.name)?;
         if self.operations.is_empty() {
@@ -62,6 +86,36 @@ impl AlterTable {
                         return Err(error("renamed column must have a different name"));
                     }
                 }
+                AlterOperation::AddIndex(index) => {
+                    if index.columns.is_empty() {
+                        return Err(error("an index must contain at least one column"));
+                    }
+                    for column in &index.columns {
+                        validate_identifier("index column", column)?;
+                    }
+                    if let Some(name) = &index.name {
+                        validate_identifier("index", name)?;
+                    }
+                }
+                AlterOperation::DropIndex(name) => validate_identifier("index", name)?,
+                AlterOperation::AddForeignKey(foreign_key) => {
+                    if foreign_key.columns.is_empty()
+                        || foreign_key.columns.len() != foreign_key.referenced_columns.len()
+                    {
+                        return Err(error("foreign key columns must match referenced columns"));
+                    }
+                    validate_identifier("referenced table", &foreign_key.referenced_table)?;
+                    for column in &foreign_key.columns {
+                        validate_identifier("foreign key column", column)?;
+                    }
+                    for column in &foreign_key.referenced_columns {
+                        validate_identifier("referenced column", column)?;
+                    }
+                    if let Some(name) = &foreign_key.name {
+                        validate_identifier("foreign key", name)?;
+                    }
+                }
+                AlterOperation::DropForeignKey(name) => validate_identifier("foreign key", name)?,
             }
         }
         Ok(())
