@@ -7,7 +7,8 @@ pub use compiler::{compile_alter, compile_create, compile_indexes, compile_table
 pub use operations::{AlterOperation, AlterTable, TableOperation};
 pub use plan::{MigrationOperation, MigrationPlan};
 pub use schema::{
-    Column, ColumnDefault, ColumnType, CreateTable, ForeignAction, ForeignKey, Index, Table,
+    Check, Column, ColumnDefault, ColumnType, CreateTable, ForeignAction, ForeignKey, Index, Table,
+    Unique,
 };
 
 use crate::{
