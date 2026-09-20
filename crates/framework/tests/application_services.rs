@@ -7,13 +7,13 @@
     feature = "notifications"
 ))]
 
-use berserk::{App, Headers, Method, Request, Response};
 use berserk::cache::MemoryCache;
 use berserk::client::{HttpClient, Request as ClientRequest, Response as ClientResponse};
 use berserk::events::EventBus;
 use berserk::jobs::{MemoryFailedJobs, QueueConfig, WorkerPool};
 use berserk::notifications::{Notifier, NotifierConfig};
 use berserk::storage::MemoryStorage;
+use berserk::{App, Headers, Method, Request, Response};
 use std::sync::Arc;
 
 struct StaticClient;
