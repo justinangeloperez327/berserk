@@ -23,13 +23,19 @@ pub enum ColumnType {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub enum ColumnDefault {
+    Value(Value),
+    CurrentTimestamp,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct Column {
     pub(crate) name: String,
     pub(crate) kind: ColumnType,
     pub(crate) nullable: bool,
     pub(crate) unique: bool,
     pub(crate) primary: bool,
-    pub(crate) default: Option<Value>,
+    pub(crate) default: Option<ColumnDefault>,
 }
 
 impl Column {
@@ -142,7 +148,12 @@ impl Column {
     }
 
     pub fn default(mut self, value: impl Into<Value>) -> Self {
-        self.default = Some(value.into());
+        self.default = Some(ColumnDefault::Value(value.into()));
+        self
+    }
+
+    pub fn default_current_timestamp(mut self) -> Self {
+        self.default = Some(ColumnDefault::CurrentTimestamp);
         self
     }
 
