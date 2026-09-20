@@ -34,8 +34,5 @@ fn support_helpers_remain_explicit_root_utilities() {
         .into(),
     );
 
-    assert_eq!(
-        Arr::string(&value, "framework.name"),
-        Some("Berserk")
-    );
+    assert_eq!(Arr::string(&value, "framework.name"), Some("Berserk"));
 }
