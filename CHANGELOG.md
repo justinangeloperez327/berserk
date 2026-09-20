@@ -11,6 +11,8 @@ Berserk follows the spirit of Keep a Changelog. Versioning and compatibility pol
 - `MigrationPlan` for composing schema operations into the existing `Migration` contract without breaking the v1.0 trait.
 - Migration generator output using the typed DSL for conventional `create_*_table` migrations.
 - Migration DSL, compiler, constraint, alteration, and plan test coverage.
+- Portable `CURRENT_TIMESTAMP` column defaults, dry-run planning, and migration reset command support.
+- Portable identifier validation and duplicate composite-key/index constraint checks.
 
 ### Changed
 
