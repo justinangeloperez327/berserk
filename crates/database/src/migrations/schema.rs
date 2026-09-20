@@ -406,7 +406,11 @@ impl CreateTable {
                     )));
                 }
             }
-            if column.generated.as_ref().is_some_and(|value| value.trim().is_empty()) {
+            if column
+                .generated
+                .as_ref()
+                .is_some_and(|value| value.trim().is_empty())
+            {
                 return Err(error(format!(
                     "generated column `{}` must contain an expression",
                     column.name
@@ -448,7 +452,9 @@ impl CreateTable {
         }
         for unique in &self.uniques {
             if unique.columns.is_empty() {
-                return Err(error("a unique constraint must contain at least one column"));
+                return Err(error(
+                    "a unique constraint must contain at least one column",
+                ));
             }
             if let Some(name) = &unique.name {
                 validate_identifier("unique constraint", name)?;

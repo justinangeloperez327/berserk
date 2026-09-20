@@ -193,7 +193,6 @@ fn compile_type(column: &Column, driver: Driver) -> Result<String> {
     Ok(sql)
 }
 
-
 pub fn compile_comments(table: &CreateTable, driver: Driver) -> Result<Vec<Statement>> {
     let has_comments = table.comment.is_some()
         || table
@@ -530,11 +529,12 @@ pub fn compile_alter(table: &AlterTable, driver: Driver) -> Result<Vec<Statement
     Ok(statements)
 }
 
-
 pub fn compile_rebuild(rebuild: &RebuildTable, driver: Driver) -> Result<Vec<Statement>> {
     rebuild.validate()?;
     if !matches!(driver, Driver::Sqlite) {
-        return Err(error("table rebuild migrations are only supported for SQLite"));
+        return Err(error(
+            "table rebuild migrations are only supported for SQLite",
+        ));
     }
 
     let temporary_name = format!("__br_{}", rebuild.name);

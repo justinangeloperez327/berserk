@@ -1,7 +1,6 @@
 use super::{
     compile_alter, compile_comments, compile_create, compile_indexes, compile_rebuild,
-    compile_table_operation,
-    AlterTable, CreateTable, RebuildTable, TableOperation,
+    compile_table_operation, AlterTable, CreateTable, RebuildTable, TableOperation,
 };
 use crate::{Driver, Result, Statement};
 

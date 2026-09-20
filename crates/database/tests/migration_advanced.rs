@@ -15,8 +15,7 @@ fn create_table_compiles_advanced_constraints() {
             Column::enum_("status", ["draft", "active"]),
             Column::decimal("price", 10, 2),
             Column::string("slug").comment("Public slug"),
-            Column::integer("price_cents")
-                .generated_stored("price * 100"),
+            Column::integer("price_cents").generated_stored("price * 100"),
         ])
         .uniques([Unique::new(["slug"]).named("products_slug_unique")])
         .checks([Check::new("products_price_positive", "price >= 0")]);
@@ -71,8 +70,11 @@ fn sqlite_rebuild_compiles_copy_swap_and_indexes() {
         Column::string("full_name"),
         Column::string("email"),
     ]);
-    let rebuild = Table::rebuild("users", replacement)
-        .copy([("id", "id"), ("name", "full_name"), ("email", "email")]);
+    let rebuild = Table::rebuild("users", replacement).copy([
+        ("id", "id"),
+        ("name", "full_name"),
+        ("email", "email"),
+    ]);
 
     let statements = compile_rebuild(&rebuild, Driver::Sqlite).unwrap();
     assert_eq!(statements.len(), 4);

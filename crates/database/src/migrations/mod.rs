@@ -141,7 +141,9 @@ impl<'a> MigrationRunner<'a> {
     }
 
     pub fn rollback_last(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {
-        with_migration_lock(connection, |connection| self.rollback_last_locked(connection))
+        with_migration_lock(connection, |connection| {
+            self.rollback_last_locked(connection)
+        })
     }
 
     fn rollback_last_locked(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {
@@ -176,7 +178,9 @@ impl<'a> MigrationRunner<'a> {
     }
 
     pub fn rollback_all(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {
-        with_migration_lock(connection, |connection| self.rollback_all_locked(connection))
+        with_migration_lock(connection, |connection| {
+            self.rollback_all_locked(connection)
+        })
     }
 
     fn rollback_all_locked(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {
@@ -190,7 +194,6 @@ impl<'a> MigrationRunner<'a> {
         }
     }
 }
-
 
 fn apply_migration(
     connection: &mut dyn Connection,
@@ -296,7 +299,9 @@ fn acquire_migration_lock(connection: &mut dyn Connection) -> Result<()> {
             let acquired = rows
                 .first()
                 .and_then(|row| row.get("acquired"))
-                .is_some_and(|value| matches!(value, Value::I64(1) | Value::U64(1) | Value::Bool(true)));
+                .is_some_and(|value| {
+                    matches!(value, Value::I64(1) | Value::U64(1) | Value::Bool(true))
+                });
             if acquired {
                 Ok(())
             } else {

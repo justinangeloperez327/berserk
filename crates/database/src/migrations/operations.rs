@@ -5,14 +5,23 @@ use crate::{DatabaseError, ErrorKind, Result};
 pub enum AlterOperation {
     Add(Column),
     Drop(String),
-    Rename { from: String, to: String },
+    Rename {
+        from: String,
+        to: String,
+    },
     Modify(Column),
     AddIndex(Index),
     DropIndex(String),
     AddForeignKey(ForeignKey),
     DropForeignKey(String),
-    RenameIndex { from: String, to: String },
-    SetDefault { column: String, default: ColumnDefault },
+    RenameIndex {
+        from: String,
+        to: String,
+    },
+    SetDefault {
+        column: String,
+        default: ColumnDefault,
+    },
     DropDefault(String),
     AddCheck(Check),
     DropCheck(String),
@@ -127,7 +136,8 @@ impl AlterTable {
     }
 
     pub fn drop_unique(mut self, name: impl Into<String>) -> Self {
-        self.operations.push(AlterOperation::DropUnique(name.into()));
+        self.operations
+            .push(AlterOperation::DropUnique(name.into()));
         self
     }
 
@@ -188,8 +198,7 @@ impl AlterTable {
                         return Err(error("renamed index must have a different name"));
                     }
                 }
-                AlterOperation::SetDefault { column, .. }
-                | AlterOperation::DropDefault(column) => {
+                AlterOperation::SetDefault { column, .. } | AlterOperation::DropDefault(column) => {
                     validate_identifier("column", column)?;
                 }
                 AlterOperation::AddCheck(check) => {
@@ -201,7 +210,9 @@ impl AlterTable {
                 AlterOperation::DropCheck(name) => validate_identifier("check constraint", name)?,
                 AlterOperation::AddUnique(unique) => {
                     if unique.columns.is_empty() {
-                        return Err(error("a unique constraint must contain at least one column"));
+                        return Err(error(
+                            "a unique constraint must contain at least one column",
+                        ));
                     }
                     for column in &unique.columns {
                         validate_identifier("unique constraint column", column)?;
@@ -253,7 +264,9 @@ impl RebuildTable {
             ));
         }
         if self.copy.is_empty() {
-            return Err(error("SQLite rebuild requires explicit column copy mappings"));
+            return Err(error(
+                "SQLite rebuild requires explicit column copy mappings",
+            ));
         }
         for (from, to) in &self.copy {
             validate_identifier("source column", from)?;
