@@ -31,6 +31,9 @@ impl<'a> TestClient<'a> {
     pub fn head(&self, target: impl Into<String>) -> Result<TestRequest<'a>> {
         self.request("HEAD", target)
     }
+    pub fn options(&self, target: impl Into<String>) -> Result<TestRequest<'a>> {
+        self.request("OPTIONS", target)
+    }
     pub fn post(&self, target: impl Into<String>) -> Result<TestRequest<'a>> {
         self.request("POST", target)
     }
@@ -82,6 +85,18 @@ impl TestResponse {
     pub fn into_response(self) -> Response {
         self.0
     }
+    pub fn status(&self) -> u16 {
+        self.0.status_code()
+    }
+    pub fn header(&self, name: &str) -> Option<&str> {
+        self.0.headers().get(name)
+    }
+    pub fn body(&self) -> &[u8] {
+        self.0.body()
+    }
+    pub fn text(&self) -> &str {
+        std::str::from_utf8(self.0.body()).expect("response body is not UTF-8")
+    }
     #[track_caller]
     pub fn assert_status(self, expected: u16) -> Self {
         assert_eq!(self.0.status_code(), expected, "unexpected HTTP status");
@@ -92,6 +107,38 @@ impl TestResponse {
         assert!(
             (200..300).contains(&self.0.status_code()),
             "expected successful HTTP status, got {}",
+            self.0.status_code()
+        );
+        self
+    }
+    #[track_caller]
+    pub fn assert_redirect(self, location: &str) -> Self {
+        assert!(
+            (300..400).contains(&self.0.status_code()),
+            "expected redirect HTTP status, got {}",
+            self.0.status_code()
+        );
+        assert_eq!(
+            self.0.headers().get("location"),
+            Some(location),
+            "unexpected redirect location"
+        );
+        self
+    }
+    #[track_caller]
+    pub fn assert_client_error(self) -> Self {
+        assert!(
+            (400..500).contains(&self.0.status_code()),
+            "expected client error HTTP status, got {}",
+            self.0.status_code()
+        );
+        self
+    }
+    #[track_caller]
+    pub fn assert_server_error(self) -> Self {
+        assert!(
+            (500..600).contains(&self.0.status_code()),
+            "expected server error HTTP status, got {}",
             self.0.status_code()
         );
         self
@@ -120,10 +167,14 @@ impl TestResponse {
     }
     #[track_caller]
     pub fn assert_text(self, expected: &str) -> Self {
-        assert_eq!(
-            std::str::from_utf8(self.0.body()).expect("response body is not UTF-8"),
-            expected,
-            "unexpected response text"
+        assert_eq!(self.text(), expected, "unexpected response text");
+        self
+    }
+    #[track_caller]
+    pub fn assert_text_contains(self, expected: &str) -> Self {
+        assert!(
+            self.text().contains(expected),
+            "response text does not contain {expected:?}"
         );
         self
     }
@@ -148,6 +199,14 @@ impl TestResponse {
             berserk::Arr::get(&self.json(), path),
             Some(&expected.into()),
             "unexpected JSON path value"
+        );
+        self
+    }
+    #[track_caller]
+    pub fn assert_json_path_missing(self, path: &str) -> Self {
+        assert!(
+            berserk::Arr::get(&self.json(), path).is_none(),
+            "unexpected JSON path {path:?}"
         );
         self
     }

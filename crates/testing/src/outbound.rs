@@ -30,6 +30,20 @@ impl FakeHttpClient {
             .expect("fake HTTP request lock poisoned")
             .clone()
     }
+    pub fn request_count(&self) -> usize {
+        self.requests
+            .lock()
+            .expect("fake HTTP request lock poisoned")
+            .len()
+    }
+    pub fn take_requests(&self) -> Vec<Request> {
+        std::mem::take(
+            &mut *self
+                .requests
+                .lock()
+                .expect("fake HTTP request lock poisoned"),
+        )
+    }
 }
 impl Default for FakeHttpClient {
     fn default() -> Self {

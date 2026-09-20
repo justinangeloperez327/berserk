@@ -4,7 +4,27 @@ Berserk follows the spirit of Keep a Changelog. Versioning and compatibility pol
 
 ## Unreleased
 
-No documented changes after v0.6.0.
+No documented changes after v0.7.0.
+
+## 0.7.0
+
+### Added
+
+- OPTIONS support in the in-memory HTTP test client.
+- Direct status, header, body, and text inspection on `TestResponse`.
+- Redirect, client-error, server-error, text-contains, and missing-JSON-path assertions.
+- Event-recorder last/clear helpers, job-probe last-attempt inspection, and outbound-request count/drain helpers.
+
+### Changed
+
+- Workspace package metadata and package validation are aligned to v0.7.0.
+
+### Compatibility
+
+- Rust 1.88 remains the MSRV.
+- Existing test APIs remain available; the release is additive for application tests.
+
+See `docs/v0.7.0.md`.
 
 ## 0.6.0
 

@@ -1,8 +1,8 @@
 # Public API contract
 
-The [v0.6.0 database and Claw guide](v0.6.0.md) documents the current Berserk pre-1.0 API, building on the authentication/security work in v0.4.0 and the developer-experience baseline from v0.3.0.
+The [v0.7.0 testing guide](v0.7.0.md) documents the current Berserk pre-1.0 API, building on the authentication/security work in v0.4.0 and the developer-experience baseline from v0.3.0.
 
-Status: v0.6.0 pre-1.0 API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
+Status: v0.7.0 pre-1.0 API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
 
 ## Application
 
@@ -123,6 +123,15 @@ HTTP framing metadata remains transport-owned where required. Invalid response m
 Middleware composes through `Middleware` and `Next`. The framework also exposes optional/common operational helpers for request IDs, authentication extraction, request logging, tracing, metrics, health checks, and rate limiting.
 
 These components are explicit layers. Applications remain responsible for choosing which layers protect which routes and for selecting deployment-specific policies such as proxy trust, authentication requirements, and rate limits.
+
+## Testing
+
+The `berserk-testing` crate exposes in-memory request/response helpers and explicit fakes.
+
+- `TestClient` supports GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, and arbitrary methods through `request`.
+- `TestRequest` supports headers, bearer credentials, byte bodies, and JSON bodies.
+- `TestResponse` provides direct response inspection plus fluent assertions for status classes, redirects, headers, body/text, JSON paths, validation errors, and authentication/authorization responses.
+- `EventRecorder`, `JobProbe`, `FakeHttpClient`, `TemporaryDirectory`, and `MemoryMailTransport` cover common application boundaries without process-global test state.
 
 ## Server, concurrency, and shutdown
 

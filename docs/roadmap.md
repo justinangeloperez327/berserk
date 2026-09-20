@@ -1,6 +1,6 @@
 # Berserk roadmap
 
-Berserk v0.6.0 is the current database and Claw ORM baseline. Development now moves toward testing ergonomics, production operations, and stabilization.
+Berserk v0.7.0 is the current testing baseline. Development now moves toward production operations and stabilization.
 
 ## Completed
 
@@ -28,11 +28,11 @@ Explicit instance-scoped integration for cache, storage, events, jobs/queues, ou
 
 Expanded bound query predicates and model shortcuts, plus a complete migration rollback workflow while retaining explicit database execution and transaction boundaries.
 
-## Planned
-
 ### v0.7.0 — Testing
 
-Improve application test APIs, HTTP assertions, database test workflows, fakes, fixtures, and framework-level testing ergonomics.
+Expanded in-memory HTTP assertions and direct response inspection, plus richer event, job, and outbound HTTP test probes.
+
+## Planned
 
 ### v0.8.0 — Observability and production
 

@@ -39,6 +39,19 @@ impl<E: Clone + Event> EventRecorder<E> {
             .expect("event recorder lock poisoned")
             .len()
     }
+    pub fn last(&self) -> Option<E> {
+        self.events
+            .lock()
+            .expect("event recorder lock poisoned")
+            .last()
+            .cloned()
+    }
+    pub fn clear(&self) {
+        self.events
+            .lock()
+            .expect("event recorder lock poisoned")
+            .clear();
+    }
 }
 impl<E: Clone + Event> Default for EventRecorder<E> {
     fn default() -> Self {

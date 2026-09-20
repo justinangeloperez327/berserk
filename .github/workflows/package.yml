@@ -56,8 +56,8 @@ jobs:
               raise SystemExit(f'missing expected packages: {sorted(missing)}')
           for name in expected:
               package = packages[name]
-              if package['version'] != '0.6.0':
-                  raise SystemExit(f'{name}: expected version 0.6.0, got {package["version"]}')
+              if package['version'] != '0.7.0':
+                  raise SystemExit(f'{name}: expected version 0.7.0, got {package["version"]}')
               if package.get('publish') == []:
                   raise SystemExit(f'{name}: publication is disabled')
               if package.get('license') != 'MIT':

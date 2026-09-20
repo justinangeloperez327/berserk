@@ -1,5 +1,17 @@
 # Upgrade notes
 
+## v0.6.0 → v0.7.0
+
+v0.7.0 is additive for production applications. Test suites can adopt richer response assertions incrementally:
+
+```rust,ignore
+client.get("/login")?.assert_redirect("/dashboard");
+client.get("/bad")?.assert_client_error();
+client.get("/boom")?.assert_server_error();
+```
+
+`TestResponse` also exposes direct `status`, `header`, `body`, and `text` access. Existing test helpers continue to work.
+
 ## v0.5.0 → v0.6.0
 
 v0.6.0 is additive for normal application code. Existing query chains continue to work.
