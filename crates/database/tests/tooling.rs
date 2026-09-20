@@ -140,6 +140,24 @@ fn rollback_all_unwinds_batches_from_newest_to_oldest() {
         .any(|statement| statement.sql() == "DROP TABLE users"));
 }
 
+
+#[test]
+fn migration_plan_reports_pending_sql_without_applying_it() {
+    let migration = CreateUsers;
+    let runner = MigrationRunner::new([&migration as &dyn Migration]).unwrap();
+    let mut connection = FakeConnection::with_results(vec![vec![]]);
+
+    let planned = runner.plan(&mut connection).unwrap();
+
+    assert_eq!(planned.len(), 1);
+    assert_eq!(planned[0].name, migration.name());
+    assert_eq!(
+        planned[0].statements[0].sql(),
+        "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)"
+    );
+    assert_eq!(connection.executed.len(), 1);
+}
+
 #[derive(Debug, PartialEq)]
 struct User {
     id: u64,
