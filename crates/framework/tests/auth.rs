@@ -28,7 +28,8 @@ fn request(authorization: Option<&str>) -> Request {
 fn authenticated_middleware_attaches_the_principal() {
     let mut app = App::new();
     app.middleware(Authenticated::new(TestGuard));
-    app.route().get("/private", |request: Request| {
+    app.route()
+        .get("/private", |request: Request| {
         Response::text(request.user().unwrap().subject())
     })
     .unwrap();
@@ -41,7 +42,8 @@ fn authenticated_middleware_attaches_the_principal() {
 fn authenticated_middleware_rejects_missing_and_malformed_credentials() {
     let mut app = App::new();
     app.middleware(Authenticated::new(TestGuard));
-    app.route().get("/private", |_request: Request| Response::text("private"))
+    app.route()
+        .get("/private", |_request: Request| Response::text("private"))
         .unwrap();
 
     for authorization in [None, Some("Basic abc"), Some("Bearer bad extra")] {
