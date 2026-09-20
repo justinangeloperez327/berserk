@@ -1,8 +1,16 @@
 # Public API contract
 
-The [v0.8.0 operations guide](v0.8.0.md) documents the current Berserk pre-1.0 API, building on the authentication/security work in v0.4.0 and the developer-experience baseline from v0.3.0.
+The [v0.9.0 stabilization guide](v0.9.0.md) documents the current Berserk pre-1.0 API, building on the authentication/security work in v0.4.0 and the developer-experience baseline from v0.3.0.
 
-Status: v0.8.0 pre-1.0 API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
+Status: v0.9.0 pre-1.0 stabilization API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
+
+## Stabilization boundary
+
+v0.9 is the 1.0 candidate window. New application code should prefer the APIs documented in this file rather than compatibility shortcuts retained from earlier pre-1.0 releases.
+
+The default prelude contains application framework primitives. General support helpers `Arr` and `Str` remain available through explicit root imports and are intentionally not part of `berserk::prelude::*`.
+
+Request-scoped APIs are preferred over request-global facades: use `Request::user`, `Request::can`, and `Request::authorize` in new code. Route registration through `app.route()` is the preferred style.
 
 ## Application
 
