@@ -1,7 +1,7 @@
 mod compiler;
 mod schema;
 
-pub use compiler::compile_create;
+pub use compiler::{compile_create, compile_indexes};
 pub use schema::{Column, ColumnType, CreateTable, ForeignAction, ForeignKey, Index, Table};
 
 use crate::{
