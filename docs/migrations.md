@@ -100,3 +100,19 @@ The portable DSL includes identifiers, strings, text, tiny/small/regular/big int
 Migration identifiers are validated before SQL generation and limited to a portable 63-character ASCII identifier surface. String defaults are escaped by the compiler. Unsupported operations return errors rather than silently changing semantics.
 
 The migration runner records applied migrations in `__framework_migrations`, assigns batches, applies pending migrations in registration order, rolls the latest batch back in reverse registration order, and can roll back all registered batches.
+
+
+## Commands
+
+The CLI exposes migration execution through the application's configured migration executor:
+
+```text
+berserk make:migration create_users_table
+berserk migrate
+berserk migrate --dry-run
+berserk migrate:status
+berserk migrate:rollback
+berserk migrate:reset
+```
+
+`migrate --dry-run` compiles pending migrations without applying their migration statements. `migrate:rollback` targets the latest batch, while `migrate:reset` is intended to roll back all registered applied migrations.
