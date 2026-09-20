@@ -142,7 +142,7 @@ mod tests {
         let mut app = App::new();
         app.middleware(MetricsLayer::new(metrics.clone()));
         app.get("/failed", || -> Result<Response> {
-            Err(crate::Error::internal("failed"))
+            Err(crate::Error::rejected(500, "failed"))
         })
         .unwrap();
 
