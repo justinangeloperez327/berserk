@@ -1,5 +1,6 @@
 use super::{
-    AlterOperation, AlterTable, Column, ColumnType, CreateTable, ForeignAction, TableOperation,
+    AlterOperation, AlterTable, Column, ColumnDefault, ColumnType, CreateTable, ForeignAction,
+    TableOperation,
 };
 use crate::{DatabaseError, Driver, ErrorKind, Result, Statement, Value};
 
@@ -176,7 +177,10 @@ fn compile_foreign_action(action: ForeignAction) -> &'static str {
     }
 }
 
-fn compile_default(value: &Value) -> Result<String> {
+fn compile_default(default: &ColumnDefault) -> Result<String> {
+    let ColumnDefault::Value(value) = default else {
+        return Ok("CURRENT_TIMESTAMP".into());
+    };
     match value {
         Value::Null => Ok("NULL".into()),
         Value::Bool(value) => Ok(if *value { "TRUE" } else { "FALSE" }.into()),
