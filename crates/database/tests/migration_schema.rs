@@ -35,16 +35,12 @@ fn create_table_rejects_duplicate_columns() {
 
 #[test]
 fn column_definitions_validate_lengths_and_decimals() {
-    assert!(
-        Table::create("users")
-            .columns([Column::string("name").length(0)])
-            .validate()
-            .is_err()
-    );
-    assert!(
-        Table::create("products")
-            .columns([Column::decimal("price", 2, 3)])
-            .validate()
-            .is_err()
-    );
+    assert!(Table::create("users")
+        .columns([Column::string("name").length(0)])
+        .validate()
+        .is_err());
+    assert!(Table::create("products")
+        .columns([Column::decimal("price", 2, 3)])
+        .validate()
+        .is_err());
 }
