@@ -3,6 +3,11 @@ use berserk_auth::{Ability, Decision, Gate, Policy, Principal};
 use std::cell::RefCell;
 thread_local! { static PRINCIPAL: RefCell<Option<Principal>> = const { RefCell::new(None) }; }
 
+/// Compatibility facade for synchronous request-local authentication context.
+///
+/// New application code should prefer `Request::user`, `Request::can`, and
+/// `Request::authorize`, which make request scope explicit and also work with
+/// async handler boundaries.
 pub struct Auth;
 impl Auth {
     pub fn user() -> Option<Principal> {
