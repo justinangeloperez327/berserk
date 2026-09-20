@@ -190,6 +190,51 @@ impl App {
         self.state(database)
     }
 
+    /// Register the application cache used by request handlers.
+    #[cfg(feature = "cache")]
+    pub fn cache<C>(&mut self, cache: C) -> Result<()>
+    where
+        C: berserk_cache::Cache + 'static,
+    {
+        self.state::<std::sync::Arc<dyn berserk_cache::Cache>>(std::sync::Arc::new(cache))
+    }
+
+    /// Register the application object storage used by request handlers.
+    #[cfg(feature = "storage")]
+    pub fn storage<S>(&mut self, storage: S) -> Result<()>
+    where
+        S: berserk_storage::Storage + 'static,
+    {
+        self.state::<std::sync::Arc<dyn berserk_storage::Storage>>(std::sync::Arc::new(storage))
+    }
+
+    /// Register the synchronous application event bus.
+    #[cfg(feature = "events")]
+    pub fn events(&mut self, events: berserk_events::EventBus) -> Result<()> {
+        self.state(std::sync::Arc::new(events))
+    }
+
+    /// Register a job queue owned by the application's worker infrastructure.
+    #[cfg(feature = "jobs")]
+    pub fn jobs(&mut self, queue: berserk_jobs::JobQueue) -> Result<()> {
+        self.state(queue)
+    }
+
+    /// Register the outbound HTTP client used by application integrations.
+    #[cfg(feature = "client")]
+    pub fn http_client<C>(&mut self, client: C) -> Result<()>
+    where
+        C: berserk_client::HttpClient + 'static,
+    {
+        self.state::<std::sync::Arc<dyn berserk_client::HttpClient>>(std::sync::Arc::new(client))
+    }
+
+    /// Register the notification dispatcher used by request handlers.
+    #[cfg(feature = "notifications")]
+    pub fn notifications(&mut self, notifier: berserk_notifications::Notifier) -> Result<()> {
+        self.state(std::sync::Arc::new(notifier))
+    }
+
     /// Configure the authentication backend used by route-level auth helpers.
     #[cfg(feature = "auth")]
     pub fn auth<G: berserk_auth::Guard>(&mut self, guard: G) -> Result<()> {
