@@ -2,7 +2,7 @@
 
 Berserk is a Rust web framework focused on a clear developer experience, explicit behavior, type safety, and predictable performance.
 
-> **Current version:** v0.8.0. Berserk is pre-1.0, so public APIs may still evolve. Rust 1.88 is the minimum supported Rust version (MSRV).
+> **Current version:** v0.9.0. Berserk is pre-1.0, so public APIs may still evolve. Rust 1.88 is the minimum supported Rust version (MSRV).
 
 ## Why Berserk?
 
@@ -12,6 +12,12 @@ Berserk is a Rust web framework focused on a clear developer experience, explici
 - **Flexible structure** — start small and organize larger applications without mandatory folder discovery.
 - **Feature-gated components** — enable only the subsystems an application needs.
 - **Sync-first design** — synchronous application code remains the default; server and async capabilities are opt-in through Cargo features where applicable.
+
+## 0.9 stabilization
+
+v0.9 begins the 1.0 API freeze. New application code should prefer instance- and request-scoped APIs such as `app.route()`, `Request::user()`, explicit application-service registration, and Claw's bound query builders.
+
+Compatibility shortcuts remain available where practical, but they are not the design center for 1.0. `Arr` and `Str` remain explicit root utilities and are intentionally excluded from the default prelude.
 
 ## Requirements
 
@@ -25,14 +31,14 @@ When using the published package:
 
 ```toml
 [dependencies]
-berserk = "0.8"
+berserk = "0.9"
 ```
 
 Enable optional components as needed:
 
 ```toml
 [dependencies]
-berserk = { version = "0.8", features = ["postgres", "auth", "cache", "storage"] }
+berserk = { version = "0.9", features = ["postgres", "auth", "cache", "storage"] }
 ```
 
 Repository consumers can use the framework crate by path while developing Berserk itself.
@@ -190,7 +196,7 @@ The generated application remains explicit: controllers, models, requests, middl
 
 Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
 
-See [docs/public-api.md](docs/public-api.md) for the current API contract and [docs/v0.8.0.md](docs/v0.8.0.md) for v0.8.0 details.
+See [docs/public-api.md](docs/public-api.md) for the current API contract and [docs/v0.9.0.md](docs/v0.9.0.md) for v0.9.0 details.
 
 ## Workspace
 
