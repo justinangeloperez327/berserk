@@ -15,8 +15,7 @@ fn request_logs_are_structured_and_exclude_query_values() {
     let mut app = App::new();
     app.middleware(RequestId);
     app.middleware(RequestLogger::new(sink.clone()));
-    app.route()
-        .get("/users", || Response::text("OK")).unwrap();
+    app.route().get("/users", || Response::text("OK")).unwrap();
     app.handle(request("/users?token=secret")).unwrap();
 
     let events = sink.events();
@@ -35,8 +34,7 @@ fn metrics_track_requests_failures_active_work_and_fixed_export_names() {
     let metrics = Arc::new(Metrics::default());
     let mut app = App::new();
     app.middleware(MetricsLayer::new(metrics.clone()));
-    app.route()
-        .get("/failed", || Response::text("down").status(503))
+    app.route().get("/failed", || Response::text("down").status(503))
         .unwrap();
     app.handle(request("/failed")).unwrap();
     let snapshot = metrics.snapshot();
@@ -87,8 +85,7 @@ fn trace_context_validates_parent_headers_and_creates_child_spans() {
 
     let mut app = App::new();
     app.middleware(TraceLayer);
-    app.route()
-        .get("/trace", |request: Request| {
+    app.route().get("/trace", |request: Request| {
         Response::text(request.trace_context().unwrap().trace_id())
     })
     .unwrap();
@@ -108,8 +105,7 @@ fn rate_limits_are_bounded_and_return_retry_metadata() {
     app.middleware(RateLimitLayer::global(Arc::new(
         RateLimiter::new(1, Duration::from_secs(60), 1).unwrap(),
     )));
-    app.route()
-        .get("/limited", || Response::text("OK")).unwrap();
+    app.route().get("/limited", || Response::text("OK")).unwrap();
     assert_eq!(app.handle(request("/limited")).unwrap().status_code(), 200);
     let rejected = app.handle(request("/limited")).unwrap();
     assert_eq!(rejected.status_code(), 429);
