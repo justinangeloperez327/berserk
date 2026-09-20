@@ -316,8 +316,11 @@ impl CreateTable {
             if self.columns.iter().any(|column| column.primary) {
                 return Err(error("column and table primary keys cannot be combined"));
             }
-            for column in primary_key {
+            for (position, column) in primary_key.iter().enumerate() {
                 validate_identifier("primary key column", column)?;
+                if primary_key[..position].contains(column) {
+                    return Err(error(format!("duplicate primary key column `{column}`")));
+                }
                 if !self.columns.iter().any(|item| item.name == *column) {
                     return Err(error(format!(
                         "primary key references unknown column `{column}`"
@@ -325,15 +328,27 @@ impl CreateTable {
                 }
             }
         }
-        for index in &self.indexes {
+        for (index_position, index) in self.indexes.iter().enumerate() {
             if index.columns.is_empty() {
                 return Err(error("an index must contain at least one column"));
             }
             if let Some(name) = &index.name {
                 validate_identifier("index", name)?;
             }
-            for column in &index.columns {
+            let generated_name = format!("idx_{}_{}", self.name, index.columns.join("_"));
+            let index_name = index.name.as_deref().unwrap_or(&generated_name);
+            validate_identifier("index", index_name)?;
+            if self.indexes[..index_position].iter().any(|other| {
+                let other_generated = format!("idx_{}_{}", self.name, other.columns.join("_"));
+                other.name.as_deref().unwrap_or(&other_generated) == index_name
+            }) {
+                return Err(error(format!("duplicate index name `{index_name}`")));
+            }
+            for (column_position, column) in index.columns.iter().enumerate() {
                 validate_identifier("index column", column)?;
+                if index.columns[..column_position].contains(column) {
+                    return Err(error(format!("duplicate index column `{column}`")));
+                }
                 if !self.columns.iter().any(|item| item.name == *column) {
                     return Err(error(format!("index references unknown column `{column}`")));
                 }
