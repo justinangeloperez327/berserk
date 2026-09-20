@@ -27,12 +27,12 @@ fn typed_update(id: u64, req: Request) -> Response {
 #[test]
 fn named_inline_and_fallible_handlers_work() {
     let mut app = App::new();
-    app.get("/users/{id}", named).unwrap();
-    app.post("/users/{key}", |req: Request| {
+    app.route().get("/users/{id}", named).unwrap();
+    app.route().post("/users/{key}", |req: Request| {
         Response::text(req.param("key").unwrap())
     })
     .unwrap();
-    app.get("/fail", || -> Result<Response> {
+    app.route().get("/fail", || -> Result<Response> {
         Err(HttpError::InvalidTarget.into())
     })
     .unwrap();
@@ -55,11 +55,11 @@ fn named_inline_and_fallible_handlers_work() {
 #[test]
 fn standard_verbs_infer_controller_arguments() {
     let mut app = App::new();
-    app.get("/users/{id}", typed_show).unwrap();
-    app.post("/users", typed_store).unwrap();
-    app.put("/users/{id}", typed_update).unwrap();
-    app.patch("/users/{id}", typed_update).unwrap();
-    app.delete("/users/{id}", typed_show).unwrap();
+    app.route().get("/users/{id}", typed_show).unwrap();
+    app.route().post("/users", typed_store).unwrap();
+    app.route().put("/users/{id}", typed_update).unwrap();
+    app.route().patch("/users/{id}", typed_update).unwrap();
+    app.route().delete("/users/{id}", typed_show).unwrap();
 
     assert_eq!(
         app.handle(request("GET", "/users/42")).unwrap().body(),
@@ -94,7 +94,7 @@ fn standard_verbs_infer_controller_arguments() {
         400
     );
     assert!(matches!(
-        app.get("/users/{user}/posts/{post}", typed_show),
+        app.route().get("/users/{user}/posts/{post}", typed_show),
         Err(Error::Routing(RouteError::ParameterCountMismatch {
             expected: 1,
             actual: 2
@@ -107,11 +107,11 @@ fn precedence_is_independent_of_order_and_precedes_method_selection() {
     for reversed in [false, true] {
         let mut app = App::new();
         if reversed {
-            app.post("/users/new", || Response::text("static")).unwrap();
+            app.route().post("/users/new", || Response::text("static")).unwrap();
         }
-        app.get("/users/{id}", named).unwrap();
+        app.route().get("/users/{id}", named).unwrap();
         if !reversed {
-            app.post("/users/new", || Response::text("static")).unwrap();
+            app.route().post("/users/new", || Response::text("static")).unwrap();
         }
         let response = app.handle(request("GET", "/users/new")).unwrap();
         assert_eq!(response.status_code(), 405);
@@ -122,9 +122,9 @@ fn precedence_is_independent_of_order_and_precedes_method_selection() {
         );
     }
     let mut app = App::new();
-    app.get("/{x}/fixed", |_req: Request| Response::text("later static"))
+    app.route().get("/{x}/fixed", |_req: Request| Response::text("later static"))
         .unwrap();
-    app.get("/fixed/{x}", |_req: Request| {
+    app.route().get("/fixed/{x}", |_req: Request| {
         Response::text("earlier static")
     })
     .unwrap();
@@ -137,9 +137,9 @@ fn precedence_is_independent_of_order_and_precedes_method_selection() {
 #[test]
 fn invalid_registration_is_atomic() {
     let mut app = App::new();
-    app.get("/users/{id}", named).unwrap();
+    app.route().get("/users/{id}", named).unwrap();
     assert!(matches!(
-        app.get("/users/{other}", named),
+        app.route().get("/users/{other}", named),
         Err(Error::Routing(RouteError::DuplicateRoute))
     ));
     for path in [
@@ -155,7 +155,7 @@ fn invalid_registration_is_atomic() {
         "/%GG",
         "/a b",
     ] {
-        assert!(app.get(path, named).is_err(), "{path}");
+        assert!(app.route().get(path, named).is_err(), "{path}");
     }
     assert_eq!(app.handle(request("GET", "/users/9")).unwrap().body(), b"9");
 }
@@ -163,10 +163,10 @@ fn invalid_registration_is_atomic() {
 #[test]
 fn missing_methods_and_trailing_slashes_are_distinct() {
     let mut app = App::new();
-    app.get("/", || Response::text("root")).unwrap();
-    app.get("/x", || Response::text("plain")).unwrap();
-    app.get("/x/", || Response::text("slash")).unwrap();
-    app.put("/x", Response::empty).unwrap();
+    app.route().get("/", || Response::text("root")).unwrap();
+    app.route().get("/x", || Response::text("plain")).unwrap();
+    app.route().get("/x/", || Response::text("slash")).unwrap();
+    app.route().put("/x", Response::empty).unwrap();
     assert_eq!(app.handle(request("GET", "/x/")).unwrap().body(), b"slash");
     assert_eq!(
         app.handle(request("GET", "/missing"))
@@ -182,7 +182,7 @@ fn missing_methods_and_trailing_slashes_are_distinct() {
 #[test]
 fn head_uses_get_and_suppresses_bodies() {
     let mut app = App::new();
-    app.get("/x", || Response::text("hé")).unwrap();
+    app.route().get("/x", || Response::text("hé")).unwrap();
     let response = app.handle(request("HEAD", "/x")).unwrap();
     assert!(response.body().is_empty());
     assert_eq!(response.representation_length(), 3);
@@ -195,7 +195,7 @@ fn head_uses_get_and_suppresses_bodies() {
         .unwrap()
         .body()
         .is_empty());
-    app.post("/post", Response::empty).unwrap();
+    app.route().post("/post", Response::empty).unwrap();
     let response = app.handle(request("HEAD", "/post")).unwrap();
     assert_eq!(response.status_code(), 405);
     assert!(response.body().is_empty());
@@ -204,8 +204,8 @@ fn head_uses_get_and_suppresses_bodies() {
 #[test]
 fn parameters_require_nonempty_segments_and_invalid_responses_propagate() {
     let mut app = App::new();
-    app.get("/p/{id}", named).unwrap();
-    app.get("/bad", || Response::text("invalid").status(204))
+    app.route().get("/p/{id}", named).unwrap();
+    app.route().get("/bad", || Response::text("invalid").status(204))
         .unwrap();
     assert_eq!(
         app.handle(request("GET", "/p/")).unwrap().status_code(),
@@ -223,7 +223,7 @@ fn app_accepts_thread_safe_captures_and_concurrent_dispatch() {
     let counter = berserk::State::new(std::sync::atomic::AtomicUsize::new(0));
     let captured = counter.clone();
     let mut app = App::new();
-    app.get("/", move || {
+    app.route().get("/", move || {
         captured.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         Response::empty()
     })
