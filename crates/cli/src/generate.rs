@@ -65,7 +65,9 @@ impl Generator {
         fs::create_dir(&target).map_err(CliError::from_io)?;
         let result = (|| {
             fs::create_dir(target.join("src")).map_err(CliError::from_io)?;
-            let cargo = format!("[package]\nname = \"{package}\"\nversion = \"0.1.0\"\nedition = \"2021\"\nrust-version = \"1.88\"\n\n[dependencies]\nberserk = {{ version = \"0.3\", features = [\"claw\"] }}\n");
+            let version = env!("CARGO_PKG_VERSION");
+            let rust_version = env!("CARGO_PKG_RUST_VERSION");
+            let cargo = format!("[package]\nname = \"{package}\"\nversion = \"0.1.0\"\nedition = \"2021\"\nrust-version = \"{rust_version}\"\n\n[dependencies]\nberserk = {{ version = \"{version}\", features = [\"claw\"] }}\n");
             write_new(&target.join("Cargo.toml"), cargo.as_bytes())?;
             let mut files = vec![GeneratedFile {
                 path: target.join("Cargo.toml"),
