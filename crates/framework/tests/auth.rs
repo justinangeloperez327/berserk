@@ -28,10 +28,11 @@ fn request(authorization: Option<&str>) -> Request {
 fn authenticated_middleware_attaches_the_principal() {
     let mut app = App::new();
     app.middleware(Authenticated::new(TestGuard));
-    app.route().get("/private", |request: Request| {
-        Response::text(request.user().unwrap().subject())
-    })
-    .unwrap();
+    app.route()
+        .get("/private", |request: Request| {
+            Response::text(request.user().unwrap().subject())
+        })
+        .unwrap();
     let response = app.handle(request(Some("Bearer accepted-token"))).unwrap();
     assert_eq!(response.status_code(), 200);
     assert_eq!(response.body(), b"user:7");
@@ -41,7 +42,8 @@ fn authenticated_middleware_attaches_the_principal() {
 fn authenticated_middleware_rejects_missing_and_malformed_credentials() {
     let mut app = App::new();
     app.middleware(Authenticated::new(TestGuard));
-    app.route().get("/private", |_request: Request| Response::text("private"))
+    app.route()
+        .get("/private", |_request: Request| Response::text("private"))
         .unwrap();
 
     for authorization in [None, Some("Basic abc"), Some("Bearer bad extra")] {
