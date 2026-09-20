@@ -99,7 +99,7 @@ fn compile_default(value: &Value) -> Result<String> {
         Value::U64(value) => Ok(value.to_string()),
         Value::F64(value) if value.is_finite() => Ok(value.to_string()),
         Value::F64(_) => Err(error("non-finite migration defaults are not supported")),
-        Value::Text(value) => Ok(format!("'{}'", value.replace(''', "''"))),
+        Value::Text(value) => Ok(format!("'{}'", value.replace('\'', "''"))),
         Value::Bytes(_) => Err(error("binary migration defaults are not supported")),
     }
 }
