@@ -2,7 +2,7 @@
 
 Berserk is a Rust web framework focused on a clear developer experience, explicit behavior, type safety, and predictable performance.
 
-> **Current version:** v0.5.0. Berserk is pre-1.0, so public APIs may still evolve. Rust 1.88 is the minimum supported Rust version (MSRV).
+> **Current version:** v0.6.0. Berserk is pre-1.0, so public APIs may still evolve. Rust 1.88 is the minimum supported Rust version (MSRV).
 
 ## Why Berserk?
 
@@ -25,14 +25,14 @@ When using the published package:
 
 ```toml
 [dependencies]
-berserk = "0.5"
+berserk = "0.6"
 ```
 
 Enable optional components as needed:
 
 ```toml
 [dependencies]
-berserk = { version = "0.5", features = ["postgres", "auth", "cache", "storage"] }
+berserk = { version = "0.6", features = ["postgres", "auth", "cache", "storage"] }
 ```
 
 Repository consumers can use the framework crate by path while developing Berserk itself.
@@ -126,6 +126,7 @@ Claw provides model queries and request-scoped database access:
 
 ```rust,ignore
 let users = User::where_("active", true)
+    .where_between("score", 50, 100)
     .where_not_null("email")
     .order_by("id", Direction::Asc)
     .get()?;
@@ -157,7 +158,7 @@ The generated application remains explicit: controllers, models, requests, middl
 
 Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
 
-See [docs/public-api.md](docs/public-api.md) for the current API contract and [docs/v0.5.0.md](docs/v0.5.0.md) for v0.5.0 details.
+See [docs/public-api.md](docs/public-api.md) for the current API contract and [docs/v0.6.0.md](docs/v0.6.0.md) for v0.6.0 details.
 
 ## Workspace
 

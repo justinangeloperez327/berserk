@@ -36,6 +36,13 @@ enum Predicate {
         values: Vec<Value>,
         negated: bool,
     },
+    Between {
+        boolean: Boolean,
+        column: String,
+        lower: Value,
+        upper: Value,
+        negated: bool,
+    },
     Null {
         boolean: Boolean,
         column: String,
@@ -163,6 +170,74 @@ impl Builder {
             boolean,
             column,
             values: values.into_iter().map(Into::into).collect(),
+            negated,
+        });
+        self
+    }
+
+    pub fn where_between(
+        self,
+        column: impl Into<String>,
+        lower: impl Into<Value>,
+        upper: impl Into<Value>,
+    ) -> Self {
+        self.between(
+            Boolean::And,
+            column.into(),
+            lower.into(),
+            upper.into(),
+            false,
+        )
+    }
+    pub fn or_where_between(
+        self,
+        column: impl Into<String>,
+        lower: impl Into<Value>,
+        upper: impl Into<Value>,
+    ) -> Self {
+        self.between(
+            Boolean::Or,
+            column.into(),
+            lower.into(),
+            upper.into(),
+            false,
+        )
+    }
+    pub fn where_not_between(
+        self,
+        column: impl Into<String>,
+        lower: impl Into<Value>,
+        upper: impl Into<Value>,
+    ) -> Self {
+        self.between(
+            Boolean::And,
+            column.into(),
+            lower.into(),
+            upper.into(),
+            true,
+        )
+    }
+    pub fn or_where_not_between(
+        self,
+        column: impl Into<String>,
+        lower: impl Into<Value>,
+        upper: impl Into<Value>,
+    ) -> Self {
+        self.between(Boolean::Or, column.into(), lower.into(), upper.into(), true)
+    }
+    fn between(
+        mut self,
+        boolean: Boolean,
+        column: String,
+        lower: Value,
+        upper: Value,
+        negated: bool,
+    ) -> Self {
+        self.predicates.push(Predicate::Between {
+            boolean,
+            column,
+            lower,
+            upper,
             negated,
         });
         self
@@ -506,6 +581,7 @@ impl Builder {
             let boolean = match predicate {
                 Predicate::Compare { boolean, .. }
                 | Predicate::In { boolean, .. }
+                | Predicate::Between { boolean, .. }
                 | Predicate::Null { boolean, .. } => *boolean,
             };
             if index > 0 {
@@ -557,6 +633,28 @@ impl Builder {
                         "{column} {} ({})",
                         if *negated { "NOT IN" } else { "IN" },
                         placeholders.join(", ")
+                    ));
+                }
+                Predicate::Between {
+                    column,
+                    lower,
+                    upper,
+                    negated,
+                    ..
+                } => {
+                    if matches!(lower, Value::Null) || matches!(upper, Value::Null) {
+                        return Err(query_error(
+                            "BETWEEN bounds cannot be NULL; use explicit NULL predicates",
+                        ));
+                    }
+                    bindings.push(lower.clone());
+                    let lower = dialect::placeholder(driver, bindings.len());
+                    bindings.push(upper.clone());
+                    let upper = dialect::placeholder(driver, bindings.len());
+                    sql.push_str(&format!(
+                        "{} {}BETWEEN {lower} AND {upper}",
+                        dialect::identifier(driver, column)?,
+                        if *negated { "NOT " } else { "" }
                     ));
                 }
                 Predicate::Null {

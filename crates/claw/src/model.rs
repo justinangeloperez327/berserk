@@ -122,12 +122,68 @@ pub trait Model: Sized {
         Self::query().where_not_in(column, values)
     }
 
+    fn or_where_in<I, V>(column: impl Into<String>, values: I) -> ModelQuery<Self>
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<Value>,
+    {
+        Self::query().or_where_in(column, values)
+    }
+
+    fn or_where_not_in<I, V>(column: impl Into<String>, values: I) -> ModelQuery<Self>
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<Value>,
+    {
+        Self::query().or_where_not_in(column, values)
+    }
+
+    fn where_between(
+        column: impl Into<String>,
+        lower: impl Into<Value>,
+        upper: impl Into<Value>,
+    ) -> ModelQuery<Self> {
+        Self::query().where_between(column, lower, upper)
+    }
+
+    fn or_where_between(
+        column: impl Into<String>,
+        lower: impl Into<Value>,
+        upper: impl Into<Value>,
+    ) -> ModelQuery<Self> {
+        Self::query().or_where_between(column, lower, upper)
+    }
+
+    fn where_not_between(
+        column: impl Into<String>,
+        lower: impl Into<Value>,
+        upper: impl Into<Value>,
+    ) -> ModelQuery<Self> {
+        Self::query().where_not_between(column, lower, upper)
+    }
+
+    fn or_where_not_between(
+        column: impl Into<String>,
+        lower: impl Into<Value>,
+        upper: impl Into<Value>,
+    ) -> ModelQuery<Self> {
+        Self::query().or_where_not_between(column, lower, upper)
+    }
+
     fn where_null(column: impl Into<String>) -> ModelQuery<Self> {
         Self::query().where_null(column)
     }
 
     fn where_not_null(column: impl Into<String>) -> ModelQuery<Self> {
         Self::query().where_not_null(column)
+    }
+
+    fn or_where_null(column: impl Into<String>) -> ModelQuery<Self> {
+        Self::query().or_where_null(column)
+    }
+
+    fn or_where_not_null(column: impl Into<String>) -> ModelQuery<Self> {
+        Self::query().or_where_not_null(column)
     }
 
     fn order_by(column: impl Into<String>, direction: Direction) -> ModelQuery<Self> {

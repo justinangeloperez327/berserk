@@ -1,5 +1,19 @@
 # Upgrade notes
 
+## v0.5.0 → v0.6.0
+
+v0.6.0 is additive for normal application code. Existing query chains continue to work.
+
+New range predicates are available at both the database and Claw levels:
+
+```rust,ignore
+User::where_between("score", 50, 100)
+    .or_where_not_between("created_at", start, end)
+    .get()?;
+```
+
+OR variants for IN/NOT IN and NULL/NOT NULL filters are now available on `ModelQuery` and as model shortcuts. Migration tooling adds `rollback_all` for full resets. NULL range bounds remain invalid by design; use `where_null` or `where_not_null`.
+
 ## v0.4.0 → v0.5.0
 
 v0.5.0 adds explicit application-service registration without replacing generic typed state.
