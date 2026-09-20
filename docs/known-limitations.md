@@ -1,6 +1,6 @@
 # Known limitations
 
-This document records intentional or unresolved boundaries of the current Berserk v0.9.0 pre-1.0 stabilization baseline. They are not necessarily defects, but applications must account for them.
+This document records intentional or unresolved boundaries of the current Berserk v1.0.0 stable baseline. They are not necessarily defects, but applications must account for them.
 
 ## Security review status
 
@@ -48,6 +48,6 @@ Linux x86_64 is the strongest release-validation target. Windows and macOS recei
 
 Berserk is modular. Applications must enable the features required by the APIs they use. The `server` feature controls network serving; in-memory application handling can be used without it. The `async` feature is independently optional.
 
-## Pre-1.0 compatibility
+## Stable compatibility
 
-v0.9.0 remains pre-1.0. Later minor releases may make breaking changes when needed for security, correctness, architecture, or developer experience. Compatibility-affecting changes should be recorded in `CHANGELOG.md` and [upgrade-notes.md](upgrade-notes.md).
+v1.0.0 establishes the stable public API baseline. Breaking public API changes require a new major release under semantic versioning. Compatibility-affecting changes should be recorded in `CHANGELOG.md` and [upgrade-notes.md](upgrade-notes.md).
