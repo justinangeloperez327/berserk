@@ -1,5 +1,5 @@
 use berserk::prelude::*;
-use berserk::{Arr, Json, Str};
+use berserk::{Arr, Headers, Json, Method, Str};
 
 #[test]
 fn preferred_application_surface_stays_small_and_explicit() {
