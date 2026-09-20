@@ -13,7 +13,7 @@ jobs:
   validate-format-promote:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: work/1.1-migrations-complete
           fetch-depth: 0
