@@ -20,6 +20,26 @@ pub fn compile_create(table: &CreateTable, driver: Driver) -> Result<Statement> 
             .join(", ");
         definitions.push(format!("PRIMARY KEY ({columns})"));
     }
+    for unique in &table.uniques {
+        let columns = unique
+            .columns
+            .iter()
+            .map(|column| quote_identifier(column, driver))
+            .collect::<Result<Vec<_>>>()?
+            .join(", ");
+        let constraint = match &unique.name {
+            Some(name) => format!("CONSTRAINT {} ", quote_identifier(name, driver)?),
+            None => String::new(),
+        };
+        definitions.push(format!("{constraint}UNIQUE ({columns})"));
+    }
+    for check in &table.checks {
+        definitions.push(format!(
+            "CONSTRAINT {} CHECK ({})",
+            quote_identifier(&check.name, driver)?,
+            check.expression
+        ));
+    }
     for foreign_key in &table.foreign_keys {
         let local = foreign_key
             .columns
