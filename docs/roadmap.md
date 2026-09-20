@@ -1,6 +1,6 @@
 # Berserk roadmap
 
-Berserk v0.8.0 is the current production-operations baseline. Development now moves toward stabilization and the 1.0 candidate surface.
+Berserk v0.9.0 is the current stabilization baseline. Development now moves to the 1.0 API freeze, release audit, and stable baseline.
 
 ## Completed
 
@@ -36,11 +36,11 @@ Expanded in-memory HTTP assertions and direct response inspection, plus richer e
 
 Added programmatic readiness snapshots, operational metrics summaries, drainable in-memory logs, trace sampling inspection, and clearer deployment boundaries.
 
-## Planned
-
 ### v0.9.0 — Stabilization
 
-Reduce API churn, resolve known limitations where practical, strengthen documentation and compatibility guarantees, and prepare the public API for 1.0.
+Defined the preferred Berserk application surface, reduced default-prelude helper exposure, documented compatibility boundaries, repaired inherited formatting defects, and started the 1.0 freeze.
+
+## Planned
 
 ### v1.0.0 — Stable baseline
 

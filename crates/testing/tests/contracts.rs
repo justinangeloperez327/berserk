@@ -63,10 +63,7 @@ fn http_helpers_cover_redirects_errors_and_options() {
         .send()
         .unwrap()
         .assert_no_content();
-    client
-        .get("/redirect")
-        .unwrap()
-        .assert_redirect("/next");
+    client.get("/redirect").unwrap().assert_redirect("/next");
     client.get("/bad").unwrap().assert_client_error();
     client.get("/boom").unwrap().assert_server_error();
 }

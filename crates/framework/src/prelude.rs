@@ -1,8 +1,8 @@
 //! Common framework imports.
 pub use crate::{
-    ActionResult, ApiResource, ApiResourceController, App, Arr, Error, IntoResponse, Request,
-    Resource, ResourceCollection, ResourceController, Response, Result, Route, ServerConfig, State,
-    Str, Validated,
+    ActionResult, ApiResource, ApiResourceController, App, Error, IntoResponse, Request, Resource,
+    ResourceCollection, ResourceController, Response, Result, Route, ServerConfig, State,
+    Validated,
 };
 pub use crate::{
     HealthRegistry, HealthSnapshot, Metrics, MetricsLayer, RateLimitLayer, RateLimiter,

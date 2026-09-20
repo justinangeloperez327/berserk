@@ -2,9 +2,9 @@
 
 ## Current status
 
-Berserk v0.3.0 is the current pre-1.0 baseline. Rust 1.88 is the minimum supported Rust version (MSRV). CI and release workflows define the tested feature, platform, and database combinations; the support matrix is documented in [support-policy.md](support-policy.md).
+Berserk v0.9.0 is the current pre-1.0 stabilization baseline. Rust 1.88 is the minimum supported Rust version (MSRV). CI and release workflows define the tested feature, platform, and database combinations; the support matrix is documented in [support-policy.md](support-policy.md).
 
-Public APIs may still change before 1.0, but compatibility-affecting changes should be documented rather than introduced silently.
+Public APIs may still change before 1.0, but v0.9 starts the 1.0 stabilization window. New aliases and convenience surfaces should be avoided unless they solve a concrete gap. Compatibility-affecting changes must be documented rather than introduced silently.
 
 ## Versioning policy
 
@@ -21,7 +21,21 @@ Public APIs may still change before 1.0, but compatibility-affecting changes sho
 
 Minor releases may contain breaking changes while Berserk is below 1.0. Such changes should be deliberate, documented, and accompanied by migration guidance when practical.
 
-Security, correctness, or unsoundness fixes may require faster changes than the normal deprecation path.
+For v0.9.x, the default direction is stabilization: prefer additive fixes, documentation corrections, and removal of ambiguity over new public concepts. Security, correctness, or unsoundness fixes may still require faster changes than the normal deprecation path.
+
+## 1.0 candidate surface
+
+The APIs intended to define the 1.0 application surface are:
+
+- `App` plus `app.route()` for application assembly and routing;
+- `Request` / `Response` and FormRequest-style typed input;
+- explicit middleware and application state;
+- request-scoped authentication and authorization;
+- feature-gated database/Claw, services, testing, and operational components.
+
+Compatibility helpers such as direct `App::get/post/...` registration and request-global auth facades are not the design center for 1.0. They may remain during the transition, but new application code should use the preferred scoped APIs.
+
+`Arr` and `Str` remain explicit utilities and are intentionally excluded from the default prelude in v0.9.
 
 ## Deprecation
 

@@ -298,6 +298,7 @@ impl App {
 
 #[cfg(feature = "async")]
 impl App {
+    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
     pub fn get_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
@@ -308,6 +309,7 @@ impl App {
 
 #[cfg(feature = "async")]
 impl App {
+    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
     pub fn post_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
@@ -318,6 +320,7 @@ impl App {
 
 #[cfg(feature = "async")]
 impl App {
+    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
     pub fn put_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
@@ -328,6 +331,7 @@ impl App {
 
 #[cfg(feature = "async")]
 impl App {
+    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
     pub fn patch_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
@@ -338,6 +342,7 @@ impl App {
 
 #[cfg(feature = "async")]
 impl App {
+    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
     pub fn delete_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
@@ -348,6 +353,7 @@ impl App {
 
 #[cfg(feature = "async")]
 impl App {
+    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
     pub fn head_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
@@ -358,6 +364,7 @@ impl App {
 
 #[cfg(feature = "async")]
 impl App {
+    /// Compatibility shortcut. Prefer the corresponding `app.route()` async registration method.
     pub fn options_async<H, A>(&mut self, path: &str, handler: H) -> Result<()>
     where
         crate::controller::async_handlers::Async<H>: crate::controller::Handler<A>,
