@@ -108,6 +108,12 @@ v0.2.0 introduced request-scoped Claw operations and retained explicit connectio
 
 FormRequest gained direct input parameters and authorization after validation. `Validated<T>` remained supported. Application errors, including router and authentication errors, moved toward the unified JSON error surface. Optional async actions were added behind the appropriate feature.
 
+## v0.9.0 → v1.0.0
+
+The 1.0 API freeze removes pre-1.0 routing and authentication compatibility shortcuts. Replace direct `app.get/post/put/patch/delete` and async verb shortcuts with the corresponding `app.route().*` registration methods. Replace `Request::principal()` with `Request::user()`. Request-scoped `user`, `can`, and `authorize` are the stable authentication direction.
+
+Operational accounting is also corrected for the stable baseline: request logs preserve the actual status of propagated errors, and the failure metric counts only server-side 5xx outcomes rather than every propagated 4xx error.
+
 ## Pre-release consumers
 
 Berserk is still below 1.0. Applications consuming git/path snapshots should treat the documented API for the selected release as the source of truth rather than examples copied from older commits.
