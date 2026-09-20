@@ -65,6 +65,21 @@ impl Migration for CreateUsers {
     }
 }
 
+struct CreatePosts;
+impl Migration for CreatePosts {
+    fn name(&self) -> &'static str {
+        "202609120002_create_posts"
+    }
+    fn up(&self, _driver: Driver) -> Result<Vec<Statement>> {
+        Ok(vec![Statement::new(
+            "CREATE TABLE posts (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL)",
+        )])
+    }
+    fn down(&self, _driver: Driver) -> Result<Vec<Statement>> {
+        Ok(vec![Statement::new("DROP TABLE posts")])
+    }
+}
+
 fn applied_row(name: &str, batch: u64) -> Row {
     Row::new(vec![Column::new("name", name), Column::new("batch", batch)]).unwrap()
 }
@@ -98,6 +113,34 @@ fn rollback_uses_the_latest_batch_in_reverse_order() {
     assert!(connection.executed[2]
         .sql()
         .starts_with("DELETE FROM \"__framework_migrations\""));
+}
+
+#[test]
+fn rollback_all_unwinds_batches_from_newest_to_oldest() {
+    let users = CreateUsers;
+    let posts = CreatePosts;
+    let runner = MigrationRunner::new([
+        &users as &dyn Migration,
+        &posts as &dyn Migration,
+    ])
+    .unwrap();
+    let mut connection = FakeConnection::with_results(vec![
+        vec![applied_row(users.name(), 1), applied_row(posts.name(), 2)],
+        vec![applied_row(users.name(), 1)],
+        vec![],
+    ]);
+
+    let report = runner.rollback_all(&mut connection).unwrap();
+
+    assert_eq!(report.rolled_back, vec![posts.name(), users.name()]);
+    assert!(connection
+        .executed
+        .iter()
+        .any(|statement| statement.sql() == "DROP TABLE posts"));
+    assert!(connection
+        .executed
+        .iter()
+        .any(|statement| statement.sql() == "DROP TABLE users"));
 }
 
 #[derive(Debug, PartialEq)]
