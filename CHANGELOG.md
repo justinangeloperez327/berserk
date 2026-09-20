@@ -13,6 +13,10 @@ Berserk follows the spirit of Keep a Changelog. Versioning and compatibility pol
 - Migration DSL, compiler, constraint, alteration, and plan test coverage.
 - Portable `CURRENT_TIMESTAMP` column defaults, dry-run planning, and migration reset command support.
 - Portable identifier validation and duplicate composite-key/index constraint checks.
+- Check and explicit unique constraints, enum-like columns, generated stored columns, schema comments, and custom SQL type escape hatches.
+- Alter-table index renames, default changes, check/unique constraint changes, and explicit SQLite table rebuild migrations.
+- Serialized migration execution with PostgreSQL/MySQL advisory locking and SQLite immediate write locking.
+- Transactional migration failure recovery on databases that support transactional DDL.
 
 ### Changed
 
