@@ -54,7 +54,8 @@ fn sqlite_rejects_direct_column_modification() {
 
 #[test]
 fn table_rename_and_drop_compile() {
-    let rename = compile_table_operation(&Table::rename("users", "accounts"), Driver::MySql).unwrap();
+    let rename =
+        compile_table_operation(&Table::rename("users", "accounts"), Driver::MySql).unwrap();
     let drop = compile_table_operation(&Table::drop_if_exists("accounts"), Driver::Sqlite).unwrap();
 
     assert_eq!(rename.sql(), "ALTER TABLE `users` RENAME TO `accounts`");
