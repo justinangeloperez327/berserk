@@ -1,5 +1,6 @@
 use super::{
-    compile_alter, compile_create, compile_indexes, compile_rebuild, compile_table_operation,
+    compile_alter, compile_comments, compile_create, compile_indexes, compile_rebuild,
+    compile_table_operation,
     AlterTable, CreateTable, RebuildTable, TableOperation,
 };
 use crate::{Driver, Result, Statement};
@@ -56,6 +57,7 @@ impl MigrationPlan {
                 MigrationOperation::Create(table) => {
                     statements.push(compile_create(table, driver)?);
                     statements.extend(compile_indexes(table, driver)?);
+                    statements.extend(compile_comments(table, driver)?);
                 }
                 MigrationOperation::Alter(table) => {
                     statements.extend(compile_alter(table, driver)?);
