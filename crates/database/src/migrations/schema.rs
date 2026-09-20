@@ -343,6 +343,18 @@ impl CreateTable {
             for column in &foreign_key.referenced_columns {
                 validate_identifier("referenced column", column)?;
             }
+            if matches!(foreign_key.on_delete, Some(ForeignAction::SetNull))
+                && foreign_key.columns.iter().any(|name| {
+                    self.columns
+                        .iter()
+                        .find(|column| column.name == *name)
+                        .is_some_and(|column| !column.nullable)
+                })
+            {
+                return Err(error(
+                    "SET NULL foreign keys require nullable local columns",
+                ));
+            }
         }
         Ok(())
     }
