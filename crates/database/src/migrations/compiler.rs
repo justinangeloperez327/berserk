@@ -1,4 +1,4 @@
-use super::{Column, ColumnType, CreateTable};
+use super::{Column, ColumnType, CreateTable, ForeignAction};
 use crate::{DatabaseError, Driver, ErrorKind, Result, Statement, Value};
 
 pub fn compile_create(table: &CreateTable, driver: Driver) -> Result<Statement> {
@@ -7,8 +7,36 @@ pub fn compile_create(table: &CreateTable, driver: Driver) -> Result<Statement> 
         .column_definitions()
         .iter()
         .map(|column| compile_column(column, driver))
-        .collect::<Result<Vec<_>>>()?
-        .join(", ");
+        .collect::<Result<Vec<_>>>()?;
+    let mut definitions = columns;
+    for foreign_key in &table.foreign_keys {
+        let local = foreign_key
+            .columns
+            .iter()
+            .map(|column| quote_identifier(column, driver))
+            .collect::<Result<Vec<_>>>()?
+            .join(", ");
+        let referenced = foreign_key
+            .referenced_columns
+            .iter()
+            .map(|column| quote_identifier(column, driver))
+            .collect::<Result<Vec<_>>>()?
+            .join(", ");
+        let mut definition = format!(
+            "FOREIGN KEY ({local}) REFERENCES {} ({referenced})",
+            quote_identifier(&foreign_key.referenced_table, driver)?
+        );
+        if let Some(action) = foreign_key.on_delete {
+            definition.push_str(" ON DELETE ");
+            definition.push_str(compile_foreign_action(action));
+        }
+        if let Some(action) = foreign_key.on_update {
+            definition.push_str(" ON UPDATE ");
+            definition.push_str(compile_foreign_action(action));
+        }
+        definitions.push(definition);
+    }
+    let columns = definitions.join(", ");
     Ok(Statement::new(format!(
         "CREATE TABLE {} ({columns})",
         quote_identifier(table.name(), driver)?
@@ -89,6 +117,39 @@ fn compile_type(column: &Column, driver: Driver) -> Result<String> {
         },
     };
     Ok(sql)
+}
+
+pub fn compile_indexes(table: &CreateTable, driver: Driver) -> Result<Vec<Statement>> {
+    table.validate()?;
+    table
+        .indexes
+        .iter()
+        .map(|index| {
+            let columns = index
+                .columns
+                .iter()
+                .map(|column| quote_identifier(column, driver))
+                .collect::<Result<Vec<_>>>()?
+                .join(", ");
+            let generated_name = format!("idx_{}_{}", table.name, index.columns.join("_"));
+            let name = index.name.as_deref().unwrap_or(&generated_name);
+            let unique = if index.unique { "UNIQUE " } else { "" };
+            Ok(Statement::new(format!(
+                "CREATE {unique}INDEX {} ON {} ({columns})",
+                quote_identifier(name, driver)?,
+                quote_identifier(&table.name, driver)?
+            )))
+        })
+        .collect()
+}
+
+fn compile_foreign_action(action: ForeignAction) -> &'static str {
+    match action {
+        ForeignAction::Cascade => "CASCADE",
+        ForeignAction::Restrict => "RESTRICT",
+        ForeignAction::SetNull => "SET NULL",
+        ForeignAction::NoAction => "NO ACTION",
+    }
 }
 
 fn compile_default(value: &Value) -> Result<String> {
