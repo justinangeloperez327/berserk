@@ -76,12 +76,21 @@ impl<P, R: Model> BelongsToMany<P, R> {
         }
 
         let related_models = R::where_in(R::PRIMARY_KEY, related_keys).get_on(connection)?;
+        let mut keyed_models = related_models
+            .into_iter()
+            .map(|model| ((self.related_key)(&model), Some(model)))
+            .collect::<Vec<_>>();
         let mut result = RelatedSet::default();
+
         for (parent, related) in pairs {
-            for model in &related_models {
-                if (self.related_key)(model) == related {
-                    result.insert(parent.clone(), model);
-                }
+            let Some((_, model)) = keyed_models
+                .iter_mut()
+                .find(|(key, model)| key == &related && model.is_some())
+            else {
+                continue;
+            };
+            if let Some(model) = model.take() {
+                result.insert(parent, model);
             }
         }
         Ok(result)
