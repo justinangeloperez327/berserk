@@ -7,8 +7,7 @@ fn main() -> Result<()> {
         next.run(request)?.header("x-service", "example")
     });
     app.group("/api", |routes| {
-        routes.route()
-            .get("/name", |req: Request| {
+        routes.route().get("/name", |req: Request| {
             Response::text(req.state::<String>().unwrap().clone())
         })
     })?;
