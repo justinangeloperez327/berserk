@@ -1,6 +1,6 @@
 # Known limitations
 
-This document records intentional or unresolved boundaries of the current Berserk v0.3.0 pre-1.0 baseline. They are not necessarily defects, but applications must account for them.
+This document records intentional or unresolved boundaries of the current Berserk v0.5.0 pre-1.0 baseline. They are not necessarily defects, but applications must account for them.
 
 ## Security review status
 
@@ -22,7 +22,7 @@ Spawned tasks do not automatically inherit request-local database or authenticat
 
 ## Browser authentication policy
 
-The current auth component provides authentication and authorization primitives, but applications using cookie-based credentials must define appropriate Secure, HttpOnly, SameSite, rotation/revocation, and CSRF behavior. v0.4.0 is planned to strengthen the framework's authentication and security surface.
+The current auth component provides authentication and authorization primitives, but applications using cookie-based credentials must define appropriate Secure, HttpOnly, SameSite, rotation/revocation, and CSRF behavior. v0.4.0 strengthened bearer authentication and HTTP security, but browser cookie policy remains application-defined.
 
 ## Memory session store
 
@@ -50,4 +50,4 @@ Berserk is modular. Applications must enable the features required by the APIs t
 
 ## Pre-1.0 compatibility
 
-v0.3.0 remains pre-1.0. Later minor releases may make breaking changes when needed for security, correctness, architecture, or developer experience. Compatibility-affecting changes should be recorded in `CHANGELOG.md` and [upgrade-notes.md](upgrade-notes.md).
+v0.5.0 remains pre-1.0. Later minor releases may make breaking changes when needed for security, correctness, architecture, or developer experience. Compatibility-affecting changes should be recorded in `CHANGELOG.md` and [upgrade-notes.md](upgrade-notes.md).
