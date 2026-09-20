@@ -34,7 +34,6 @@ fn model_query_keeps_values_bound() {
     assert_eq!(statement.bindings(), &[Value::Text("a@example.com".into())]);
 }
 
-
 #[test]
 fn model_query_exposes_between_and_or_variants() {
     let statement = User::where_between("id", 10_u64, 20_u64)
