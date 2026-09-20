@@ -148,7 +148,7 @@ fn model_queries_decode_rows_and_keep_execution_explicit() {
 }
 
 #[test]
-fn model_static_query_entry_points_are_laravel_style() {
+fn model_static_query_entry_points_build_typed_queries() {
     let query = User::where_op("active", "=", true)
         .where_not_null("name")
         .order_by("name", Direction::Desc)
@@ -314,7 +314,7 @@ fn has_many_eager_loads_once_and_groups_by_foreign_key() {
     let relation = HasMany::<User, Post>::new("user_id", User::key, |post| post.user_id.into());
     let mut connection =
         FakeConnection::with_rows(vec![post_row(10, 1, "One"), post_row(11, 1, "Two")]);
-    let loaded = relation.load(&mut connection, &users).unwrap();
+    let loaded = relation.load_on(&mut connection, &users).unwrap();
 
     assert_eq!(connection.statements.len(), 1);
     assert_eq!(loaded.get(&Value::U64(1)).unwrap().len(), 2);
@@ -330,14 +330,14 @@ fn belongs_to_skips_null_keys_and_has_one_rejects_duplicates() {
     }];
     let owner = BelongsTo::<Post, User>::new("id", |post| Some(post.user_id.into()), User::key);
     let mut owner_connection = FakeConnection::with_rows(vec![user_row(8, "Owner")]);
-    let loaded = owner.load(&mut owner_connection, &posts).unwrap();
+    let loaded = owner.load_on(&mut owner_connection, &posts).unwrap();
     assert_eq!(loaded.get(&Value::U64(8)).unwrap()[0].name, "Owner");
 
     let one = HasOne::<User, Post>::new("user_id", User::key, |post| post.user_id.into());
     let mut duplicate_connection =
         FakeConnection::with_rows(vec![post_row(1, 8, "A"), post_row(2, 8, "B")]);
     let error = one
-        .load(
+        .load_on(
             &mut duplicate_connection,
             &[User {
                 id: 8,
@@ -353,7 +353,7 @@ fn belongs_to_skips_null_keys_and_has_one_rejects_duplicates() {
 fn empty_parent_sets_do_not_contact_the_database() {
     let relation = HasMany::<User, Post>::new("user_id", User::key, |post| post.user_id.into());
     let mut connection = FakeConnection::default();
-    let loaded = relation.load(&mut connection, &[]).unwrap();
+    let loaded = relation.load_on(&mut connection, &[]).unwrap();
     assert!(loaded.is_empty());
     assert!(connection.statements.is_empty());
 }
