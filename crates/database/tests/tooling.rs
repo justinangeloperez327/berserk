@@ -140,7 +140,6 @@ fn rollback_all_unwinds_batches_from_newest_to_oldest() {
         .any(|statement| statement.sql() == "DROP TABLE users"));
 }
 
-
 #[test]
 fn migration_plan_reports_pending_sql_without_applying_it() {
     let migration = CreateUsers;
