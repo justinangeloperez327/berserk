@@ -66,7 +66,7 @@ fn state_and_ids_are_available_and_groups_are_isolated() {
         group.middleware(|req: Request, next: Next<'_>| -> Result<Response> {
             next.run(req)?.header("x-group", "api")
         });
-        group.get("/users/{id}", |req: Request| {
+        group.route().get("/users/{id}", |req: Request| {
             assert!(req.request_id().is_some());
             Response::text(format!(
                 "{}:{}",
@@ -99,13 +99,13 @@ fn groups_are_transactional_and_can_nest() {
     app.route().get("/api/taken", Response::empty).unwrap();
     assert!(app
         .group("/api", |g| {
-            g.get("/new", Response::empty)?;
-            g.get("/taken", Response::empty)
+            g.route().get("/new", Response::empty)?;
+            g.route().get("/taken", Response::empty)
         })
         .is_err());
     assert_eq!(app.handle(req("/api/new")).unwrap().status_code(), 404);
     app.group("/api", |g| {
-        g.group("/v1", |v| v.get("/ok", || Response::text("ok")))
+        g.group("/v1", |v| v.route().get("/ok", || Response::text("ok")))
     })
     .unwrap();
     assert_eq!(app.handle(req("/api/v1/ok")).unwrap().body(), b"ok");
