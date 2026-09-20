@@ -34,7 +34,7 @@ impl<M> RelatedSet<M> {
         self.groups.is_empty()
     }
 
-    fn insert(&mut self, key: Value, model: M) {
+    pub(crate) fn insert(&mut self, key: Value, model: M) {
         if let Some((_, models)) = self
             .groups
             .iter_mut()
