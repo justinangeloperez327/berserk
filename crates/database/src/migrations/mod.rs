@@ -26,7 +26,7 @@ pub struct AppliedMigration {
     pub batch: u64,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct PlannedMigration {
     pub name: String,
     pub statements: Vec<Statement>,
