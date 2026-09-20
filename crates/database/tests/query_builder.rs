@@ -118,7 +118,6 @@ fn raw_queries_remain_explicit_and_bound() {
     assert_eq!(raw.statement().bindings(), &[Value::I64(9)]);
 }
 
-
 #[test]
 fn between_predicates_keep_bounds_bound_and_ordered() {
     let statement = Query::table("orders")
