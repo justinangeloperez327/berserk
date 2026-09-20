@@ -75,23 +75,21 @@ impl<P, R: Model> BelongsToMany<P, R> {
             return Ok(RelatedSet::default());
         }
 
-        let related_models = R::where_in(R::PRIMARY_KEY, related_keys).get_on(connection)?;
-        let mut keyed_models = related_models
-            .into_iter()
-            .map(|model| ((self.related_key)(&model), Some(model)))
-            .collect::<Vec<_>>();
-        let mut result = RelatedSet::default();
+        let related_rows = Query::table(R::TABLE)
+            .where_in(R::PRIMARY_KEY, related_keys)
+            .get(connection)?;
+        let mut keyed_rows = Vec::with_capacity(related_rows.len());
+        for row in related_rows {
+            let model = R::from_row(&row)?;
+            keyed_rows.push(((self.related_key)(&model), row));
+        }
 
+        let mut result = RelatedSet::default();
         for (parent, related) in pairs {
-            let Some((_, model)) = keyed_models
-                .iter_mut()
-                .find(|(key, model)| key == &related && model.is_some())
-            else {
+            let Some((_, row)) = keyed_rows.iter().find(|(key, _)| key == &related) else {
                 continue;
             };
-            if let Some(model) = model.take() {
-                result.insert(parent, model);
-            }
+            result.insert(parent, R::from_row(row)?);
         }
         Ok(result)
     }
