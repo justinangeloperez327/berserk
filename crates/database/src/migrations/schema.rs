@@ -223,6 +223,41 @@ impl ForeignKey {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Check {
+    pub(crate) name: String,
+    pub(crate) expression: String,
+}
+
+impl Check {
+    pub fn new(name: impl Into<String>, expression: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            expression: expression.into(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Unique {
+    pub(crate) columns: Vec<String>,
+    pub(crate) name: Option<String>,
+}
+
+impl Unique {
+    pub fn new<const N: usize>(columns: [&str; N]) -> Self {
+        Self {
+            columns: columns.into_iter().map(str::to_owned).collect(),
+            name: None,
+        }
+    }
+
+    pub fn named(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Index {
     pub(crate) columns: Vec<String>,
     pub(crate) unique: bool,
@@ -256,6 +291,8 @@ pub struct CreateTable {
     pub(crate) indexes: Vec<Index>,
     pub(crate) foreign_keys: Vec<ForeignKey>,
     pub(crate) primary_key: Option<Vec<String>>,
+    pub(crate) checks: Vec<Check>,
+    pub(crate) uniques: Vec<Unique>,
 }
 
 impl CreateTable {
@@ -276,6 +313,16 @@ impl CreateTable {
 
     pub fn primary<const N: usize>(mut self, columns: [&str; N]) -> Self {
         self.primary_key = Some(columns.into_iter().map(str::to_owned).collect());
+        self
+    }
+
+    pub fn checks<const N: usize>(mut self, checks: [Check; N]) -> Self {
+        self.checks.extend(checks);
+        self
+    }
+
+    pub fn uniques<const N: usize>(mut self, uniques: [Unique; N]) -> Self {
+        self.uniques.extend(uniques);
         self
     }
 
@@ -324,6 +371,28 @@ impl CreateTable {
                 if !self.columns.iter().any(|item| item.name == *column) {
                     return Err(error(format!(
                         "primary key references unknown column `{column}`"
+                    )));
+                }
+            }
+        }
+        for check in &self.checks {
+            validate_identifier("check constraint", &check.name)?;
+            if check.expression.trim().is_empty() {
+                return Err(error("check constraint expressions cannot be empty"));
+            }
+        }
+        for unique in &self.uniques {
+            if unique.columns.is_empty() {
+                return Err(error("a unique constraint must contain at least one column"));
+            }
+            if let Some(name) = &unique.name {
+                validate_identifier("unique constraint", name)?;
+            }
+            for column in &unique.columns {
+                validate_identifier("unique constraint column", column)?;
+                if !self.columns.iter().any(|item| item.name == *column) {
+                    return Err(error(format!(
+                        "unique constraint references unknown column `{column}`"
                     )));
                 }
             }
@@ -416,6 +485,8 @@ impl Table {
             indexes: Vec::new(),
             foreign_keys: Vec::new(),
             primary_key: None,
+            checks: Vec::new(),
+            uniques: Vec::new(),
         }
     }
 }
