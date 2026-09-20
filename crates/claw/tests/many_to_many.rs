@@ -117,7 +117,7 @@ fn many_to_many_batches_pivot_and_related_queries() {
         vec![role(10, "Editor"), role(11, "Admin")],
     ]);
 
-    let loaded = relation().load(&mut connection, &users).unwrap();
+    let loaded = relation().load_on(&mut connection, &users).unwrap();
 
     assert_eq!(connection.statements.len(), 2);
     assert_eq!(loaded.get(&Value::U64(1)).unwrap().len(), 2);
@@ -131,7 +131,7 @@ fn many_to_many_preserves_a_related_model_shared_by_multiple_parents() {
     let mut connection =
         FakeConnection::with_results([vec![pivot(1, 10), pivot(2, 10)], vec![role(10, "Admin")]]);
 
-    let loaded = relation().load(&mut connection, &users).unwrap();
+    let loaded = relation().load_on(&mut connection, &users).unwrap();
 
     assert_eq!(loaded.get(&Value::U64(1)).unwrap()[0].name, "Admin");
     assert_eq!(loaded.get(&Value::U64(2)).unwrap()[0].name, "Admin");
@@ -141,7 +141,7 @@ fn many_to_many_preserves_a_related_model_shared_by_multiple_parents() {
 #[test]
 fn many_to_many_empty_parents_do_not_query() {
     let mut connection = FakeConnection::default();
-    let loaded = relation().load(&mut connection, &[]).unwrap();
+    let loaded = relation().load_on(&mut connection, &[]).unwrap();
 
     assert!(loaded.is_empty());
     assert!(connection.statements.is_empty());
