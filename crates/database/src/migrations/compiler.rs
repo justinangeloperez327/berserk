@@ -9,6 +9,14 @@ pub fn compile_create(table: &CreateTable, driver: Driver) -> Result<Statement> 
         .map(|column| compile_column(column, driver))
         .collect::<Result<Vec<_>>>()?;
     let mut definitions = columns;
+    if let Some(primary_key) = &table.primary_key {
+        let columns = primary_key
+            .iter()
+            .map(|column| quote_identifier(column, driver))
+            .collect::<Result<Vec<_>>>()?
+            .join(", ");
+        definitions.push(format!("PRIMARY KEY ({columns})"));
+    }
     for foreign_key in &table.foreign_keys {
         let local = foreign_key
             .columns
@@ -85,6 +93,16 @@ fn compile_type(column: &Column, driver: Driver) -> Result<String> {
         ColumnType::Decimal { precision, scale } => {
             format!("DECIMAL({precision},{scale})")
         }
+        ColumnType::Float => match driver {
+            Driver::Postgres => "REAL".into(),
+            Driver::MySql => "FLOAT".into(),
+            Driver::Sqlite => "REAL".into(),
+        },
+        ColumnType::Double => match driver {
+            Driver::Postgres => "DOUBLE PRECISION".into(),
+            Driver::MySql => "DOUBLE".into(),
+            Driver::Sqlite => "REAL".into(),
+        },
         ColumnType::Boolean => match driver {
             Driver::MySql => "BOOLEAN".into(),
             Driver::Postgres | Driver::Sqlite => "BOOLEAN".into(),
