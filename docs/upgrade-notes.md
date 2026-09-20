@@ -114,8 +114,8 @@ The 1.0 API freeze removes pre-1.0 routing and authentication compatibility shor
 
 Operational accounting is also corrected for the stable baseline: request logs preserve the actual status of propagated errors, and the failure metric counts only server-side 5xx outcomes rather than every propagated 4xx error.
 
-## Pre-release consumers
+## Stable consumers
 
-Berserk is still below 1.0. Applications consuming git/path snapshots should treat the documented API for the selected release as the source of truth rather than examples copied from older commits.
+Berserk v1.0.0 is the stable API baseline. Applications consuming git/path snapshots should still treat the documented API for the selected commit or release as the source of truth rather than examples copied from older commits.
 
-Rust 1.88 remains the MSRV for the current baseline. Review [compatibility.md](compatibility.md), [known-limitations.md](known-limitations.md), and the release-specific guide before upgrading.
+Rust 1.88 remains the MSRV for the current baseline. Review [compatibility.md](compatibility.md), [known-limitations.md](known-limitations.md), and [v1.0.0.md](v1.0.0.md) before upgrading.
