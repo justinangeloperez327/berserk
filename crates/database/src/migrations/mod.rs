@@ -26,6 +26,12 @@ pub struct AppliedMigration {
     pub batch: u64,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct PlannedMigration {
+    pub name: String,
+    pub statements: Vec<Statement>,
+}
+
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct MigrationReport {
     pub applied: Vec<String>,
@@ -80,6 +86,25 @@ impl<'a> MigrationRunner<'a> {
             .filter(|migration| !applied.iter().any(|item| item.name == migration.name()))
             .map(|migration| migration.name())
             .collect())
+    }
+
+    pub fn plan(&self, connection: &mut dyn Connection) -> Result<Vec<PlannedMigration>> {
+        let applied = self.applied(connection)?;
+        let driver = connection.driver();
+        self.migrations
+            .iter()
+            .filter(|migration| !applied.iter().any(|item| item.name == migration.name()))
+            .map(|migration| {
+                let statements = migration.up(driver)?;
+                if statements.is_empty() {
+                    return Err(error("a migration direction must contain at least one statement"));
+                }
+                Ok(PlannedMigration {
+                    name: migration.name().into(),
+                    statements,
+                })
+            })
+            .collect()
     }
 
     pub fn migrate(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {
