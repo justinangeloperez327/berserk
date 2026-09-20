@@ -4,7 +4,27 @@ Berserk follows the spirit of Keep a Changelog. Versioning and compatibility pol
 
 ## Unreleased
 
-No documented changes after v0.5.0.
+No documented changes after v0.6.0.
+
+## 0.6.0
+
+### Added
+
+- Bound `BETWEEN` and `NOT BETWEEN` predicates in the database query builder and Claw ORM.
+- OR variants for Claw list and null predicates.
+- Model-level shortcuts for range, list, and null query variants.
+- `MigrationRunner::rollback_all` for deterministic newest-to-oldest migration resets.
+
+### Changed
+
+- Workspace package metadata and package validation are aligned to v0.6.0.
+
+### Compatibility
+
+- Rust 1.88 remains the MSRV.
+- Query values remain parameter-bound; the new range predicates do not interpolate values into SQL.
+
+See `docs/v0.6.0.md`.
 
 ## 0.5.0
 
