@@ -1,7 +1,8 @@
-/// Laravel-style string helpers with Rust-native return types and semantics.
+/// String helpers with Rust-native return types and ownership semantics.
 ///
 /// `Str` is intentionally stateless. Methods that can borrow from the input do so;
-/// methods that transform text return an owned `String`.
+/// methods that transform text return an owned `String`. It is an explicit utility,
+/// not a process-global framework facade.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Str;
 
