@@ -145,15 +145,103 @@ impl Column {
     }
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ForeignAction {
+    Cascade,
+    Restrict,
+    SetNull,
+    NoAction,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForeignKey {
+    pub(crate) columns: Vec<String>,
+    pub(crate) referenced_table: String,
+    pub(crate) referenced_columns: Vec<String>,
+    pub(crate) on_delete: Option<ForeignAction>,
+    pub(crate) on_update: Option<ForeignAction>,
+}
+
+impl ForeignKey {
+    pub fn new<const N: usize>(columns: [&str; N]) -> Self {
+        Self {
+            columns: columns.into_iter().map(str::to_owned).collect(),
+            referenced_table: String::new(),
+            referenced_columns: Vec::new(),
+            on_delete: None,
+            on_update: None,
+        }
+    }
+
+    pub fn references<const N: usize>(
+        mut self,
+        table: impl Into<String>,
+        columns: [&str; N],
+    ) -> Self {
+        self.referenced_table = table.into();
+        self.referenced_columns = columns.into_iter().map(str::to_owned).collect();
+        self
+    }
+
+    pub fn on_delete(mut self, action: ForeignAction) -> Self {
+        self.on_delete = Some(action);
+        self
+    }
+
+    pub fn on_update(mut self, action: ForeignAction) -> Self {
+        self.on_update = Some(action);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Index {
+    pub(crate) columns: Vec<String>,
+    pub(crate) unique: bool,
+    pub(crate) name: Option<String>,
+}
+
+impl Index {
+    pub fn new<const N: usize>(columns: [&str; N]) -> Self {
+        Self {
+            columns: columns.into_iter().map(str::to_owned).collect(),
+            unique: false,
+            name: None,
+        }
+    }
+
+    pub fn unique(mut self) -> Self {
+        self.unique = true;
+        self
+    }
+
+    pub fn named(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct CreateTable {
     pub(crate) name: String,
     pub(crate) columns: Vec<Column>,
+    pub(crate) indexes: Vec<Index>,
+    pub(crate) foreign_keys: Vec<ForeignKey>,
 }
 
 impl CreateTable {
     pub fn columns<const N: usize>(mut self, columns: [Column; N]) -> Self {
         self.columns.extend(columns);
+        self
+    }
+
+    pub fn indexes<const N: usize>(mut self, indexes: [Index; N]) -> Self {
+        self.indexes.extend(indexes);
+        self
+    }
+
+    pub fn foreign_keys<const N: usize>(mut self, foreign_keys: [ForeignKey; N]) -> Self {
+        self.foreign_keys.extend(foreign_keys);
         self
     }
 
@@ -185,6 +273,37 @@ impl CreateTable {
                 }
             }
         }
+        for index in &self.indexes {
+            if index.columns.is_empty() {
+                return Err(error("an index must contain at least one column"));
+            }
+            if let Some(name) = &index.name {
+                validate_identifier("index", name)?;
+            }
+            for column in &index.columns {
+                validate_identifier("index column", column)?;
+                if !self.columns.iter().any(|item| item.name == *column) {
+                    return Err(error(format!("index references unknown column `{column}`")));
+                }
+            }
+        }
+        for foreign_key in &self.foreign_keys {
+            if foreign_key.columns.is_empty()
+                || foreign_key.columns.len() != foreign_key.referenced_columns.len()
+            {
+                return Err(error("foreign key columns must match referenced columns"));
+            }
+            validate_identifier("referenced table", &foreign_key.referenced_table)?;
+            for column in &foreign_key.columns {
+                validate_identifier("foreign key column", column)?;
+                if !self.columns.iter().any(|item| item.name == *column) {
+                    return Err(error(format!("foreign key references unknown local column `{column}`")));
+                }
+            }
+            for column in &foreign_key.referenced_columns {
+                validate_identifier("referenced column", column)?;
+            }
+        }
         Ok(())
     }
 
@@ -204,6 +323,8 @@ impl Table {
         CreateTable {
             name: name.into(),
             columns: Vec::new(),
+            indexes: Vec::new(),
+            foreign_keys: Vec::new(),
         }
     }
 }
