@@ -26,8 +26,8 @@ impl Migration for CreatePostsTable {
                         Column::big_integer("user_id"),
                         Column::string("title"),
                         Column::text("body").nullable(),
-                        Column::timestamp("created_at"),
-                        Column::timestamp("updated_at"),
+                        Column::timestamp("created_at").default_current_timestamp(),
+                        Column::timestamp("updated_at").default_current_timestamp(),
                     ])
                     .indexes([Index::new(["user_id"])])
                     .foreign_keys([
@@ -97,6 +97,6 @@ The portable DSL includes identifiers, strings, text, tiny/small/regular/big int
 
 ## Safety and portability
 
-Migration identifiers are validated before SQL generation. String defaults are escaped by the compiler. Unsupported operations return errors rather than silently changing semantics.
+Migration identifiers are validated before SQL generation and limited to a portable 63-character ASCII identifier surface. String defaults are escaped by the compiler. Unsupported operations return errors rather than silently changing semantics.
 
 The migration runner records applied migrations in `__framework_migrations`, assigns batches, applies pending migrations in registration order, rolls the latest batch back in reverse registration order, and can roll back all registered batches.
