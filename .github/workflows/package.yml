@@ -104,7 +104,7 @@ jobs:
             cargo package --locked -p "$package" --no-verify --allow-dirty
           done
       - name: Retain package file lists
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: package-file-lists-${{ github.sha }}
           path: package-lists/
