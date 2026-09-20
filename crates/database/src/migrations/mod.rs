@@ -4,7 +4,8 @@ mod plan;
 mod schema;
 
 pub use compiler::{
-    compile_alter, compile_create, compile_indexes, compile_rebuild, compile_table_operation,
+    compile_alter, compile_comments, compile_create, compile_indexes, compile_rebuild,
+    compile_table_operation,
 };
 pub use operations::{AlterOperation, AlterTable, RebuildTable, TableOperation};
 pub use plan::{MigrationOperation, MigrationPlan};
