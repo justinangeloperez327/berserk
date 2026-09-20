@@ -219,9 +219,9 @@ The main `berserk` facade enables `server` by default; it can be disabled for in
 
 ## Stability and compatibility
 
-- Package and release metadata should remain aligned with the current v0.3.0 baseline.
+- Package and release metadata must remain aligned with the current v0.9.0 baseline.
 - Minimum supported Rust version: 1.88.
-- No crates.io publication has occurred yet.
-- The `0.2.x` API is pre-release and can still change before a stable compatibility commitment.
+- Publication is an explicit owner-controlled release action; repository automation validates artifacts but does not publish by default.
+- v0.9.0 remains pre-1.0 and is the stabilization window for the intended 1.0 surface.
 
 `README.md`, crate-level Rustdoc, tests, and this contract should agree on public behavior. When implementation and this document diverge, that drift is a release-review finding and must be corrected before publication.
