@@ -133,8 +133,7 @@ fn wait_until(mut ready: impl FnMut() -> bool, timeout: Duration) -> Result<()> 
 
 fn run_fixed_load(total: usize, concurrency: usize) -> Result<Metrics> {
     let mut app = App::new();
-    app.route()
-        .get("/", || Response::text("ok"))?;
+    app.route().get("/", || Response::text("ok"))?;
     let server = RunningServer::start(app)?;
     let next = Arc::new(AtomicUsize::new(0));
     let started = Instant::now();
@@ -204,8 +203,7 @@ fn run_overload(concurrency: usize) -> Result<Metrics> {
         request_deadline: Duration::from_secs(5),
         ..ServerConfig::default()
     })?;
-    app.route()
-        .get("/", || {
+    app.route().get("/", || {
         thread::sleep(Duration::from_millis(75));
         Response::text("ok")
     })?;
@@ -264,8 +262,7 @@ fn run_shutdown_under_load(concurrency: usize) -> Result<Metrics> {
         request_deadline: Duration::from_secs(5),
         ..ServerConfig::default()
     })?;
-    app.route()
-        .get("/", || {
+    app.route().get("/", || {
         thread::sleep(Duration::from_millis(20));
         Response::text("ok")
     })?;
@@ -328,8 +325,7 @@ fn run_shutdown_under_load(concurrency: usize) -> Result<Metrics> {
 
 fn run_soak(seconds: u64, concurrency: usize) -> Result<Metrics> {
     let mut app = App::new();
-    app.route()
-        .get("/", || Response::text("ok"))?;
+    app.route().get("/", || Response::text("ok"))?;
     let server = RunningServer::start(app)?;
     let stop = Arc::new(AtomicBool::new(false));
     let attempted = Arc::new(AtomicUsize::new(0));
