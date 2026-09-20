@@ -1,8 +1,8 @@
 # Public API contract
 
-The [v0.5.0 application-services guide](v0.5.0.md) documents the current Berserk pre-1.0 API, building on the authentication/security work in v0.4.0 and the developer-experience baseline from v0.3.0.
+The [v0.6.0 database and Claw guide](v0.6.0.md) documents the current Berserk pre-1.0 API, building on the authentication/security work in v0.4.0 and the developer-experience baseline from v0.3.0.
 
-Status: v0.5.0 pre-1.0 API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
+Status: v0.6.0 pre-1.0 API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
 
 ## Application
 
@@ -145,6 +145,9 @@ Database and Claw APIs are feature-gated.
 - `request.connection()` lazily acquires and reuses a request-scoped database connection across non-overlapping borrows.
 - `request.transaction(...)` reuses that connection, commits on success, rolls back on application error, and rejects unsupported nested request transactions.
 - Query-builder values remain bound separately from generated SQL text.
+- Range predicates include `where_between`, `or_where_between`, `where_not_between`, and `or_where_not_between`.
+- Claw model queries expose matching range predicates plus OR variants for IN/NOT IN and NULL/NOT NULL filters.
+- `MigrationRunner::rollback_all` rolls all registered applied batches back from newest to oldest.
 - `Statement` keeps SQL and bindings separate; its default `Debug` output redacts both SQL text and binding values.
 - Raw SQL remains an explicit escape hatch and must not interpolate untrusted input.
 
