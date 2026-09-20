@@ -10,6 +10,8 @@ pub enum ColumnType {
     Integer,
     BigInteger,
     Decimal { precision: u8, scale: u8 },
+    Float,
+    Double,
     Boolean,
     Date,
     Time,
@@ -75,6 +77,14 @@ impl Column {
 
     pub fn decimal(name: impl Into<String>, precision: u8, scale: u8) -> Self {
         Self::new(name, ColumnType::Decimal { precision, scale })
+    }
+
+    pub fn float(name: impl Into<String>) -> Self {
+        Self::new(name, ColumnType::Float)
+    }
+
+    pub fn double(name: impl Into<String>) -> Self {
+        Self::new(name, ColumnType::Double)
     }
 
     pub fn boolean(name: impl Into<String>) -> Self {
@@ -227,6 +237,7 @@ pub struct CreateTable {
     pub(crate) columns: Vec<Column>,
     pub(crate) indexes: Vec<Index>,
     pub(crate) foreign_keys: Vec<ForeignKey>,
+    pub(crate) primary_key: Option<Vec<String>>,
 }
 
 impl CreateTable {
@@ -242,6 +253,11 @@ impl CreateTable {
 
     pub fn foreign_keys<const N: usize>(mut self, foreign_keys: [ForeignKey; N]) -> Self {
         self.foreign_keys.extend(foreign_keys);
+        self
+    }
+
+    pub fn primary<const N: usize>(mut self, columns: [&str; N]) -> Self {
+        self.primary_key = Some(columns.into_iter().map(str::to_owned).collect());
         self
     }
 
@@ -270,6 +286,20 @@ impl CreateTable {
                         "decimal column `{}` has invalid precision or scale",
                         column.name
                     )));
+                }
+            }
+        }
+        if let Some(primary_key) = &self.primary_key {
+            if primary_key.is_empty() {
+                return Err(error("a composite primary key must contain at least one column"));
+            }
+            if self.columns.iter().any(|column| column.primary) {
+                return Err(error("column and table primary keys cannot be combined"));
+            }
+            for column in primary_key {
+                validate_identifier("primary key column", column)?;
+                if !self.columns.iter().any(|item| item.name == *column) {
+                    return Err(error(format!("primary key references unknown column `{column}`")));
                 }
             }
         }
@@ -325,6 +355,7 @@ impl Table {
             columns: Vec::new(),
             indexes: Vec::new(),
             foreign_keys: Vec::new(),
+            primary_key: None,
         }
     }
 }
