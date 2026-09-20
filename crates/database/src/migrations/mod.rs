@@ -2,7 +2,7 @@ mod compiler;
 mod operations;
 mod schema;
 
-pub use compiler::{compile_create, compile_indexes};
+pub use compiler::{compile_alter, compile_create, compile_indexes, compile_table_operation};
 pub use operations::{AlterOperation, AlterTable, TableOperation};
 pub use schema::{Column, ColumnType, CreateTable, ForeignAction, ForeignKey, Index, Table};
 
