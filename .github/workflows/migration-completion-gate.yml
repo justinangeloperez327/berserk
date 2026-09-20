@@ -1,0 +1,41 @@
+name: Migration completion gate
+
+on:
+  push:
+    branches: [work/1.1-migrations-complete]
+    paths:
+      - ".migration-format-ready"
+
+permissions:
+  contents: write
+
+jobs:
+  validate-format-promote:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: work/1.1-migrations-complete
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: "1.88"
+          components: rustfmt, clippy
+      - name: Format workspace before promotion
+        run: cargo fmt --all
+      - name: Verify formatting
+        run: cargo fmt --all -- --check
+      - name: Check workspace
+        run: cargo check --locked --workspace
+      - name: Test workspace
+        run: cargo test --locked --workspace
+      - name: Commit formatter output
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          if ! git diff --cached --quiet; then
+            git commit -m "style(1.1): format migration completion work"
+          fi
+      - name: Promote formatted code
+        run: git push origin HEAD:release/1.1-migrations-complete
