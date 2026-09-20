@@ -43,7 +43,7 @@ PostgreSQL 14 and older are not part of the current support contract. PostgreSQL
 
 MySQL versions other than 8.4 LTS, including MySQL 8.0 and 9.x/other later lines, are not claimed as supported until they are added to the live-database matrix. MariaDB is not claimed as MySQL-compatible for the current baseline.
 
-The SQLite feature uses `rusqlite` with its `bundled` feature. Berserk therefore supports the SQLite library compiled by that dependency; compatibility with an arbitrary system-installed SQLite library is not part of the v0.9.0 contract.
+The SQLite feature uses `rusqlite` with its `bundled` feature. Berserk therefore supports the SQLite library compiled by that dependency; compatibility with an arbitrary system-installed SQLite library is not part of the v1.0.0 contract.
 
 ## What CI enforces
 
