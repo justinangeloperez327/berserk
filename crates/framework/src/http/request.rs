@@ -137,6 +137,62 @@ impl Request {
         Ok(self.database_scope.connection()?)
     }
 
+    /// Return the configured application cache.
+    #[cfg(feature = "cache")]
+    pub fn cache(&self) -> crate::Result<std::sync::Arc<dyn berserk_cache::Cache>> {
+        self.state::<std::sync::Arc<dyn berserk_cache::Cache>>()
+            .cloned()
+            .ok_or_else(|| {
+                crate::ConfigError::new("cache", "cache service is not configured").into()
+            })
+    }
+
+    /// Return the configured application object storage.
+    #[cfg(feature = "storage")]
+    pub fn storage(&self) -> crate::Result<std::sync::Arc<dyn berserk_storage::Storage>> {
+        self.state::<std::sync::Arc<dyn berserk_storage::Storage>>()
+            .cloned()
+            .ok_or_else(|| {
+                crate::ConfigError::new("storage", "storage service is not configured").into()
+            })
+    }
+
+    /// Return the configured synchronous event bus.
+    #[cfg(feature = "events")]
+    pub fn events(&self) -> crate::Result<std::sync::Arc<berserk_events::EventBus>> {
+        self.state::<std::sync::Arc<berserk_events::EventBus>>()
+            .cloned()
+            .ok_or_else(|| crate::ConfigError::new("events", "event bus is not configured").into())
+    }
+
+    /// Return the configured application job queue.
+    #[cfg(feature = "jobs")]
+    pub fn jobs(&self) -> crate::Result<berserk_jobs::JobQueue> {
+        self.state::<berserk_jobs::JobQueue>()
+            .cloned()
+            .ok_or_else(|| crate::ConfigError::new("jobs", "job queue is not configured").into())
+    }
+
+    /// Return the configured outbound HTTP client.
+    #[cfg(feature = "client")]
+    pub fn http_client(&self) -> crate::Result<std::sync::Arc<dyn berserk_client::HttpClient>> {
+        self.state::<std::sync::Arc<dyn berserk_client::HttpClient>>()
+            .cloned()
+            .ok_or_else(|| {
+                crate::ConfigError::new("client", "HTTP client is not configured").into()
+            })
+    }
+
+    /// Return the configured application notification dispatcher.
+    #[cfg(feature = "notifications")]
+    pub fn notifications(&self) -> crate::Result<std::sync::Arc<berserk_notifications::Notifier>> {
+        self.state::<std::sync::Arc<berserk_notifications::Notifier>>()
+            .cloned()
+            .ok_or_else(|| {
+                crate::ConfigError::new("notifications", "notifier is not configured").into()
+            })
+    }
+
     #[cfg(feature = "database")]
     pub(crate) fn database_scope(&self) -> std::sync::Arc<berserk_database::scope::DatabaseScope> {
         self.database_scope.clone()

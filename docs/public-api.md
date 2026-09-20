@@ -1,8 +1,8 @@
 # Public API contract
 
-The [v0.3.0 developer-experience guide](v0.3.0.md) documents the current Berserk pre-1.0 API, building on the typed FormRequest, scoped Claw, async-action, and resource foundations introduced in v0.2.0.
+The [v0.5.0 application-services guide](v0.5.0.md) documents the current Berserk pre-1.0 API, building on the authentication/security work in v0.4.0 and the developer-experience baseline from v0.3.0.
 
-Status: v0.3.0 pre-1.0 API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
+Status: v0.5.0 pre-1.0 API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
 
 ## Application
 
@@ -17,6 +17,21 @@ Status: v0.3.0 pre-1.0 API. The API may still change before the first stable rel
 - Feature-gated subsystems such as database access are registered explicitly on the application rather than discovered from folders.
 
 Berserk keeps application assembly instance-based. No global router, controller registry, folder convention, or macro is required.
+
+## Application services
+
+Optional application services are registered explicitly on the application instance and are available only behind their matching Cargo features.
+
+- `App::cache(...)` / `Request::cache()`
+- `App::storage(...)` / `Request::storage()`
+- `App::events(...)` / `Request::events()`
+- `App::jobs(...)` / `Request::jobs()`
+- `App::http_client(...)` / `Request::http_client()`
+- `App::notifications(...)` / `Request::notifications()`
+
+Registration is one service per service class. Duplicate registration returns a configuration error. Service construction and worker/transport lifecycles remain application responsibilities.
+
+The generic `App::state`, `Request::state`, and `Request::shared` APIs remain the extension mechanism for custom services.
 
 ## Routing
 

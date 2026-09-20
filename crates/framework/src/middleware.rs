@@ -135,7 +135,7 @@ impl ConfiguredAuth {
         }
     }
 
-    fn guard(&self) -> &(dyn berserk_auth::Guard) {
+    fn guard(&self) -> &dyn berserk_auth::Guard {
         self.guard.as_ref()
     }
 }

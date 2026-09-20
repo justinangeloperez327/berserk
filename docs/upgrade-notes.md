@@ -1,5 +1,26 @@
 # Upgrade notes
 
+## v0.4.0 → v0.5.0
+
+v0.5.0 adds explicit application-service registration without replacing generic typed state.
+
+| Before | v0.5.0 |
+| --- | --- |
+| `app.state(cache)?` plus manual typed retrieval | `app.cache(cache)?` and `request.cache()?` |
+| Manual storage state wiring | `app.storage(storage)?` and `request.storage()?` |
+| Manual event-bus state wiring | `app.events(events)?` and `request.events()?` |
+| Manual job-queue state wiring | `app.jobs(queue)?` and `request.jobs()?` |
+| Manual outbound-client state wiring | `app.http_client(client)?` and `request.http_client()?` |
+| Manual notifier state wiring | `app.notifications(notifier)?` and `request.notifications()?` |
+
+The generic state APIs remain supported, so custom services do not need to adopt a framework-specific container.
+
+## v0.3.0 → v0.4.0
+
+v0.4.0 introduces the authentication/security baseline. Configure a guard once with `app.auth(guard)?`, then use route scopes such as `.auth()`, `.guest()`, and `.can("posts.update")`. Controllers can use `request.user()`, `request.can(...)`, and typed policy authorization.
+
+CORS and security headers are explicit middleware. HSTS remains opt-in and deployment-specific. Browser cookie authentication and CSRF policy are not first-class framework features in v0.4.0.
+
 ## v0.2.0 → v0.3.0
 
 v0.3.0 focuses on developer experience while preserving Berserk's instance-based application architecture, request-scoped state, Claw ORM model, and sync-first design.
