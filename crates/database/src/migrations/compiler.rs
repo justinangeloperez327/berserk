@@ -1,6 +1,6 @@
 use super::{
     AlterOperation, AlterTable, Column, ColumnDefault, ColumnType, CreateTable, ForeignAction,
-    TableOperation,
+    RebuildTable, TableOperation,
 };
 use crate::{DatabaseError, Driver, ErrorKind, Result, Statement, Value};
 
@@ -464,6 +464,55 @@ pub fn compile_alter(table: &AlterTable, driver: Driver) -> Result<Vec<Statement
         }
     }
 
+    Ok(statements)
+}
+
+
+pub fn compile_rebuild(rebuild: &RebuildTable, driver: Driver) -> Result<Vec<Statement>> {
+    rebuild.validate()?;
+    if !matches!(driver, Driver::Sqlite) {
+        return Err(error("table rebuild migrations are only supported for SQLite"));
+    }
+
+    let temporary_name = format!("__br_{}", rebuild.name);
+    let mut temporary = rebuild.replacement.clone();
+    temporary.name = temporary_name.clone();
+    temporary.indexes.clear();
+
+    let mut statements = vec![compile_create(&temporary, driver)?];
+    let source_columns = rebuild
+        .copy
+        .iter()
+        .map(|(from, _)| quote_identifier(from, driver))
+        .collect::<Result<Vec<_>>>()?
+        .join(", ");
+    let target_columns = rebuild
+        .copy
+        .iter()
+        .map(|(_, to)| quote_identifier(to, driver))
+        .collect::<Result<Vec<_>>>()?
+        .join(", ");
+
+    statements.push(Statement::new(format!(
+        "INSERT INTO {} ({target_columns}) SELECT {source_columns} FROM {}",
+        quote_identifier(&temporary_name, driver)?,
+        quote_identifier(&rebuild.name, driver)?
+    )));
+    statements.push(compile_table_operation(
+        &TableOperation::Drop {
+            name: rebuild.name.clone(),
+            if_exists: false,
+        },
+        driver,
+    )?);
+    statements.push(compile_table_operation(
+        &TableOperation::Rename {
+            from: temporary_name,
+            to: rebuild.name.clone(),
+        },
+        driver,
+    )?);
+    statements.extend(compile_indexes(&rebuild.replacement, driver)?);
     Ok(statements)
 }
 
