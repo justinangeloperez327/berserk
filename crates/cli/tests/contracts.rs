@@ -44,6 +44,28 @@ fn command_parser_supports_laravel_style_and_spaced_forms() {
 }
 
 #[test]
+fn generated_project_targets_the_cli_release_and_minimum_rust_version() {
+    let temporary = TemporaryDirectory::new();
+    let generator = Generator::at(temporary.path()).unwrap();
+    generator
+        .new_project(std::path::Path::new("versioned-api"))
+        .unwrap();
+    let manifest = fs::read_to_string(temporary.path().join("versioned-api/Cargo.toml")).unwrap();
+
+    assert!(manifest.lines().any(|line| {
+        line == format!(
+            "berserk = {{ version = \"{}\", features = [\"claw\"] }}",
+            env!("CARGO_PKG_VERSION")
+        )
+    }));
+    assert!(manifest
+        .lines()
+        .any(|line| { line == format!("rust-version = \"{}\"", env!("CARGO_PKG_RUST_VERSION")) }));
+    // The consumer's own version is independent of its framework dependency.
+    assert!(manifest.lines().any(|line| line == "version = \"0.1.0\""));
+}
+
+#[test]
 fn project_and_model_generation_refuse_overwrites() {
     let temporary = TemporaryDirectory::new();
     let generator = Generator::at(temporary.path()).unwrap();
