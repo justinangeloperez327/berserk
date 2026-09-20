@@ -2,7 +2,7 @@
 
 The [v1.0.0 release guide](v1.0.0.md) documents the current stable Berserk API, building on the v0.9.0 stabilization baseline.
 
-Status: v1.0.0 stable public API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
+Status: v1.0.0 stable public API. Breaking public API changes require a new major release; compatibility-affecting changes must be documented in the changelog and upgrade notes.
 
 ## Stabilization boundary
 
@@ -10,7 +10,7 @@ v1.0.0 is the stable API baseline. New application code should use the APIs docu
 
 The default prelude contains application framework primitives. General support helpers `Arr` and `Str` remain available through explicit root imports and are intentionally not part of `berserk::prelude::*`.
 
-Request-scoped APIs are preferred over request-global facades: use `Request::user`, `Request::can`, and `Request::authorize` in new code. Route registration through `app.route()` is the preferred style.
+Request-scoped APIs are preferred over request-global facades: use `Request::user`, `Request::can`, and `Request::authorize` in new code. Route registration through `app.route()` is the stable application API.
 
 ## Application
 
