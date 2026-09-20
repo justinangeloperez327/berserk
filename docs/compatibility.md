@@ -2,9 +2,9 @@
 
 ## Current status
 
-Berserk v0.9.0 is the current pre-1.0 stabilization baseline. Rust 1.88 is the minimum supported Rust version (MSRV). CI and release workflows define the tested feature, platform, and database combinations; the support matrix is documented in [support-policy.md](support-policy.md).
+Berserk v1.0.0 is the current stable baseline. Rust 1.88 is the minimum supported Rust version (MSRV). CI and release workflows define the tested feature, platform, and database combinations; the support matrix is documented in [support-policy.md](support-policy.md).
 
-Public APIs may still change before 1.0, but v0.9 starts the 1.0 stabilization window. New aliases and convenience surfaces should be avoided unless they solve a concrete gap. Compatibility-affecting changes must be documented rather than introduced silently.
+The 1.0 public API is stable under semantic versioning. Breaking public API changes require a new major release. New aliases and convenience surfaces should still be avoided unless they solve a concrete gap. Compatibility-affecting changes must be documented rather than introduced silently.
 
 ## Versioning policy
 
