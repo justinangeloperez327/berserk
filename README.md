@@ -188,6 +188,12 @@ berserk make:request CreateUserRequest
 berserk make:middleware Audit
 berserk make:resource UserResource
 berserk make:policy UserPolicy
+berserk make:migration create_users_table
+berserk migrate
+berserk migrate --dry-run
+berserk migrate:status
+berserk migrate:rollback
+berserk migrate:reset
 ```
 
 The generated application remains explicit: controllers, models, requests, middleware, configuration, and routes are ordinary Rust modules.
@@ -196,7 +202,7 @@ The generated application remains explicit: controllers, models, requests, middl
 
 Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
 
-See [docs/public-api.md](docs/public-api.md) for the current API contract and [docs/v1.0.0.md](docs/v1.0.0.md) for v1.0.0 details.
+See [docs/public-api.md](docs/public-api.md) for the current API contract, [docs/migrations.md](docs/migrations.md) for the migration DSL, and [docs/v1.0.0.md](docs/v1.0.0.md) for v1.0.0 details.
 
 ## Workspace
 

@@ -1,3 +1,15 @@
+mod compiler;
+mod operations;
+mod plan;
+mod schema;
+
+pub use compiler::{compile_alter, compile_create, compile_indexes, compile_table_operation};
+pub use operations::{AlterOperation, AlterTable, TableOperation};
+pub use plan::{MigrationOperation, MigrationPlan};
+pub use schema::{
+    Column, ColumnDefault, ColumnType, CreateTable, ForeignAction, ForeignKey, Index, Table,
+};
+
 use crate::{
     Connection, DatabaseError, Direction, Driver, ErrorKind, Query, Result, Row, Statement, Value,
 };
@@ -14,6 +26,12 @@ pub trait Migration {
 pub struct AppliedMigration {
     pub name: String,
     pub batch: u64,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct PlannedMigration {
+    pub name: String,
+    pub statements: Vec<Statement>,
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -70,6 +88,27 @@ impl<'a> MigrationRunner<'a> {
             .filter(|migration| !applied.iter().any(|item| item.name == migration.name()))
             .map(|migration| migration.name())
             .collect())
+    }
+
+    pub fn plan(&self, connection: &mut dyn Connection) -> Result<Vec<PlannedMigration>> {
+        let applied = self.applied(connection)?;
+        let driver = connection.driver();
+        self.migrations
+            .iter()
+            .filter(|migration| !applied.iter().any(|item| item.name == migration.name()))
+            .map(|migration| {
+                let statements = migration.up(driver)?;
+                if statements.is_empty() {
+                    return Err(error(
+                        "a migration direction must contain at least one statement",
+                    ));
+                }
+                Ok(PlannedMigration {
+                    name: migration.name().into(),
+                    statements,
+                })
+            })
+            .collect()
     }
 
     pub fn migrate(&self, connection: &mut dyn Connection) -> Result<MigrationReport> {

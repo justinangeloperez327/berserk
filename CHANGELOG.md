@@ -4,7 +4,21 @@ Berserk follows the spirit of Keep a Changelog. Versioning and compatibility pol
 
 ## Unreleased
 
-No documented changes after v1.0.0.
+### Added
+
+- Driver-neutral migration DSL with `Table`, `Column`, indexes, foreign keys, composite primary keys, and explicit table alteration operations.
+- PostgreSQL, MySQL, and SQLite migration SQL compilation with explicit portability errors for unsupported operations.
+- `MigrationPlan` for composing schema operations into the existing `Migration` contract without breaking the v1.0 trait.
+- Migration generator output using the typed DSL for conventional `create_*_table` migrations.
+- Migration DSL, compiler, constraint, alteration, and plan test coverage.
+- Portable `CURRENT_TIMESTAMP` column defaults, dry-run planning, and migration reset command support.
+- Portable identifier validation and duplicate composite-key/index constraint checks.
+
+### Changed
+
+- Migration generation now favors typed schema definitions over handwritten SQL for conventional create-table migrations.
+
+See `docs/migrations.md`.
 
 ## 1.0.0
 

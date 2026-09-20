@@ -34,6 +34,14 @@ fn command_parser_supports_laravel_style_and_spaced_forms() {
         }
     );
     assert_eq!(
+        Command::parse(["migrate", "--dry-run"]).unwrap(),
+        Command::Migrate(MigrationCommand::DryRun)
+    );
+    assert_eq!(
+        Command::parse(["migrate:reset"]).unwrap(),
+        Command::Migrate(MigrationCommand::Reset)
+    );
+    assert_eq!(
         Command::parse(["migrate:rollback"]).unwrap(),
         Command::Migrate(MigrationCommand::Rollback)
     );
@@ -111,9 +119,12 @@ fn migration_template_matches_database_contract_and_commands_delegate() {
     )
     .unwrap();
     let generator = Generator::at(temporary.path()).unwrap();
-    let files = generator.make_migration("create_users").unwrap();
+    let files = generator.make_migration("create_users_table").unwrap();
     let source = fs::read_to_string(&files[0].path).unwrap();
-    assert!(source.contains("fn up(&self, _driver: Driver) -> Result<Vec<Statement>>"));
+    assert!(source.contains("MigrationPlan::new()"));
+    assert!(source.contains("Table::create(\"users\")"));
+    assert!(source.contains("Column::timestamp(\"created_at\")"));
+    assert!(source.contains("Table::drop(\"users\")"));
     assert_eq!(
         execute(
             Command::Migrate(MigrationCommand::Status),
@@ -149,6 +160,8 @@ impl MigrationExecutor for MigrationFake {
             MigrationCommand::Up => "up",
             MigrationCommand::Rollback => "rollback",
             MigrationCommand::Status => "status",
+            MigrationCommand::DryRun => "dry-run",
+            MigrationCommand::Reset => "reset",
         }
         .into())
     }
