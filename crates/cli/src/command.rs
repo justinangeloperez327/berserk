@@ -21,6 +21,7 @@ pub enum MigrationCommand {
     Up,
     Rollback,
     Status,
+    DryRun,
 }
 
 impl Command {
@@ -86,7 +87,16 @@ impl Command {
                     }
                 }
             }
-            "migrate" => Self::Migrate(MigrationCommand::Up),
+            "migrate" => match arguments.next().as_deref() {
+                None => Self::Migrate(MigrationCommand::Up),
+                Some("--dry-run") => Self::Migrate(MigrationCommand::DryRun),
+                Some(_) => {
+                    return Err(CliError::new(
+                        ErrorKind::Usage,
+                        "usage: berserk migrate [--dry-run]",
+                    ))
+                }
+            },
             "migrate:rollback" => Self::Migrate(MigrationCommand::Rollback),
             "migrate:status" => Self::Migrate(MigrationCommand::Status),
             _ => {
@@ -105,7 +115,7 @@ impl Command {
         Ok(parsed)
     }
     pub const fn help() -> &'static str {
-        "berserk commands:\n  new <path>\n  serve\n  make:controller <Name>\n  make:request <Name>\n  make:middleware <Name>\n  make:resource <Name>\n  make:policy <Name>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate:rollback\n  migrate:status"
+        "berserk commands:\n  new <path>\n  serve\n  make:controller <Name>\n  make:request <Name>\n  make:middleware <Name>\n  make:resource <Name>\n  make:policy <Name>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate --dry-run\n  migrate:rollback\n  migrate:status"
     }
 }
 fn one(arguments: &mut impl Iterator<Item = String>, usage: &str) -> Result<String> {
