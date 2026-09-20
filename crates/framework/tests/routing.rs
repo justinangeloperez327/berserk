@@ -28,14 +28,16 @@ fn typed_update(id: u64, req: Request) -> Response {
 fn named_inline_and_fallible_handlers_work() {
     let mut app = App::new();
     app.route().get("/users/{id}", named).unwrap();
-    app.route().post("/users/{key}", |req: Request| {
-        Response::text(req.param("key").unwrap())
-    })
-    .unwrap();
-    app.route().get("/fail", || -> Result<Response> {
-        Err(HttpError::InvalidTarget.into())
-    })
-    .unwrap();
+    app.route()
+        .post("/users/{key}", |req: Request| {
+            Response::text(req.param("key").unwrap())
+        })
+        .unwrap();
+    app.route()
+        .get("/fail", || -> Result<Response> {
+            Err(HttpError::InvalidTarget.into())
+        })
+        .unwrap();
     assert_eq!(
         app.handle(request("GET", "/users/a%2Fb?q=1"))
             .unwrap()
@@ -107,11 +109,15 @@ fn precedence_is_independent_of_order_and_precedes_method_selection() {
     for reversed in [false, true] {
         let mut app = App::new();
         if reversed {
-            app.route().post("/users/new", || Response::text("static")).unwrap();
+            app.route()
+                .post("/users/new", || Response::text("static"))
+                .unwrap();
         }
         app.route().get("/users/{id}", named).unwrap();
         if !reversed {
-            app.route().post("/users/new", || Response::text("static")).unwrap();
+            app.route()
+                .post("/users/new", || Response::text("static"))
+                .unwrap();
         }
         let response = app.handle(request("GET", "/users/new")).unwrap();
         assert_eq!(response.status_code(), 405);
@@ -122,12 +128,14 @@ fn precedence_is_independent_of_order_and_precedes_method_selection() {
         );
     }
     let mut app = App::new();
-    app.route().get("/{x}/fixed", |_req: Request| Response::text("later static"))
+    app.route()
+        .get("/{x}/fixed", |_req: Request| Response::text("later static"))
         .unwrap();
-    app.route().get("/fixed/{x}", |_req: Request| {
-        Response::text("earlier static")
-    })
-    .unwrap();
+    app.route()
+        .get("/fixed/{x}", |_req: Request| {
+            Response::text("earlier static")
+        })
+        .unwrap();
     assert_eq!(
         app.handle(request("GET", "/fixed/fixed")).unwrap().body(),
         b"earlier static"
@@ -205,7 +213,8 @@ fn head_uses_get_and_suppresses_bodies() {
 fn parameters_require_nonempty_segments_and_invalid_responses_propagate() {
     let mut app = App::new();
     app.route().get("/p/{id}", named).unwrap();
-    app.route().get("/bad", || Response::text("invalid").status(204))
+    app.route()
+        .get("/bad", || Response::text("invalid").status(204))
         .unwrap();
     assert_eq!(
         app.handle(request("GET", "/p/")).unwrap().status_code(),
@@ -223,11 +232,12 @@ fn app_accepts_thread_safe_captures_and_concurrent_dispatch() {
     let counter = berserk::State::new(std::sync::atomic::AtomicUsize::new(0));
     let captured = counter.clone();
     let mut app = App::new();
-    app.route().get("/", move || {
-        captured.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-        Response::empty()
-    })
-    .unwrap();
+    app.route()
+        .get("/", move || {
+            captured.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Response::empty()
+        })
+        .unwrap();
     let app = std::sync::Arc::new(app);
     let threads: Vec<_> = (0..4)
         .map(|_| {
