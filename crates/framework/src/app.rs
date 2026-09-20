@@ -109,8 +109,6 @@ impl App {
         }
         Ok(response)
     }
-
-
 }
 
 #[cfg(feature = "server")]
