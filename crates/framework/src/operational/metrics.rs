@@ -23,6 +23,21 @@ pub struct MetricsSnapshot {
     pub duration_us: u64,
 }
 
+impl MetricsSnapshot {
+    pub fn completed(&self) -> u64 {
+        self.requests.saturating_sub(self.active)
+    }
+
+    pub fn average_duration_us(&self) -> Option<u64> {
+        let completed = self.completed();
+        (completed > 0).then(|| self.duration_us / completed)
+    }
+
+    pub fn healthy(&self) -> bool {
+        self.failures == 0
+    }
+}
+
 impl Metrics {
     pub fn snapshot(&self) -> MetricsSnapshot {
         MetricsSnapshot {

@@ -1,8 +1,8 @@
 # Public API contract
 
-The [v0.7.0 testing guide](v0.7.0.md) documents the current Berserk pre-1.0 API, building on the authentication/security work in v0.4.0 and the developer-experience baseline from v0.3.0.
+The [v0.8.0 operations guide](v0.8.0.md) documents the current Berserk pre-1.0 API, building on the authentication/security work in v0.4.0 and the developer-experience baseline from v0.3.0.
 
-Status: v0.7.0 pre-1.0 API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
+Status: v0.8.0 pre-1.0 API. The API may still change before the first stable release; compatibility-affecting changes should be documented in the changelog and upgrade notes.
 
 ## Application
 
@@ -123,6 +123,14 @@ HTTP framing metadata remains transport-owned where required. Invalid response m
 Middleware composes through `Middleware` and `Next`. The framework also exposes optional/common operational helpers for request IDs, authentication extraction, request logging, tracing, metrics, health checks, and rate limiting.
 
 These components are explicit layers. Applications remain responsible for choosing which layers protect which routes and for selecting deployment-specific policies such as proxy trust, authentication requirements, and rate limits.
+
+Operational inspection includes:
+
+- `HealthRegistry::snapshot()` returning `HealthSnapshot` and `HealthCheckResult`;
+- `MetricsSnapshot::completed()`, `average_duration_us()`, and `healthy()`;
+- `MemoryLogSink::events()`, `take()`, and `clear()`;
+- `TraceContext::flags()` and `sampled()`.
+
 
 ## Testing
 

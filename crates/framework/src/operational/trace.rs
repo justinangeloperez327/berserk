@@ -48,6 +48,14 @@ impl TraceContext {
     pub fn parent_id(&self) -> &str {
         &self.parent_id
     }
+    pub fn flags(&self) -> &str {
+        &self.flags
+    }
+    pub fn sampled(&self) -> bool {
+        u8::from_str_radix(&self.flags, 16)
+            .map(|flags| flags & 1 == 1)
+            .unwrap_or(false)
+    }
     pub fn traceparent(&self) -> String {
         format!("00-{}-{}-{}", self.trace_id, self.parent_id, self.flags)
     }

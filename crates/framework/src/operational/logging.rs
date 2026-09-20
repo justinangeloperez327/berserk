@@ -47,6 +47,19 @@ impl MemoryLogSink {
             .map(|events| events.clone())
             .unwrap_or_default()
     }
+
+    pub fn take(&self) -> Vec<LogEvent> {
+        self.0
+            .lock()
+            .map(|mut events| std::mem::take(&mut *events))
+            .unwrap_or_default()
+    }
+
+    pub fn clear(&self) {
+        if let Ok(mut events) = self.0.lock() {
+            events.clear();
+        }
+    }
 }
 impl LogSink for MemoryLogSink {
     fn emit(&self, event: LogEvent) {

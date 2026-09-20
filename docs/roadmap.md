@@ -1,6 +1,6 @@
 # Berserk roadmap
 
-Berserk v0.7.0 is the current testing baseline. Development now moves toward production operations and stabilization.
+Berserk v0.8.0 is the current production-operations baseline. Development now moves toward stabilization and the 1.0 candidate surface.
 
 ## Completed
 
@@ -32,11 +32,11 @@ Expanded bound query predicates and model shortcuts, plus a complete migration r
 
 Expanded in-memory HTTP assertions and direct response inspection, plus richer event, job, and outbound HTTP test probes.
 
-## Planned
-
 ### v0.8.0 — Observability and production
 
-Improve logging, tracing, metrics, health/readiness behavior, operational configuration, deployment guidance, and production hardening.
+Added programmatic readiness snapshots, operational metrics summaries, drainable in-memory logs, trace sampling inspection, and clearer deployment boundaries.
+
+## Planned
 
 ### v0.9.0 — Stabilization
 

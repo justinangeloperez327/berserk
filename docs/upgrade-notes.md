@@ -1,5 +1,13 @@
 # Upgrade notes
 
+## v0.7.0 → v0.8.0
+
+v0.8.0 is additive. Existing operational middleware continues to work.
+
+Applications that previously parsed readiness HTTP JSON for internal decisions can use `HealthRegistry::snapshot()` directly. Metrics users can calculate common summaries through `MetricsSnapshot`, while raw counters remain public. Trace consumers can inspect sampling state through `TraceContext::sampled()`.
+
+No deployment trust assumptions were added: TLS termination and trusted-proxy configuration remain external/application decisions.
+
 ## v0.6.0 → v0.7.0
 
 v0.7.0 is additive for production applications. Test suites can adopt richer response assertions incrementally:
