@@ -1,3 +1,7 @@
+mod schema;
+
+pub use schema::{Column, ColumnType, CreateTable, Table};
+
 use crate::{
     Connection, DatabaseError, Direction, Driver, ErrorKind, Query, Result, Row, Statement, Value,
 };
