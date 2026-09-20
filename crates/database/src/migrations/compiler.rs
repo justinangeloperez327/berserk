@@ -72,10 +72,16 @@ pub fn compile_create(table: &CreateTable, driver: Driver) -> Result<Statement> 
         definitions.push(definition);
     }
     let columns = definitions.join(", ");
-    Ok(Statement::new(format!(
+    let mut sql = format!(
         "CREATE TABLE {} ({columns})",
         quote_identifier(table.name(), driver)?
-    )))
+    );
+    if matches!(driver, Driver::MySql) {
+        if let Some(comment) = &table.comment {
+            sql.push_str(&format!(" COMMENT='{}'", comment.replace('\'', "''")));
+        }
+    }
+    Ok(Statement::new(sql))
 }
 
 fn compile_column(column: &Column, driver: Driver) -> Result<String> {
@@ -96,6 +102,27 @@ fn compile_column(column: &Column, driver: Driver) -> Result<String> {
     if let Some(default) = &column.default {
         sql.push_str(" DEFAULT ");
         sql.push_str(&compile_default(default)?);
+    }
+    if let Some(expression) = &column.generated {
+        sql.push_str(" GENERATED ALWAYS AS (");
+        sql.push_str(expression);
+        sql.push_str(") STORED");
+    }
+    if let ColumnType::Enum(values) = &column.kind {
+        let values = values
+            .iter()
+            .map(|value| format!("'{}'", value.replace('\'', "''")))
+            .collect::<Vec<_>>()
+            .join(", ");
+        sql.push_str(&format!(
+            " CHECK ({} IN ({values}))",
+            quote_identifier(column.name(), driver)?
+        ));
+    }
+    if matches!(driver, Driver::MySql) {
+        if let Some(comment) = &column.comment {
+            sql.push_str(&format!(" COMMENT '{}'", comment.replace('\'', "''")));
+        }
     }
     Ok(sql)
 }
@@ -160,8 +187,44 @@ fn compile_type(column: &Column, driver: Driver) -> Result<String> {
             Driver::MySql => "CHAR(36)".into(),
             Driver::Sqlite => "TEXT".into(),
         },
+        ColumnType::Enum(_) => "VARCHAR(255)".into(),
+        ColumnType::Custom(sql_type) => sql_type.clone(),
     };
     Ok(sql)
+}
+
+
+pub fn compile_comments(table: &CreateTable, driver: Driver) -> Result<Vec<Statement>> {
+    let has_comments = table.comment.is_some()
+        || table
+            .column_definitions()
+            .iter()
+            .any(|column| column.comment.is_some());
+    if !has_comments || matches!(driver, Driver::MySql) {
+        return Ok(Vec::new());
+    }
+    if matches!(driver, Driver::Sqlite) {
+        return Err(error("SQLite does not support table or column comments"));
+    }
+
+    let table_name = quote_identifier(table.name(), driver)?;
+    let mut statements = Vec::new();
+    if let Some(comment) = &table.comment {
+        statements.push(Statement::new(format!(
+            "COMMENT ON TABLE {table_name} IS '{}'",
+            comment.replace('\'', "''")
+        )));
+    }
+    for column in table.column_definitions() {
+        if let Some(comment) = &column.comment {
+            statements.push(Statement::new(format!(
+                "COMMENT ON COLUMN {table_name}.{} IS '{}'",
+                quote_identifier(column.name(), driver)?,
+                comment.replace('\'', "''")
+            )));
+        }
+    }
+    Ok(statements)
 }
 
 pub fn compile_indexes(table: &CreateTable, driver: Driver) -> Result<Vec<Statement>> {
