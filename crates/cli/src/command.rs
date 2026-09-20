@@ -22,6 +22,7 @@ pub enum MigrationCommand {
     Rollback,
     Status,
     DryRun,
+    Reset,
 }
 
 impl Command {
@@ -99,6 +100,7 @@ impl Command {
             },
             "migrate:rollback" => Self::Migrate(MigrationCommand::Rollback),
             "migrate:status" => Self::Migrate(MigrationCommand::Status),
+            "migrate:reset" => Self::Migrate(MigrationCommand::Reset),
             _ => {
                 return Err(CliError::new(
                     ErrorKind::Usage,
@@ -115,7 +117,7 @@ impl Command {
         Ok(parsed)
     }
     pub const fn help() -> &'static str {
-        "berserk commands:\n  new <path>\n  serve\n  make:controller <Name>\n  make:request <Name>\n  make:middleware <Name>\n  make:resource <Name>\n  make:policy <Name>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate --dry-run\n  migrate:rollback\n  migrate:status"
+        "berserk commands:\n  new <path>\n  serve\n  make:controller <Name>\n  make:request <Name>\n  make:middleware <Name>\n  make:resource <Name>\n  make:policy <Name>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate --dry-run\n  migrate:rollback\n  migrate:reset\n  migrate:status"
     }
 }
 fn one(arguments: &mut impl Iterator<Item = String>, usage: &str) -> Result<String> {
