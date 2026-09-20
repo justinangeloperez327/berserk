@@ -14,7 +14,6 @@ pub enum AlterOperation {
     RenameIndex { from: String, to: String },
     SetDefault { column: String, default: ColumnDefault },
     DropDefault(String),
-    SetNullable { column: String, nullable: bool },
     AddCheck(Check),
     DropCheck(String),
     AddUnique(Unique),
@@ -112,14 +111,6 @@ impl AlterTable {
         self
     }
 
-    pub fn set_nullable(mut self, column: impl Into<String>, nullable: bool) -> Self {
-        self.operations.push(AlterOperation::SetNullable {
-            column: column.into(),
-            nullable,
-        });
-        self
-    }
-
     pub fn add_check(mut self, check: Check) -> Self {
         self.operations.push(AlterOperation::AddCheck(check));
         self
@@ -198,8 +189,7 @@ impl AlterTable {
                     }
                 }
                 AlterOperation::SetDefault { column, .. }
-                | AlterOperation::DropDefault(column)
-                | AlterOperation::SetNullable { column, .. } => {
+                | AlterOperation::DropDefault(column) => {
                     validate_identifier("column", column)?;
                 }
                 AlterOperation::AddCheck(check) => {
