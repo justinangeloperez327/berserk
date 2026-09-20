@@ -20,6 +20,8 @@ pub enum ColumnType {
     Json,
     Binary,
     Uuid,
+    Enum(Vec<String>),
+    Custom(String),
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -36,6 +38,8 @@ pub struct Column {
     pub(crate) unique: bool,
     pub(crate) primary: bool,
     pub(crate) default: Option<ColumnDefault>,
+    pub(crate) generated: Option<String>,
+    pub(crate) comment: Option<String>,
 }
 
 impl Column {
@@ -47,6 +51,8 @@ impl Column {
             unique: false,
             primary: false,
             default: None,
+            generated: None,
+            comment: None,
         }
     }
 
@@ -125,6 +131,21 @@ impl Column {
         Self::new(name, ColumnType::Uuid)
     }
 
+    pub fn enum_<I, S>(name: impl Into<String>, values: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        Self::new(
+            name,
+            ColumnType::Enum(values.into_iter().map(Into::into).collect()),
+        )
+    }
+
+    pub fn custom(name: impl Into<String>, sql_type: impl Into<String>) -> Self {
+        Self::new(name, ColumnType::Custom(sql_type.into()))
+    }
+
     pub fn length(mut self, length: u32) -> Self {
         if matches!(self.kind, ColumnType::String(_)) {
             self.kind = ColumnType::String(Some(length));
@@ -154,6 +175,16 @@ impl Column {
 
     pub fn default_current_timestamp(mut self) -> Self {
         self.default = Some(ColumnDefault::CurrentTimestamp);
+        self
+    }
+
+    pub fn generated_stored(mut self, expression: impl Into<String>) -> Self {
+        self.generated = Some(expression.into());
+        self
+    }
+
+    pub fn comment(mut self, comment: impl Into<String>) -> Self {
+        self.comment = Some(comment.into());
         self
     }
 
@@ -293,9 +324,15 @@ pub struct CreateTable {
     pub(crate) primary_key: Option<Vec<String>>,
     pub(crate) checks: Vec<Check>,
     pub(crate) uniques: Vec<Unique>,
+    pub(crate) comment: Option<String>,
 }
 
 impl CreateTable {
+    pub fn comment(mut self, comment: impl Into<String>) -> Self {
+        self.comment = Some(comment.into());
+        self
+    }
+
     pub fn columns<const N: usize>(mut self, columns: [Column; N]) -> Self {
         self.columns.extend(columns);
         self
@@ -352,6 +389,34 @@ impl CreateTable {
                         column.name
                     )));
                 }
+            }
+            if let ColumnType::Enum(values) = &column.kind {
+                if values.is_empty() || values.iter().any(|value| value.is_empty()) {
+                    return Err(error(format!(
+                        "enum column `{}` must contain non-empty values",
+                        column.name
+                    )));
+                }
+            }
+            if let ColumnType::Custom(sql_type) = &column.kind {
+                if sql_type.trim().is_empty() {
+                    return Err(error(format!(
+                        "custom column `{}` must declare a SQL type",
+                        column.name
+                    )));
+                }
+            }
+            if column.generated.as_ref().is_some_and(|value| value.trim().is_empty()) {
+                return Err(error(format!(
+                    "generated column `{}` must contain an expression",
+                    column.name
+                )));
+            }
+            if column.generated.is_some() && column.default.is_some() {
+                return Err(error(format!(
+                    "generated column `{}` cannot also declare a default",
+                    column.name
+                )));
             }
         }
         if let Some(primary_key) = &self.primary_key {
@@ -487,6 +552,7 @@ impl Table {
             primary_key: None,
             checks: Vec::new(),
             uniques: Vec::new(),
+            comment: None,
         }
     }
 }
