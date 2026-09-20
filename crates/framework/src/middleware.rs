@@ -283,6 +283,12 @@ mod auth_tests {
                         .with_abilities(["posts.update"])
                         .unwrap(),
                 )),
+                "read-only" => Ok(Some(
+                    Principal::new("user:2")
+                        .unwrap()
+                        .with_abilities(["posts.read"])
+                        .unwrap(),
+                )),
                 "expired" => Err(AuthError::new(ErrorKind::ExpiredToken, "private detail")),
                 "store-error" => Err(AuthError::new(ErrorKind::Store, "private detail")),
                 _ => Ok(None),
@@ -296,6 +302,53 @@ mod auth_tests {
             headers.append("Authorization", value).unwrap();
         }
         Request::new(Method::new("GET").unwrap(), path, headers, vec![]).unwrap()
+    }
+
+    #[test]
+    fn configured_auth_keeps_route_definitions_concise() {
+        let mut app = App::new();
+        app.auth(TestGuard).unwrap();
+        assert!(app.auth(TestGuard).is_err());
+
+        app.route()
+            .auth()
+            .get("/profile", |req: Request| {
+                Response::text(req.user().unwrap().subject())
+            })
+            .unwrap();
+        app.route()
+            .guest()
+            .get("/login", || Response::text("guest"))
+            .unwrap();
+        app.route()
+            .can("posts.update")
+            .unwrap()
+            .get("/posts/1", || Response::text("allowed"))
+            .unwrap();
+
+        assert_eq!(app.respond(request("/profile", &[])).status_code(), 401);
+        assert_eq!(
+            app.respond(request("/profile", &["Bearer accepted"]))
+                .body(),
+            b"user:1"
+        );
+        assert_eq!(app.respond(request("/login", &[])).status_code(), 200);
+        assert_eq!(
+            app.respond(request("/login", &["Bearer accepted"]))
+                .status_code(),
+            403
+        );
+        assert_eq!(
+            app.respond(request("/posts/1", &["Bearer accepted"]))
+                .status_code(),
+            200
+        );
+        assert_eq!(
+            app.respond(request("/posts/1", &["Bearer read-only"]))
+                .status_code(),
+            403
+        );
+        assert!(app.route().can("bad ability").is_err());
     }
 
     #[test]
