@@ -41,7 +41,6 @@ fn sqlite_create_table_is_compiled() {
     );
 }
 
-
 #[test]
 fn current_timestamp_default_is_portable() {
     for driver in [Driver::Postgres, Driver::MySql, Driver::Sqlite] {
