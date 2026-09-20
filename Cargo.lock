@@ -75,7 +75,7 @@ checksum = "2af50177e190e07a26ab74f8b1efbfe2ef87da2116221318cb1c2e82baf7de06"
 
 [[package]]
 name = "berserk"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "berserk-auth",
  "berserk-cache",
@@ -101,7 +101,7 @@ dependencies = [
 
 [[package]]
 name = "berserk-auth"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "argon2",
  "rand_core 0.6.4",
@@ -111,30 +111,30 @@ dependencies = [
 
 [[package]]
 name = "berserk-benchmarks"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "berserk",
 ]
 
 [[package]]
 name = "berserk-cache"
-version = "0.6.0"
+version = "0.7.0"
 
 [[package]]
 name = "berserk-cli"
-version = "0.6.0"
+version = "0.7.0"
 
 [[package]]
 name = "berserk-client"
-version = "0.6.0"
+version = "0.7.0"
 
 [[package]]
 name = "berserk-core"
-version = "0.6.0"
+version = "0.7.0"
 
 [[package]]
 name = "berserk-database"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "mysql",
  "postgres",
@@ -144,22 +144,22 @@ dependencies = [
 
 [[package]]
 name = "berserk-events"
-version = "0.6.0"
+version = "0.7.0"
 
 [[package]]
 name = "berserk-jobs"
-version = "0.6.0"
+version = "0.7.0"
 
 [[package]]
 name = "berserk-notifications"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "berserk-client",
 ]
 
 [[package]]
 name = "berserk-openapi"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "serde",
  "serde_json",
@@ -167,14 +167,14 @@ dependencies = [
 
 [[package]]
 name = "berserk-storage"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "rand_core 0.6.4",
 ]
 
 [[package]]
 name = "berserk-testing"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "berserk",
  "berserk-client",
@@ -185,7 +185,7 @@ dependencies = [
 
 [[package]]
 name = "berserk-validation"
-version = "0.6.0"
+version = "0.7.0"
 
 [[package]]
 name = "bitflags"
@@ -282,7 +282,7 @@ dependencies = [
 
 [[package]]
 name = "claw-orm"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "berserk-database",
 ]
@@ -464,7 +464,7 @@ dependencies = [
 
 [[package]]
 name = "foundation-example"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "berserk",
 ]
