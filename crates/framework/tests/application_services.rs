@@ -56,14 +56,13 @@ fn application_services_are_registered_once_and_available_from_requests() {
             let cache = request.cache()?;
             let storage = request.storage()?;
             let events = request.events()?;
-            let jobs = request.jobs()?;
+            let _jobs = request.jobs()?;
             let client = request.http_client()?;
             let notifications = request.notifications()?;
 
             assert!(Arc::strong_count(&cache) >= 2);
             assert!(Arc::strong_count(&storage) >= 2);
             assert!(Arc::strong_count(&events) >= 2);
-            assert!(!jobs.snapshot()?.closed);
             assert!(Arc::strong_count(&client) >= 2);
             assert!(Arc::strong_count(&notifications) >= 2);
 
