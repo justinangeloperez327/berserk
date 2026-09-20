@@ -16,7 +16,7 @@ macro_rules! relationship {
                 connection: &mut dyn Connection,
                 models: &[M],
             ) -> Result<Self::Output> {
-                self.load(connection, models)
+                self.load_on(connection, models)
             }
         }
     };
