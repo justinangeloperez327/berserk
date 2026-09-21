@@ -42,6 +42,10 @@ pub use berserk_openapi as openapi;
 pub use berserk_storage as storage;
 #[cfg(feature = "claw")]
 pub use claw_orm as claw;
+#[cfg(feature = "claw")]
+pub use claw_orm::Model;
+#[cfg(feature = "claw")]
+pub use berserk_macros::Model;
 
 #[cfg(feature = "database")]
 pub use http::RequestConnection;

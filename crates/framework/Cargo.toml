@@ -15,7 +15,7 @@ default = ["server"]
 server = ["dep:bytes", "dep:http", "dep:http-body-util", "dep:hyper", "dep:hyper-util", "dep:tokio"]
 async = ["dep:tokio"]
 database = ["dep:berserk-database"]
-claw = ["database", "dep:claw-orm"]
+claw = ["database", "dep:claw-orm", "dep:berserk-macros"]
 postgres = ["database", "berserk-database/postgres"]
 mysql = ["database", "berserk-database/mysql"]
 sqlite = ["database", "berserk-database/sqlite"]
@@ -32,6 +32,7 @@ cli = ["dep:berserk-cli"]
 
 [dependencies]
 berserk-core.workspace = true
+berserk-macros = { workspace = true, optional = true }
 berserk-validation = { path = "../validation", version = "=1.0.0" }
 berserk-database = { workspace = true, optional = true }
 claw-orm = { workspace = true, optional = true }

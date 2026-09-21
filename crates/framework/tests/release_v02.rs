@@ -272,7 +272,7 @@ fn async_actions_keep_scope_across_awaits_and_isolate_concurrent_requests() -> R
             assert_eq!(User::count()?, 3);
             let inherited = tokio::spawn(async { User::count() }).await.unwrap();
             assert!(inherited.is_err());
-            berserk::response().resource(user)
+            berserk::response().resource(berserk::Resource::new(user))
         })?;
     let app = Arc::new(app);
     let runtime = tokio::runtime::Builder::new_current_thread()
