@@ -130,7 +130,11 @@ impl<C, R: Model> BelongsTo<C, R> {
         }
     }
 
-    pub fn load_on(&self, connection: &mut dyn Connection, children: &[C]) -> Result<RelatedSet<R>> {
+    pub fn load_on(
+        &self,
+        connection: &mut dyn Connection,
+        children: &[C],
+    ) -> Result<RelatedSet<R>> {
         let keys = unique_non_null(children.iter().filter_map(self.child_key));
         if keys.is_empty() {
             return Ok(RelatedSet::default());
