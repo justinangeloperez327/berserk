@@ -49,6 +49,8 @@ pub use eager::{
     named_belongs_to, EagerQuery, IntoEager, Loaded, LoadedPage, NamedEagerQuery, NamedRelation,
     NamedRelations, RelationCardinality, Relationship,
 };
+#[doc(hidden)]
+pub use eager::{NamedEager, TypedEager};
 pub use writes::{IntoInsert, IntoUpdate};
 
 /// Run a synchronous unit of work using the active connection and transaction.
