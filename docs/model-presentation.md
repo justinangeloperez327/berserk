@@ -57,6 +57,20 @@ This generates typed descriptor methods such as `User::posts()` and
 `User::roles()`. Declaring a relationship does not lazy-load or serialize it
 automatically; querying and eager loading remain explicit Claw operations.
 
+For Laravel-style eager loading, use the declared relationship names:
+
+```rust
+let users = User::query()
+    .with(["posts", "roles"])
+    .get()?;
+```
+
+The returned loaded collection keeps the parent models and named relation data
+together. Berserk's JSON and Axe adapters render the requested relations inside
+each parent object. `User::query().with([]).get()?` is valid and loads no
+relationships. Typed eager loading with `with(User::posts())` remains available
+when code needs concrete related Rust model values.
+
 Struct field types still determine decoding and database-value conversion.
 Mapped values therefore need the same capabilities as manual models: decoding
 through Claw, cloning for presentation, and conversion into `Value`. The
