@@ -1,7 +1,10 @@
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::collections::BTreeSet;
-use syn::{parse::{Parse, ParseStream}, Attribute, Ident, LitStr, Token, Type};
+use syn::{
+    parse::{Parse, ParseStream},
+    Attribute, Ident, LitStr, Token, Type,
+};
 
 #[derive(Clone, Copy)]
 enum RelationKind {
