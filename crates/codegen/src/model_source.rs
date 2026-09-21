@@ -166,10 +166,7 @@ pub fn model_source(spec: &ModelSpec) -> syn::Result<String> {
         syn::parse_str::<syn::Type>(field.rust_type()).map_err(|_| {
             syn::Error::new(
                 proc_macro2::Span::call_site(),
-                format!(
-                    "field '{}' must use a valid Rust type",
-                    field.name()
-                ),
+                format!("field '{}' must use a valid Rust type", field.name()),
             )
         })?;
         if spec.fields[..index]
@@ -208,10 +205,7 @@ pub fn model_source(spec: &ModelSpec) -> syn::Result<String> {
             source.push_str("    #[hidden]\n");
         }
         if field.column_name() != field.name() {
-            source.push_str(&format!(
-                "    #[column(\"{}\")]\n",
-                field.column_name()
-            ));
+            source.push_str(&format!("    #[column(\"{}\")]\n", field.column_name()));
         }
         source.push_str(&format!(
             "    pub {}: {},\n",
@@ -243,7 +237,11 @@ mod tests {
         let source = model_source(
             &ModelSpec::new("User")
                 .field(FieldSpec::string("name").fillable())
-                .field(FieldSpec::string("email").fillable().column("email_address"))
+                .field(
+                    FieldSpec::string("email")
+                        .fillable()
+                        .column("email_address"),
+                )
                 .field(FieldSpec::string("password").fillable().hidden()),
         )
         .unwrap();
@@ -257,9 +255,7 @@ mod tests {
     #[test]
     fn invalid_models_are_rejected() {
         assert!(model_source(&ModelSpec::new("user")).is_err());
-        assert!(
-            model_source(&ModelSpec::new("User").field(FieldSpec::string("id"))).is_err()
-        );
+        assert!(model_source(&ModelSpec::new("User").field(FieldSpec::string("id"))).is_err());
         assert!(
             model_source(&ModelSpec::new("User").field(FieldSpec::new("name", "not a type")))
                 .is_err()
