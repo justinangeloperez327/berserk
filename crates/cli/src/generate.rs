@@ -88,8 +88,14 @@ impl Generator {
             }];
             for (path, source) in [
                 ("src/main.rs", include_str!("../templates/main.rs.stub")),
-                ("src/config/mod.rs", include_str!("../templates/config.rs.stub")),
-                ("src/app/routes.rs", include_str!("../templates/routes.rs.stub")),
+                (
+                    "src/config/mod.rs",
+                    include_str!("../templates/config.rs.stub"),
+                ),
+                (
+                    "src/app/routes.rs",
+                    include_str!("../templates/routes.rs.stub"),
+                ),
             ] {
                 let path = target.join(path);
                 write_new(&path, source.as_bytes())?;
@@ -121,7 +127,11 @@ impl Generator {
         result
     }
     pub fn make_model(&self, name: &str) -> Result<Vec<GeneratedFile>> {
-        self.make_type(name, "app/models", include_str!("../templates/model.rs.stub"))
+        self.make_type(
+            name,
+            "app/models",
+            include_str!("../templates/model.rs.stub"),
+        )
     }
     pub fn make_controller(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.make_type(
