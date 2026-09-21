@@ -23,11 +23,31 @@ pub fn redirect(location: &str) -> Result<Response> {
 }
 
 #[cfg(feature = "view")]
-pub fn view<D, Kind>(view: &str, data: D) -> Result<Response>
-where
-    D: crate::views::ViewData<Kind>,
-{
-    Response::view::<D, Kind>(view, data)
+#[derive(Clone, Copy, Debug)]
+#[must_use]
+pub struct ViewBuilder<'a> {
+    view: &'a str,
+}
+
+#[cfg(feature = "view")]
+pub fn view(view: &str) -> ViewBuilder<'_> {
+    ViewBuilder { view }
+}
+
+#[cfg(feature = "view")]
+impl ViewBuilder<'_> {
+    /// Render this view with explicit data.
+    pub fn with<D, Kind>(self, data: D) -> Result<Response>
+    where
+        D: crate::views::ViewData<Kind>,
+    {
+        Response::view::<D, Kind>(self.view, data)
+    }
+
+    /// Render this view without application data.
+    pub fn render(self) -> Result<Response> {
+        Response::view(self.view, crate::axe::Context::new())
+    }
 }
 
 impl ResponseFactory {

@@ -90,7 +90,7 @@ use berserk::{response, view, Response, Result};
 
 pub fn index() -> Result<Response> {
     let users = User::all()?;
-    view("users/index", [("users", users)])
+    view("users/index").with([("users", users)])
 }
 
 pub fn show(user: User) -> Result<Response> {
@@ -98,12 +98,14 @@ pub fn show(user: User) -> Result<Response> {
 }
 ```
 
-`Response::view(...)` and `response().view(...)` accept the same data. For mixed
-types, use Berserk's `view_data!["users" => users, "title" => "Users"]`.
-Models and collections may also be borrowed. Berserk's `view_object!` supports
-the same conversion in nested objects. Only the explicitly named data enters
-the view. The default template location is `app/views` relative to the working
-directory.
+The free helper is fluent: `view("users/index").with(data)`. Use
+`view("users/index").render()` for a template that needs no application data.
+`Response::view(...)` and `response().view(...)` retain their direct
+`(view, data)` form. For mixed types, use Berserk's
+`view_data!["users" => users, "title" => "Users"]`. Models and collections may
+also be borrowed. Berserk's `view_object!` supports the same conversion in
+nested objects. Only the explicitly named data enters the view. The default
+template location is `app/views` relative to the working directory.
 
 ```html
 <h1>Users</h1>

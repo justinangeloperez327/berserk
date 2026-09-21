@@ -131,7 +131,7 @@ pub struct Users;
 impl Users {
     pub fn browse() -> Result<Response> {
         let users = User::all()?;
-        view("users/index", [("users", users)])
+        view("users/index").with([("users", users)])
     }
 
     pub fn index() -> Result<Response> {

@@ -92,7 +92,7 @@ pub use operational::{
 
 mod responses;
 #[cfg(feature = "view")]
-pub use responses::view;
+pub use responses::{view, ViewBuilder};
 pub use responses::{redirect, response, ResponseFactory};
 #[cfg(feature = "auth")]
 mod authorization;

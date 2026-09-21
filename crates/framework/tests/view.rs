@@ -36,9 +36,21 @@ fn response_view_resolves_named_template_and_only_receives_explicit_data() {
 fn view_helper_uses_named_template() {
     let path = write_view("__axe_tests/helper", "<p>{{ message }}</p>");
 
-    let response = view("__axe_tests/helper", view_data!["message" => "Hello"]).unwrap();
+    let response = view("__axe_tests/helper")
+        .with(view_data!["message" => "Hello"])
+        .unwrap();
 
     assert_eq!(response.body(), b"<p>Hello</p>");
+    let _ = std::fs::remove_file(path);
+}
+
+#[test]
+fn view_helper_can_render_without_data() {
+    let path = write_view("__axe_tests/empty", "<p>Static</p>");
+
+    let response = view("__axe_tests/empty").render().unwrap();
+
+    assert_eq!(response.body(), b"<p>Static</p>");
     let _ = std::fs::remove_file(path);
 }
 
