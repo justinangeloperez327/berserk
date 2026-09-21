@@ -23,7 +23,7 @@ fn malformed_and_unknown_tokens_fail_without_exposing_input() {
         format!("bst_{}", "é".repeat(32)),
         format!("bst_{}", "a".repeat(1_000_000)),
         format!("{well_formed}\n"),
-        format!("Bearer {}", well_formed),
+        format!("Bearer {well_formed}"),
         well_formed,
     ];
     for input in inputs {
