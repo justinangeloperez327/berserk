@@ -107,6 +107,8 @@ Validated controller input follows one fixed order:
 3. call `validate()`;
 4. deliver `Validated<T>` only after validation succeeds.
 
+`FormRequest` adds request-aware authorization and validation. Its order is decode → sanitize → authorize → validate → request-aware validation → action. Authorization runs before semantic validation so a denied request does not receive validation details.
+
 Malformed JSON/query input returns a controlled 400-class response. Validation failures return 422 with structured field errors. Multipart parsing does not write files or trust client filenames; applications decide how accepted bytes are stored.
 
 ## Headers and responses
