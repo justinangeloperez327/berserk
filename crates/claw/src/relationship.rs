@@ -3,6 +3,8 @@ use berserk_database::{Connection, DatabaseError, ErrorKind, Result, Value};
 use std::marker::PhantomData;
 
 /// Eager-loaded related records grouped by their linking key.
+/// `len` counts populated groups, not models; absent keys return `None`.
+/// Signed and unsigned representations of the same nonnegative integer match.
 #[derive(Clone, Debug, PartialEq)]
 pub struct RelatedSet<M> {
     groups: Vec<(Value, Vec<M>)>,
@@ -47,6 +49,7 @@ impl<M> RelatedSet<M> {
     }
 }
 
+/// Children grouped by their foreign key. Key accessors stay explicit; no reflection.
 pub struct HasMany<P, R> {
     foreign_key: &'static str,
     parent_key: fn(&P) -> Value,
@@ -97,6 +100,8 @@ impl<P, R: Model> HasMany<P, R> {
     }
 }
 
+/// Zero or one child per key. Batch loading returns [`RelatedSet`] for 1.x compatibility
+/// and reports [`ErrorKind::Decode`] if a key has more than one child.
 pub struct HasOne<P, R> {
     inner: HasMany<P, R>,
 }
@@ -137,6 +142,7 @@ impl<P, R: Model> HasOne<P, R> {
     }
 }
 
+/// Owners grouped by their owner key. Missing/NULL child keys are skipped when loading.
 pub struct BelongsTo<C, R> {
     owner_key: &'static str,
     child_key: fn(&C) -> Option<Value>,

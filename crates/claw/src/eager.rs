@@ -3,6 +3,8 @@ use crate::{
     Result,
 };
 
+/// A batch loader used by [`ModelQuery::with`]. Tuples compose independent loaders.
+/// Implementations receive the complete parent set (or just the current page).
 pub trait Relationship<M: Model> {
     type Output;
     fn load_on(&self, connection: &mut dyn Connection, models: &[M]) -> Result<Self::Output>;
@@ -34,14 +36,18 @@ impl<M: Model, A: Relationship<M>, B: Relationship<M>> Relationship<M> for (A, B
         Ok((self.0.load_on(c, models)?, self.1.load_on(c, models)?))
     }
 }
+/// Parent models and their separately owned, eagerly loaded relationship output.
 pub struct Loaded<M, R> {
     pub models: Vec<M>,
     pub relations: R,
 }
+/// A parent page and relationships loaded only for that page's items.
 pub struct LoadedPage<M, R> {
     pub page: Page<M>,
     pub relations: R,
 }
+/// Explicit eager-loading execution for a normal [`ModelQuery`].
+/// Each `with` appends a relationship; repeated calls produce nested tuple outputs.
 pub struct EagerQuery<M, R> {
     pub(crate) query: ModelQuery<M>,
     pub(crate) relations: R,

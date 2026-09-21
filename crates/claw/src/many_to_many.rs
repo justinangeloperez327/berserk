@@ -12,6 +12,8 @@ pub use pivot::SyncResult;
 ///
 /// The relation batches parent keys into one pivot query and related keys into
 /// one model query, avoiding an N+1 query per parent.
+/// Duplicate pivot rows are preserved. The related key accessor must return the
+/// value of `R::PRIMARY_KEY`; a database UNIQUE constraint controls link uniqueness.
 pub struct BelongsToMany<P, R> {
     pivot_table: &'static str,
     foreign_pivot_key: &'static str,

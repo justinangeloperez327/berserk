@@ -20,3 +20,7 @@ mysql = ["berserk-database/mysql"]
 
 [dev-dependencies]
 berserk-database = { workspace = true, features = ["sqlite"] }
+
+[[example]]
+name = "relationships"
+required-features = ["sqlite"]
