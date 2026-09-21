@@ -3,8 +3,9 @@ use berserk_database::{Connection, DatabaseError, ErrorKind, Execution, Result, 
 
 /// Opt-in persistence contract for models that can serialize their fields back to the database.
 ///
-/// `Model` is intentionally read-oriented. Implement this trait only when a model has an explicit
-/// mapping from Rust fields to database columns. The primary key must not be included in
+/// `Model` already supports typed create/update/delete. Implement this specialized
+/// contract when saving an existing instance needs an explicit write mapping,
+/// independent of its presentation attributes. The primary key must not be included in
 /// `values_for_save`; `save` always uses it as the update filter.
 pub trait PersistableModel: Model {
     /// Return the non-primary-key columns that should be written by `save`.

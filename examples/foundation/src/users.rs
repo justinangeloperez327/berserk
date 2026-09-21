@@ -1,7 +1,7 @@
 use berserk::{
-    claw::{field, IntoInsert, IntoUpdate, Model, Row, Transaction, Value},
-    response, ApiResource, Error, FormRequest, FromJson, IntoResponse, Json, Request,
-    ResourceCollection, Response, Result, ValidationErrors, ValidationResult,
+    claw::{model_fields, IntoInsert, IntoUpdate, Model, Transaction, Value},
+    response, view, Error, FormRequest, FromJson, IntoResponse, Json, Request, ResourceCollection,
+    Response, Result, ValidationErrors, ValidationResult,
 };
 
 pub struct User {
@@ -12,41 +12,14 @@ pub struct User {
 impl Model for User {
     const TABLE: &'static str = "users";
     const FILLABLE: &'static [&'static str] = &["name", "email"];
-    fn from_row(row: &Row) -> berserk::database::Result<Self> {
-        Ok(Self {
-            id: field(row, "id")?,
-            name: field(row, "name")?,
-            email: field(row, "email")?,
-        })
-    }
+    model_fields! { id, name, email }
     fn key(&self) -> Value {
         self.id.into()
-    }
-    fn attributes(&self) -> std::collections::BTreeMap<String, Value> {
-        [
-            ("id".into(), self.id.into()),
-            ("name".into(), self.name.clone().into()),
-            ("email".into(), self.email.clone().into()),
-        ]
-        .into()
     }
     fn parse_route_key(value: &str) -> Option<Value> {
         value.parse::<i64>().ok().map(Into::into)
     }
 }
-impl ApiResource for User {
-    fn to_resource(&self) -> Json {
-        Json::Object(
-            [
-                ("id".into(), self.id.into()),
-                ("name".into(), self.name.clone().into()),
-                ("email".into(), self.email.clone().into()),
-            ]
-            .into(),
-        )
-    }
-}
-
 pub struct UserInput {
     name: String,
     email: String,
@@ -109,6 +82,11 @@ impl IntoUpdate<User> for UserInput {
 
 pub struct Users;
 impl Users {
+    pub fn browse() -> Result<Response> {
+        let users = User::all()?;
+        view("users/index", [("users", users)])
+    }
+
     pub fn index() -> Result<Response> {
         ResourceCollection::page(
             User::query()

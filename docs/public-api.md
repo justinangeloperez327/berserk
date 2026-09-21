@@ -128,6 +128,18 @@ Responses provide:
 
 HTTP framing metadata remains transport-owned where required. Invalid response metadata is not emitted verbatim to the peer, and public failures avoid leaking internal diagnostic details.
 
+### Model and view output
+
+With `claw`, the response factory accepts ordinary models and model collections
+through their visible attributes: `response().json(user)` and
+`response().collection(users)` need no `ApiResource` implementation. Custom
+resources remain supported. With `view`, `view(...)`, `Response::view(...)`,
+and `response().view(...)` render Axe templates. Enable both features to pass
+models directly using `[("users", users)]` or Berserk's `view_data!` macro.
+
+See [model presentation](model-presentation.md) for the field mapping helper,
+visibility contract, pagination, custom resources, and compatibility decisions.
+
 ## Middleware and operational APIs
 
 Middleware composes through `Middleware` and `Next`. The framework also exposes optional/common operational helpers for request IDs, authentication extraction, request logging, tracing, metrics, health checks, and rate limiting.

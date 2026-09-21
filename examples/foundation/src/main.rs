@@ -15,6 +15,7 @@ fn application(database: Database) -> Result<App> {
         })
         .group(|routes| {
             routes.get("/users", users::Users::index)?;
+            routes.get("/users/browse", users::Users::browse)?;
             routes.post("/users", users::Users::store)?;
             routes.get("/users/{id}", users::Users::show)?;
             routes.put("/users/{id}", users::Users::update)?;

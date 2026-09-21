@@ -128,6 +128,13 @@ Operational accounting is also corrected for the stable baseline: request logs p
 
 ## Stable consumers
 
+The current model presentation integration is documented in
+[model presentation](model-presentation.md). Generated models use `model_fields!`
+and no longer repeat `ApiResource`. Legacy types implementing both contracts
+must explicitly choose their custom resource representation with `Resource`.
+Model-to-Axe conversion now belongs to Berserk; use its view helpers/macros for
+model data. Existing manual mappings and specialized persistence remain valid.
+
 Berserk v1.0.0 is the stable API baseline. Applications consuming git/path snapshots should still treat the documented API for the selected commit or release as the source of truth rather than examples copied from older commits.
 
 Rust 1.88 remains the MSRV for the current baseline. Review [compatibility.md](compatibility.md), [known-limitations.md](known-limitations.md), and [v1.0.0.md](v1.0.0.md) before upgrading.

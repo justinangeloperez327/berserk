@@ -127,3 +127,9 @@ impl From<Vec<u8>> for Value {
         Self::Bytes(value)
     }
 }
+
+impl<T: Into<Value>> From<Option<T>> for Value {
+    fn from(value: Option<T>) -> Self {
+        value.map_or(Self::Null, Into::into)
+    }
+}

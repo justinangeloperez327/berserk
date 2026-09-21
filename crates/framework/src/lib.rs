@@ -22,8 +22,6 @@ pub use support::{Arr, Str};
 pub use berserk_auth as auth;
 #[cfg(feature = "view")]
 pub use berserk_axe as axe;
-#[cfg(feature = "view")]
-pub use berserk_axe::{view_data, view_object};
 #[cfg(feature = "cache")]
 pub use berserk_cache as cache;
 #[cfg(feature = "cli")]
@@ -74,6 +72,12 @@ pub mod multipart;
 
 mod resource;
 pub use resource::{ApiResource, Resource, ResourceCollection};
+
+#[doc(hidden)]
+pub mod presentation;
+#[cfg(feature = "view")]
+#[doc(hidden)]
+pub mod views;
 
 pub mod operational;
 pub use operational::{
