@@ -177,7 +177,7 @@ impl<M: claw_orm::Model> ResponseData<BorrowedNamedRecords>
 {
     fn response_data(&self) -> Result<Json> {
         <claw_orm::Loaded<M, claw_orm::NamedRelations> as ResponseData<NamedRecords>>::response_data(
-            self,
+            *self,
         )
     }
 }
