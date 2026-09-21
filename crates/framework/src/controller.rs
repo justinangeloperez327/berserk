@@ -818,7 +818,6 @@ where
 #[cfg(feature = "async")]
 pub mod async_handlers;
 
-
 #[cfg(test)]
 mod state_injection_tests {
     use super::*;
