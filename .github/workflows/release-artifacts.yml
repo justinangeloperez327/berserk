@@ -40,7 +40,7 @@ jobs:
           python3 scripts/release_plan.py --format text
           python3 scripts/release_plan.py --format tsv --output /tmp/release-packages.tsv
           python3 scripts/release_plan.py --format json --output /tmp/release-plan.json
-          test "$(wc -l < /tmp/release-packages.tsv)" -eq 17
+          test "$(wc -l < /tmp/release-packages.tsv)" -eq 18
 
       - name: Build pre-publication release evidence
         shell: bash
@@ -54,7 +54,7 @@ jobs:
             test -s "release-artifacts/package-files/${package}-${version}.txt"
           done < /tmp/release-packages.tsv
 
-          test "$(find release-artifacts/package-files -maxdepth 1 -name '*.txt' -type f | wc -l)" -eq 17
+          test "$(find release-artifacts/package-files -maxdepth 1 -name '*.txt' -type f | wc -l)" -eq 18
 
           git archive --format=tar --prefix="berserk-${GITHUB_SHA}/" HEAD \
             | gzip -n > "release-artifacts/berserk-source-${GITHUB_SHA}.tar.gz"
@@ -110,7 +110,7 @@ jobs:
             -print0 \
             | LC_ALL=C sort -z \
             | xargs -0 sha256sum > SHA256SUMS
-          test "$(wc -l < SHA256SUMS)" -eq 19
+          test "$(wc -l < SHA256SUMS)" -eq 20
           sha256sum -c SHA256SUMS
 
       - name: Generate GitHub build provenance

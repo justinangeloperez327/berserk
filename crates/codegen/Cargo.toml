@@ -1,5 +1,5 @@
 [package]
-name = "berserk-macros"
+name = "berserk-codegen"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -7,12 +7,10 @@ license.workspace = true
 authors.workspace = true
 repository.workspace = true
 readme.workspace = true
-description = "Compile-time derives for Berserk application code."
+description = "Reusable parsing and Rust code generation for Berserk."
 publish = true
 
-[lib]
-proc-macro = true
-
 [dependencies]
-berserk-codegen.workspace = true
 proc-macro2 = "1"
+quote = "1"
+syn = { version = "2", features = ["full"] }

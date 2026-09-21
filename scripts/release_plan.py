@@ -16,6 +16,7 @@ from typing import Any
 
 EXPECTED_PACKAGES = [
     "berserk-core",
+    "berserk-codegen",
     "berserk-macros",
     "berserk-validation",
     "berserk-database",

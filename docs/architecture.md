@@ -6,7 +6,8 @@ All packages live under `crates/` with short folder names:
 
 - `framework`: main import, App assembly, HTTP, routing, handlers, middleware, server, logging, health, metrics, trace propagation, and rate limiting.
 - `core`: small shared foundations, state, configuration utilities, lifecycle contracts, core errors.
-- `macros`: compile-time Berserk application derives, including the ergonomic `Model` derive; it contains no runtime framework state.
+- `codegen`: reusable parsing, validation, and Rust token generation for Berserk application syntax; it is a normal library with no runtime framework state.
+- `macros`: thin procedural-macro entry points such as `#[derive(Model)]`; parsing and token emission are delegated to `codegen`.
 - `database`: execution interfaces, lexical request/job scope, query builder, migrations, and driver contracts.
 - `claw`: typed models, guarded input conversions, relationships, eager loading, and pagination.
 - `axe`: HTML templates, view values, escaping, and rendering; no database or ORM dependency.
@@ -45,7 +46,7 @@ Avoid introducing an interface for every concrete type. A trait is justified whe
 
 ## Dependency direction
 
-The main framework assembles components. Core must not depend on the main framework, HTTP implementation, or database drivers. Components use core only where needed; each owns its domain-specific errors. The `auth` and `openapi` crates do not depend on HTTP; the main framework adds their optional integrations. Re-exports and optional integrations must avoid circular dependencies. The testing package can depend on the framework without the framework depending on testing in production.
+The main framework assembles components. Core must not depend on the main framework, HTTP implementation, or database drivers. Components use core only where needed; each owns its domain-specific errors. `codegen` must not depend on Berserk runtime crates; it emits Rust paths without linking framework runtime behavior. `macros` may depend on `codegen`, while runtime crates must never depend on `macros` for their internal implementation. The `auth` and `openapi` crates do not depend on HTTP; the main framework adds their optional integrations. Re-exports and optional integrations must avoid circular dependencies. The testing package can depend on the framework without the framework depending on testing in production.
 
 ## Request execution
 
