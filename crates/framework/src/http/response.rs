@@ -61,11 +61,11 @@ impl Response {
     }
 
     #[cfg(feature = "view")]
-    pub fn view<D>(view: &str, data: D) -> crate::Result<Self>
+    pub fn view<D, Kind>(view: &str, data: D) -> crate::Result<Self>
     where
-        D: Into<berserk_axe::Context>,
+        D: crate::views::ViewData<Kind>,
     {
-        let context = data.into();
+        let context = data.into_view_data();
         Ok(Self::html(berserk_axe::render(view, &context)?))
     }
 

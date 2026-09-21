@@ -219,11 +219,14 @@ fn typed_eager_loading_pagination_and_binding() -> Result<()> {
             loaded.relations.get(&1_i64.into()).unwrap()[0].name,
             "Grace"
         );
-        ResourceCollection::page(User::query().paginate(1)?).into_response()
+        // This legacy model implements both Model and ApiResource; explicitly
+        // retain its custom API representation, including inside pagination.
+        ResourceCollection::page(User::query().paginate(1)?.map(berserk::Resource::new))
+            .into_response()
     })?;
     app.route()
         .get("/users/{id}", |user: User| -> Result<Response> {
-            berserk::response().resource(user)
+            berserk::response().resource(berserk::Resource::new(user))
         })?;
     assert_eq!(
         app.respond(request("GET", "/users/1", "")).status_code(),

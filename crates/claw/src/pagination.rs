@@ -44,12 +44,27 @@ impl<T> Page<T> {
         &self.items
     }
 
+    pub fn collection(&self) -> &Collection<T> {
+        &self.items
+    }
+
     pub fn into_items(self) -> Vec<T> {
         self.items.into_vec()
     }
 
     pub fn into_collection(self) -> Collection<T> {
         self.items
+    }
+
+    /// Transform an intentional representation while retaining pagination metadata.
+    pub fn map<U>(self, mapper: impl FnMut(T) -> U) -> Page<U> {
+        Page {
+            items: self.items.map(mapper),
+            page: self.page,
+            per_page: self.per_page,
+            total: self.total,
+            last_page: self.last_page,
+        }
     }
 
     pub const fn page(&self) -> u64 {

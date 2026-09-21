@@ -10,11 +10,9 @@ readme.workspace = true
 description = "HTML-first view engine for the Berserk Rust web framework."
 publish = true
 
-[dependencies]
-claw-orm = { workspace = true, optional = true }
-
 [features]
-claw = ["dep:claw-orm"]
+# Compatibility feature name; model conversion now belongs to Berserk.
+claw = []
 
 [lints]
 workspace = true

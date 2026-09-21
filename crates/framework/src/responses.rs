@@ -1,4 +1,6 @@
-use crate::{ApiResource, IntoResponse, Resource, ResourceCollection, Response, Result};
+use crate::{
+    presentation::ResponseData, IntoResponse, Resource, ResourceCollection, Response, Result,
+};
 
 /// Builds a response, preserving header errors until the response is completed.
 #[derive(Debug)]
@@ -21,11 +23,11 @@ pub fn redirect(location: &str) -> Result<Response> {
 }
 
 #[cfg(feature = "view")]
-pub fn view<D>(view: &str, data: D) -> Result<Response>
+pub fn view<D, Kind>(view: &str, data: D) -> Result<Response>
 where
-    D: Into<berserk_axe::Context>,
+    D: crate::views::ViewData<Kind>,
 {
-    Response::view(view, data)
+    Response::view::<D, Kind>(view, data)
 }
 
 impl ResponseFactory {
@@ -39,9 +41,10 @@ impl ResponseFactory {
         self
     }
 
-    /// Serializes explicit public resource mappings without adding a data envelope.
-    pub fn json(self, value: impl ApiResource) -> Result<Response> {
-        self.finish(Response::json(&value.to_resource())?)
+    /// Serializes a Claw model's visible attributes or an explicit API resource,
+    /// without adding a data envelope.
+    pub fn json<Kind>(self, value: impl ResponseData<Kind>) -> Result<Response> {
+        self.finish(Response::json(&value.response_data()?)?)
     }
 
     pub fn text(self, value: impl Into<String>) -> Result<Response> {
@@ -49,31 +52,34 @@ impl ResponseFactory {
     }
 
     #[cfg(feature = "view")]
-    pub fn view<D>(self, view: &str, data: D) -> Result<Response>
+    pub fn view<D, Kind>(self, view: &str, data: D) -> Result<Response>
     where
-        D: Into<berserk_axe::Context>,
+        D: crate::views::ViewData<Kind>,
     {
-        self.finish(Response::view(view, data)?)
+        self.finish(Response::view::<D, Kind>(view, data)?)
     }
 
     pub fn empty(self) -> Result<Response> {
         self.finish(Response::empty())
     }
 
-    pub fn created(self, value: impl ApiResource) -> Result<Response> {
-        self.finish(Response::created(&value.to_resource())?)
+    pub fn created<Kind>(self, value: impl ResponseData<Kind>) -> Result<Response> {
+        self.finish(Response::created(&value.response_data()?)?)
     }
 
     pub fn no_content(self) -> Result<Response> {
         self.finish(Response::no_content())
     }
 
-    pub fn resource<T: ApiResource>(self, value: T) -> Result<Response> {
-        self.finish(Resource::new(value).into_response()?)
+    pub fn resource<Kind>(self, value: impl ResponseData<Kind>) -> Result<Response> {
+        self.finish(Resource::new(value.response_data()?).into_response()?)
     }
 
-    pub fn collection<T: ApiResource>(self, values: Vec<T>) -> Result<Response> {
-        self.finish(ResourceCollection::new(values).into_response()?)
+    pub fn collection<T: ResponseData<Kind>, Kind>(
+        self,
+        values: impl IntoIterator<Item = T>,
+    ) -> Result<Response> {
+        self.finish(ResourceCollection::new::<Kind>(values).into_response()?)
     }
 
     /// Only same-origin absolute paths are accepted. Escape dynamic path segments first.

@@ -1,7 +1,7 @@
 use std::{
     iter::FromIterator,
     ops::{Deref, DerefMut},
-    slice,
+    slice::{self, SliceIndex},
 };
 
 /// Claw's typed model collection.
@@ -42,7 +42,7 @@ impl<T> Collection<T> {
         self.items.last()
     }
 
-    pub fn get(&self, index: usize) -> Option<&T> {
+    pub fn get<I: SliceIndex<[T]>>(&self, index: I) -> Option<&I::Output> {
         self.items.get(index)
     }
 

@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Users</title>
+</head>
+<body>
+    <h1>Users</h1>
+    @foreach(user in users)
+        <article>
+            <h2>{{ user.name }}</h2>
+            <p>{{ user.email }}</p>
+        </article>
+    @endforeach
+</body>
+</html>

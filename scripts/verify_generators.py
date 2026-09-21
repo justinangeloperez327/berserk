@@ -37,7 +37,7 @@ def main():
         dependency = (ROOT / "crates/framework").as_posix()
         manifest_text, replacements = re.subn(
             r"^berserk\s*=\s*.+$",
-            lambda _: f'berserk = {{ version = "{framework["version"]}", path = "{dependency}", features = ["claw", "auth"] }}',
+            lambda _: f'berserk = {{ version = "{framework["version"]}", path = "{dependency}", features = ["claw", "auth", "view"] }}',
             generated_text,
             flags=re.MULTILINE,
         )

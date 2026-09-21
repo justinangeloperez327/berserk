@@ -118,36 +118,3 @@ macro_rules! integer_value {
 }
 
 integer_value!(u8, u16, u32, u64, u128, usize, i8, i16, i32, i64, i128, isize);
-
-#[cfg(feature = "claw")]
-impl<T: claw_orm::Model> From<claw_orm::Collection<T>> for Value {
-    fn from(models: claw_orm::Collection<T>) -> Self {
-        Self::List(
-            models
-                .into_iter()
-                .map(|model| {
-                    Self::Object(
-                        model
-                            .visible_attributes()
-                            .into_iter()
-                            .map(|(name, value)| (name, database_value(value)))
-                            .collect(),
-                    )
-                })
-                .collect(),
-        )
-    }
-}
-
-#[cfg(feature = "claw")]
-fn database_value(value: claw_orm::Value) -> Value {
-    match value {
-        claw_orm::Value::Null => Value::Null,
-        claw_orm::Value::Bool(value) => Value::Bool(value),
-        claw_orm::Value::I64(value) => Value::Number(value.to_string()),
-        claw_orm::Value::U64(value) => Value::Number(value.to_string()),
-        claw_orm::Value::F64(value) => Value::Number(value.to_string()),
-        claw_orm::Value::Text(value) => Value::Text(value),
-        claw_orm::Value::Bytes(value) => Value::Bytes(value),
-    }
-}

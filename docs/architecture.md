@@ -8,6 +8,7 @@ All packages live under `crates/` with short folder names:
 - `core`: small shared foundations, state, configuration utilities, lifecycle contracts, core errors.
 - `database`: execution interfaces, lexical request/job scope, query builder, migrations, and driver contracts.
 - `claw`: typed models, guarded input conversions, relationships, eager loading, and pagination.
+- `axe`: HTML templates, view values, escaping, and rendering; no database or ORM dependency.
 - `auth`: identity providers, password verification, sessions, principals, gates, policies, and optional HTTP integration.
 - `openapi`: standalone schemas, operations, security definitions, validation, and OpenAPI 3.1 JSON generation.
 - `cache`: backend-neutral byte-value cache operations, expiration, namespaces, and the bounded memory backend.
@@ -46,6 +47,29 @@ Avoid introducing an interface for every concrete type. A trait is justified whe
 The main framework assembles components. Core must not depend on the main framework, HTTP implementation, or database drivers. Components use core only where needed; each owns its domain-specific errors. The `auth` and `openapi` crates do not depend on HTTP; the main framework adds their optional integrations. Re-exports and optional integrations must avoid circular dependencies. The testing package can depend on the framework without the framework depending on testing in production.
 
 ## Request execution
+
+### Model presentation
+
+`berserk::claw::Model` is the only ordinary model contract. Its attributes and
+explicit `HIDDEN` list define the default presentation. `model_fields!` can
+generate hydration and attributes from one field list inside `impl Model`;
+manual implementations remain supported. Visibility does not change `FILLABLE`
+or the specialized `PersistableModel` write mapping.
+
+Query result sets and eager-loaded parents use `Collection<T>`. `Page<T>` owns
+the same collection and retains its slice/vector accessors for compatibility.
+The main framework converts visible model attributes into JSON or Axe values.
+Neither Claw nor Axe depends on the other, and neither depends on the framework.
+Only data passed to a view is exposed. No request, configuration, authentication,
+or controller-local state is injected into templates.
+
+Internal adapter marker types are inferred in the same way as controller
+argument adapters. They avoid overlapping `ApiResource` blanket implementations.
+Custom resources remain explicit; applications do not implement the bridge
+traits. Scoped route binding remains a separate relationship-specific contract,
+and create/update inputs remain distinct from hydrated models.
+
+### Handler execution
 
 The current stable API baseline began at [v1.0.0](v1.0.0.md); current 1.x release details are tracked in the versioned release notes. App installs a fresh lazy DatabaseScope around middleware and routing. The router installs the authenticated principal immediately around handler extraction and execution. Typed parameters resolve models, decode and sanitize forms, authorize them before semantic validation, and call the action. Errors remain typed until an explicit response boundary.
 

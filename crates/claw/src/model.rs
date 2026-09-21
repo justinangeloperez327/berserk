@@ -2,6 +2,9 @@ use crate::{Collection, ModelQuery};
 use berserk_database::{Connection, Direction, Execution, Query, Result, Row, Value};
 use std::collections::BTreeMap;
 
+/// Explicit scalar field mapping shared by Claw presentation integrations.
+pub type Attributes = BTreeMap<String, Value>;
+
 /// A typed database record managed by Claw ORM.
 pub trait Model: Sized {
     const TABLE: &'static str;
@@ -18,13 +21,15 @@ pub trait Model: Sized {
     ///
     /// Rust does not provide runtime reflection for arbitrary structs. The safe
     /// default exposes only the primary key; models with additional fields
-    /// override this mapping once and Claw reuses it everywhere.
-    fn attributes(&self) -> BTreeMap<String, Value> {
+    /// override this mapping once and Claw reuses it everywhere. The optional
+    /// `model_fields!` helper generates both this mapping and `from_row`.
+    fn attributes(&self) -> Attributes {
         BTreeMap::from([(Self::PRIMARY_KEY.to_owned(), self.key())])
     }
 
-    #[doc(hidden)]
-    fn visible_attributes(&self) -> BTreeMap<String, Value> {
+    /// Presentation attributes after the model's explicit `HIDDEN` exclusions.
+    /// This never changes database hydration, mass assignment, or persistence.
+    fn visible_attributes(&self) -> Attributes {
         self.attributes()
             .into_iter()
             .filter(|(name, _)| !Self::HIDDEN.contains(&name.as_str()))

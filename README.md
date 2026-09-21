@@ -200,7 +200,7 @@ The generated application remains explicit: controllers, models, requests, middl
 
 ## Optional features
 
-Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
+Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `view`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
 
 See [docs/public-api.md](docs/public-api.md) for the current API contract, [docs/migrations.md](docs/migrations.md) for the migration DSL, [docs/relationships.md](docs/relationships.md) for Claw relationships, and [docs/v1.0.0.md](docs/v1.0.0.md) for the first public release target.
 
@@ -212,6 +212,7 @@ crates/
 ├── core            # Configuration, state, lifecycle, and shared foundations
 ├── database        # Connections, query builder, migrations, and SQL drivers
 ├── claw            # Claw ORM models, typed queries, and relationships
+├── axe             # HTML-first view engine
 ├── validation      # Validation contracts
 ├── auth            # Authentication and authorization
 ├── openapi         # OpenAPI generation
