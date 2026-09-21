@@ -367,7 +367,7 @@ where
     }
 }
 
-impl<'a, M: Model, const N: usize> IntoEager<M, NamedEager> for [&'a str; N] {
+impl<M: Model, const N: usize> IntoEager<M, NamedEager> for [&str; N] {
     type Query = NamedEagerQuery<M>;
 
     fn into_eager(self, query: ModelQuery<M>) -> Self::Query {
@@ -375,7 +375,7 @@ impl<'a, M: Model, const N: usize> IntoEager<M, NamedEager> for [&'a str; N] {
     }
 }
 
-impl<'a, M: Model> IntoEager<M, NamedEager> for &'a str {
+impl<M: Model> IntoEager<M, NamedEager> for &str {
     type Query = NamedEagerQuery<M>;
 
     fn into_eager(self, query: ModelQuery<M>) -> Self::Query {
@@ -383,7 +383,7 @@ impl<'a, M: Model> IntoEager<M, NamedEager> for &'a str {
     }
 }
 
-impl<'a, M: Model> IntoEager<M, NamedEager> for Vec<&'a str> {
+impl<M: Model> IntoEager<M, NamedEager> for Vec<&str> {
     type Query = NamedEagerQuery<M>;
 
     fn into_eager(self, query: ModelQuery<M>) -> Self::Query {
