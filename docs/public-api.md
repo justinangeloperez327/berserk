@@ -97,7 +97,7 @@ Higher-level input APIs include:
 - `Request::query(name)` for one decoded value, rejecting duplicates, and `query_pairs()` for all decoded pairs;
 - `Request::config::<T>()` for validated configuration and `shared::<T>()` for an owned service `Arc<T>`;
 - `Request::multipart(max_parts, max_part_headers)` for the bounded buffered multipart subset;
-- `Request::validate::<T>()`, existing `form_request::<T>()`, and direct FormRequest extraction, including authorization after validation;
+- `Request::validate::<T>()`, existing `form_request::<T>()`, and direct FormRequest extraction, with authorization before semantic validation;
 - handler-level `Validated<T>` extraction.
 
 Validated controller input follows one fixed order:
@@ -106,6 +106,8 @@ Validated controller input follows one fixed order:
 2. call `sanitize()`;
 3. call `validate()`;
 4. deliver `Validated<T>` only after validation succeeds.
+
+`FormRequest` adds request-aware authorization and validation. Its order is decode → sanitize → authorize → validate → request-aware validation → action. Authorization runs before semantic validation so a denied request does not receive validation details.
 
 Malformed JSON/query input returns a controlled 400-class response. Validation failures return 422 with structured field errors. Multipart parsing does not write files or trust client filenames; applications decide how accepted bytes are stored.
 

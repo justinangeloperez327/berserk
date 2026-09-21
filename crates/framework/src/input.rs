@@ -205,7 +205,7 @@ impl Response {
 
 pub type ValidationResult = std::result::Result<(), ValidationErrors>;
 
-/// Input lifecycle: decode, sanitize, validate, validate with request context, authorize.
+/// Input lifecycle: decode, sanitize, authorize, validate, then validate with request context.
 pub trait FormRequest: FromJson {
     fn sanitize(&mut self) {}
     fn validate(&self) -> ValidationResult;
@@ -224,7 +224,7 @@ pub trait FormRequest: FromJson {
     }
 }
 impl Request {
-    /// Decode, sanitize, validate with request context, and authorize a FormRequest.
+    /// Decode and sanitize input, authorize it, then run field and request-aware validation.
     pub fn validate<T: FormRequest>(&self) -> Result<T> {
         self.form_request()
     }
@@ -232,9 +232,9 @@ impl Request {
     pub fn form_request<T: FormRequest>(&self) -> Result<T> {
         let mut input = T::from_json(&self.json_value()?).map_err(InputError::Fields)?;
         input.sanitize();
+        input.authorize_request(self)?;
         input.validate().map_err(InputError::Fields)?;
         input.validate_request(self)?;
-        input.authorize_request(self)?;
         Ok(input)
     }
     /// One positive decimal `page` value; invalid and duplicate values are rejected.
@@ -254,5 +254,87 @@ impl Request {
             }
         }
         Ok(page.unwrap_or(1))
+    }
+}
+
+#[cfg(test)]
+mod form_request_tests {
+    use super::*;
+
+    #[derive(Debug)]
+    struct DeniedInput;
+
+    impl FromJson for DeniedInput {
+        fn from_json(_value: &Json) -> std::result::Result<Self, ValidationErrors> {
+            Ok(Self)
+        }
+    }
+
+    impl FormRequest for DeniedInput {
+        fn validate(&self) -> ValidationResult {
+            panic!("validation must not run for an unauthorized request");
+        }
+
+        fn authorize(&self) -> bool {
+            false
+        }
+    }
+
+    struct SanitizedAuthorization {
+        name: String,
+    }
+
+    impl FromJson for SanitizedAuthorization {
+        fn from_json(value: &Json) -> std::result::Result<Self, ValidationErrors> {
+            Ok(Self {
+                name: value
+                    .get("name")
+                    .and_then(Json::as_str)
+                    .unwrap_or_default()
+                    .to_owned(),
+            })
+        }
+    }
+
+    impl FormRequest for SanitizedAuthorization {
+        fn sanitize(&mut self) {
+            self.name = self.name.trim().to_owned();
+        }
+
+        fn validate(&self) -> ValidationResult {
+            Ok(())
+        }
+
+        fn authorize(&self) -> bool {
+            self.name == "allowed"
+        }
+    }
+
+    fn json_request(body: &str) -> Request {
+        let mut headers = crate::Headers::new();
+        headers.insert("content-type", "application/json").unwrap();
+        Request::new(
+            crate::Method::new("POST").unwrap(),
+            "/",
+            headers,
+            body.as_bytes(),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn form_request_authorizes_before_validation() {
+        let error = json_request("{}")
+            .form_request::<DeniedInput>()
+            .unwrap_err();
+        assert_eq!(error.status_code(), 403);
+    }
+
+    #[test]
+    fn form_request_authorization_observes_sanitized_input() {
+        let input = json_request(r#"{"name":" allowed "}"#)
+            .form_request::<SanitizedAuthorization>()
+            .unwrap();
+        assert_eq!(input.name, "allowed");
     }
 }
