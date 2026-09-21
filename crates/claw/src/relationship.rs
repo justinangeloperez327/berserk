@@ -36,6 +36,19 @@ impl<M> RelatedSet<M> {
         self.groups.is_empty()
     }
 
+    pub fn map<T>(self, mut mapper: impl FnMut(M) -> T) -> RelatedSet<T> {
+        RelatedSet {
+            groups: self
+                .groups
+                .into_iter()
+                .map(|(key, models)| {
+                    let models = models.into_iter().map(&mut mapper).collect();
+                    (key, models)
+                })
+                .collect(),
+        }
+    }
+
     pub(crate) fn insert(&mut self, key: Value, model: M) {
         if let Some((_, models)) = self
             .groups
