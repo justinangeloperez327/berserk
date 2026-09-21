@@ -261,6 +261,47 @@ fn load_named<M: Model>(
     Ok(relations)
 }
 
+#[doc(hidden)]
+pub fn named_belongs_to<C, R>(
+    relation: &BelongsTo<C, R>,
+    foreign_key: &str,
+    connection: &mut dyn Connection,
+    models: &[C],
+) -> Result<RelatedSet<Attributes>>
+where
+    C: Model,
+    R: Model,
+{
+    let related = relation
+        .load_on(connection, models)?
+        .map(|model| model.visible_attributes());
+    let mut grouped = RelatedSet::default();
+
+    for model in models {
+        let foreign = model.attributes().get(foreign_key).cloned().ok_or_else(|| {
+            berserk_database::DatabaseError::new(
+                berserk_database::ErrorKind::Decode,
+                format!(
+                    "belongs_to relationship requires mapped column '{foreign_key}' on model '{}'",
+                    C::TABLE
+                ),
+            )
+        })?;
+
+        if foreign == Value::Null {
+            continue;
+        }
+
+        if let Some(values) = related.get(&foreign) {
+            for value in values {
+                grouped.insert(model.key(), value.clone());
+            }
+        }
+    }
+
+    Ok(grouped)
+}
+
 /// Adapter used by ModelQuery::with to preserve typed eager loading while
 /// also accepting relationship names.
 #[doc(hidden)]
