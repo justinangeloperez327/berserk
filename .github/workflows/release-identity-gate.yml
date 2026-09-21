@@ -1,9 +1,13 @@
 name: Release Identity Gate
+
 on:
   push:
-    branches: [release-identity]
+    branches:
+      - release-identity
+
 permissions:
   contents: read
+
 jobs:
   gate:
     runs-on: ubuntu-latest
@@ -22,6 +26,8 @@ jobs:
           fi
           python3 - <<'PY'
           from pathlib import Path
+          import re
+
           text = Path("Cargo.lock").read_text()
           workspace = {
               "berserk", "berserk-auth", "berserk-benchmarks", "berserk-cache",
@@ -30,34 +36,10 @@ jobs:
               "berserk-openapi", "berserk-storage", "berserk-testing",
               "berserk-validation", "claw-orm", "foundation-example",
           }
-          import re
+
           for block in text.split("[[package]]"):
-              name_match = re.search(r'^name = "([^"]+)"
-          PY
-      - name: Format
-        run: cargo fmt --all -- --check
-      - name: Release plan
-        run: python3 scripts/release_plan.py
-      - name: Check
-        run: cargo check --locked --workspace --all-targets --all-features
-      - name: Test
-        run: cargo test --locked --workspace --all-features
-      - name: Clippy
-        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-, block, re.MULTILINE)
-              version_match = re.search(r'^version = "([^"]+)"
-          PY
-      - name: Format
-        run: cargo fmt --all -- --check
-      - name: Release plan
-        run: python3 scripts/release_plan.py
-      - name: Check
-        run: cargo check --locked --workspace --all-targets --all-features
-      - name: Test
-        run: cargo test --locked --workspace --all-features
-      - name: Clippy
-        run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-, block, re.MULTILINE)
+              name_match = re.search(r'^name = "([^"]+)"$', block, re.MULTILINE)
+              version_match = re.search(r'^version = "([^"]+)"$', block, re.MULTILINE)
               name = name_match.group(1) if name_match else None
               version = version_match.group(1) if version_match else None
               if name in workspace and version != "1.0.0":
@@ -73,4 +55,3 @@ jobs:
         run: cargo test --locked --workspace --all-features
       - name: Clippy
         run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-
