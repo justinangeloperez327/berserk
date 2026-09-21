@@ -8,40 +8,84 @@ cargo run -p claw-orm --example relationships --features sqlite
 
 ## Declare relationships
 
+With Berserk's `Model` derive, relationships are declared on the model and
+compile into the same typed Claw descriptors used by the lower-level API:
+
+```rust
+use berserk::Model;
+
+#[derive(Model)]
+#[table("users")]
+#[has_many(Post, "posts", foreign_key = "user_id")]
+#[has_one(Profile, "profile", foreign_key = "user_id")]
+#[belongs_to_many(
+    Role,
+    "roles",
+    pivot = "role_user",
+    foreign_pivot_key = "user_id",
+    related_pivot_key = "role_id"
+)]
+pub struct User {
+    #[primary_key]
+    pub id: i64,
+
+    #[fillable]
+    pub name: String,
+}
+
+#[derive(Model)]
+#[table("posts")]
+#[belongs_to(User, "user", foreign_key = "user_id")]
+pub struct Post {
+    #[primary_key]
+    pub id: i64,
+
+    #[fillable]
+    pub user_id: i64,
+
+    #[fillable]
+    pub title: String,
+}
+```
+
+The derive generates `User::posts()`, `User::profile()`, `User::roles()`,
+and `Post::user()`. Relationship declarations create descriptors only: they
+do not load related rows, add relationship fields to the struct, or perform SQL.
+
+| Attribute | Generated descriptor |
+| --- | --- |
+| `#[has_many(Post, "posts", foreign_key = "user_id")]` | `HasMany<User, Post>` |
+| `#[has_one(Profile, "profile", foreign_key = "user_id")]` | `HasOne<User, Profile>` |
+| `#[belongs_to(User, "user", foreign_key = "user_id")]` | `BelongsTo<Post, User>` |
+| `#[belongs_to_many(Role, "roles", ...)]` | `BelongsToMany<User, Role>` |
+
+The relationship name is the generated Rust method name. `foreign_key` must
+refer to a mapped model column. Missing mapped keys are reported as `Decode`
+errors when a relationship is evaluated instead of silently producing a NULL
+grouping key. Many-to-many declarations require the pivot table and both pivot
+key column names. Parent and related primary keys come from each model's
+`#[primary_key]` metadata.
+
+Manual relationship methods remain supported for custom key mappings or for
+applications using `claw-orm` directly:
+
 ```rust
 impl User {
     fn posts() -> HasMany<Self, Post> {
         HasMany::new("user_id", Self::key, |post: &Post| post.user_id.into())
     }
-
-    fn profile() -> HasOne<Self, Profile> {
-        HasOne::new("user_id", Self::key, |profile: &Profile| profile.user_id.into())
-    }
-
-    fn roles() -> BelongsToMany<Self, Role> {
-        BelongsToMany::new("role_user", "user_id", "role_id", Self::key, Role::key)
-    }
-}
-
-impl Post {
-    fn user() -> BelongsTo<Self, User> {
-        BelongsTo::new("id", |post: &Post| Some(post.user_id.into()), User::key)
-    }
 }
 ```
 
-For a nullable `Post::user_id: Option<u64>`, use `|post: &Post| post.user_id.map(Value::from)`.
+The existing constructors remain source-compatible. Derive-generated
+relationships use fallible constructor variants internally so metadata lookup
+errors stay typed. There is still no runtime field reflection and no hidden
+lazy loading.
 
-| Descriptor | Database filter | Key accessors |
-| --- | --- | --- |
-| `HasMany<User, Post>` | `posts.user_id` | User key; post foreign key |
-| `HasOne<User, Profile>` | `profiles.user_id` | User key; profile foreign key |
-| `BelongsTo<Post, User>` | `users.id` | Optional post foreign key; user owner key |
-| `BelongsToMany<User, Role>` | Pivot foreign key, then `Role::PRIMARY_KEY` | User linking key; role primary key |
-
-The many-to-many related accessor must return the value of `R::PRIMARY_KEY`. Parent keys may be custom. `BelongsTo` can use an explicit alternate owner column and matching accessor. These accessors cannot be inferred from column strings: Rust has no runtime field reflection, and a foreign key need not equal a model's primary key. Version 1.0 keeps the existing constructors without new declaration macros or implicit naming rules.
-
-Use `NOT NULL` and foreign keys on the pivot, `UNIQUE(user_id, role_id)` for unique links, and `UNIQUE(profiles.user_id)` for one profile per user. Index relationship foreign keys for large tables. The ORM does not silently create constraints.
+Use `NOT NULL` and foreign keys on the pivot, `UNIQUE(user_id, role_id)` for
+unique links, and `UNIQUE(profiles.user_id)` for one profile per user. Index
+relationship foreign keys for large tables. The ORM does not silently create
+constraints.
 
 ## Query one parent's relationships
 
@@ -191,4 +235,4 @@ let roles = Relationship::load(&User::roles(), &users)?;
 
 Rust cannot overload an inherent method by argument count, so scoped loading cannot reuse `.load(models)` on the three legacy types until a major release removes their deprecated signatures. `BelongsToMany`, added during pre-release development, supports `.load(models)` directly. Ordinary `get/get_on`, `find/find_on`, `save/save_on`, `update/update_on`, and `paginate/paginate_on` are unchanged.
 
-HasOne's public representation and all constructor signatures remain intact. There are no pivot models, nested eager traversal, polymorphic relationships, soft deletes, observers, automatic timestamps, dynamic properties, or new macro systems in the 1.0 target.
+HasOne's public representation and all constructor signatures remain intact. There are no pivot models, nested eager traversal, polymorphic relationships, soft deletes, observers, automatic timestamps, or dynamic properties in the 1.0 target. Relationship attributes are compile-time declarations that generate the existing typed descriptors.

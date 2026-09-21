@@ -6,6 +6,15 @@ use berserk::{
 
 #[derive(Model)]
 #[table("users")]
+#[has_many(Post, "posts", foreign_key = "user_id")]
+#[has_one(Profile, "profile", foreign_key = "user_id")]
+#[belongs_to_many(
+    Role,
+    "roles",
+    pivot = "role_user",
+    foreign_pivot_key = "user_id",
+    related_pivot_key = "role_id"
+)]
 pub struct User {
     #[primary_key]
     pub id: i64,
@@ -16,6 +25,41 @@ pub struct User {
     #[fillable]
     pub email: String,
 }
+
+#[derive(Model)]
+#[table("posts")]
+#[belongs_to(User, "user", foreign_key = "user_id")]
+pub struct Post {
+    #[primary_key]
+    pub id: i64,
+
+    #[fillable]
+    pub user_id: i64,
+
+    #[fillable]
+    pub title: String,
+}
+
+#[derive(Model)]
+#[table("profiles")]
+pub struct Profile {
+    #[primary_key]
+    pub id: i64,
+
+    #[fillable]
+    pub user_id: i64,
+}
+
+#[derive(Model)]
+#[table("roles")]
+pub struct Role {
+    #[primary_key]
+    pub id: i64,
+
+    #[fillable]
+    pub name: String,
+}
+
 pub struct UserInput {
     name: String,
     email: String,

@@ -49,11 +49,39 @@ impl<M> RelatedSet<M> {
     }
 }
 
+enum RelatedKey<R> {
+    Infallible(fn(&R) -> Value),
+    Fallible(fn(&R) -> Result<Value>),
+}
+
+impl<R> RelatedKey<R> {
+    fn get(&self, model: &R) -> Result<Value> {
+        match self {
+            Self::Infallible(accessor) => Ok(accessor(model)),
+            Self::Fallible(accessor) => accessor(model),
+        }
+    }
+}
+
+enum ChildKey<C> {
+    Infallible(fn(&C) -> Option<Value>),
+    Fallible(fn(&C) -> Result<Option<Value>>),
+}
+
+impl<C> ChildKey<C> {
+    fn get(&self, model: &C) -> Result<Option<Value>> {
+        match self {
+            Self::Infallible(accessor) => Ok(accessor(model)),
+            Self::Fallible(accessor) => accessor(model),
+        }
+    }
+}
+
 /// Children grouped by their foreign key. Key accessors stay explicit; no reflection.
 pub struct HasMany<P, R> {
     foreign_key: &'static str,
     parent_key: fn(&P) -> Value,
-    related_key: fn(&R) -> Value,
+    related_key: RelatedKey<R>,
 }
 
 impl<P, R: Model> HasMany<P, R> {
@@ -65,7 +93,20 @@ impl<P, R: Model> HasMany<P, R> {
         Self {
             foreign_key,
             parent_key,
-            related_key,
+            related_key: RelatedKey::Infallible(related_key),
+        }
+    }
+
+    /// Construct a relationship whose related-key accessor can report mapping errors.
+    pub const fn try_new(
+        foreign_key: &'static str,
+        parent_key: fn(&P) -> Value,
+        related_key: fn(&R) -> Result<Value>,
+    ) -> Self {
+        Self {
+            foreign_key,
+            parent_key,
+            related_key: RelatedKey::Fallible(related_key),
         }
     }
 
@@ -94,7 +135,7 @@ impl<P, R: Model> HasMany<P, R> {
             .get_on(connection)?;
         let mut result = RelatedSet::default();
         for model in related {
-            result.insert((self.related_key)(&model), model);
+            result.insert(self.related_key.get(&model)?, model);
         }
         Ok(result)
     }
@@ -114,6 +155,17 @@ impl<P, R: Model> HasOne<P, R> {
     ) -> Self {
         Self {
             inner: HasMany::new(foreign_key, parent_key, related_key),
+        }
+    }
+
+    /// Construct a one-to-one relationship with a fallible related-key accessor.
+    pub const fn try_new(
+        foreign_key: &'static str,
+        parent_key: fn(&P) -> Value,
+        related_key: fn(&R) -> Result<Value>,
+    ) -> Self {
+        Self {
+            inner: HasMany::try_new(foreign_key, parent_key, related_key),
         }
     }
 
@@ -145,7 +197,7 @@ impl<P, R: Model> HasOne<P, R> {
 /// Owners grouped by their owner key. Missing/NULL child keys are skipped when loading.
 pub struct BelongsTo<C, R> {
     owner_key: &'static str,
-    child_key: fn(&C) -> Option<Value>,
+    child_key: ChildKey<C>,
     related_key: fn(&R) -> Value,
     marker: PhantomData<fn() -> R>,
 }
@@ -158,7 +210,22 @@ impl<C, R: Model> BelongsTo<C, R> {
     ) -> Self {
         Self {
             owner_key,
-            child_key,
+            child_key: ChildKey::Infallible(child_key),
+            related_key,
+            marker: PhantomData,
+        }
+    }
+
+    /// Construct a belongs-to relationship whose child-key accessor can report
+    /// model metadata errors.
+    pub const fn try_new(
+        owner_key: &'static str,
+        child_key: fn(&C) -> Result<Option<Value>>,
+        related_key: fn(&R) -> Value,
+    ) -> Self {
+        Self {
+            owner_key,
+            child_key: ChildKey::Fallible(child_key),
             related_key,
             marker: PhantomData,
         }
@@ -166,7 +233,7 @@ impl<C, R: Model> BelongsTo<C, R> {
 
     /// Build an owner query. An absent nullable foreign key matches no records.
     pub fn query_for(&self, child: &C) -> Result<ModelQuery<R>> {
-        let key = (self.child_key)(child).filter(|key| *key != Value::Null);
+        let key = self.child_key.get(child)?.filter(|key| *key != Value::Null);
         if let Some(key) = &key {
             validate_key(key)?;
         }
@@ -186,7 +253,13 @@ impl<C, R: Model> BelongsTo<C, R> {
         connection: &mut dyn Connection,
         children: &[C],
     ) -> Result<RelatedSet<R>> {
-        let keys = unique_non_null(children.iter().filter_map(self.child_key));
+        let mut child_keys = Vec::with_capacity(children.len());
+        for child in children {
+            if let Some(key) = self.child_key.get(child)? {
+                child_keys.push(key);
+            }
+        }
+        let keys = unique_non_null(child_keys);
         if keys.is_empty() {
             return Ok(RelatedSet::default());
         }

@@ -34,6 +34,29 @@ presentation without removing it from hydration or persistence. Use
 `#[column("database_name")]` when a Rust field maps to a different database
 column.
 
+Relationships can be declared on the model without becoming row fields:
+
+```rust
+#[derive(Model)]
+#[table("users")]
+#[has_many(Post, "posts", foreign_key = "user_id")]
+#[belongs_to_many(
+    Role,
+    "roles",
+    pivot = "role_user",
+    foreign_pivot_key = "user_id",
+    related_pivot_key = "role_id"
+)]
+pub struct User {
+    #[primary_key]
+    pub id: i64,
+}
+```
+
+This generates typed descriptor methods such as `User::posts()` and
+`User::roles()`. Declaring a relationship does not lazy-load or serialize it
+automatically; querying and eager loading remain explicit Claw operations.
+
 Struct field types still determine decoding and database-value conversion.
 Mapped values therefore need the same capabilities as manual models: decoding
 through Claw, cloning for presentation, and conversion into `Value`. The
