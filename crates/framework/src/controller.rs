@@ -845,7 +845,7 @@ mod state_injection_tests {
         .unwrap();
 
         let response = app.handle(request).unwrap();
-        assert_eq!(response.status().as_u16(), 200);
+        assert_eq!(response.status_code(), 200);
         assert_eq!(response.body(), b"hello");
     }
 
