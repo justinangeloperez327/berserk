@@ -15,9 +15,9 @@ Berserk deliberately does not depend on nightly-only workspace packaging for the
 A successful run produces:
 
 - `berserk-source-<commit>.tar.gz` — deterministic source snapshot from the exact Git commit selected for the run.
-- `package-files/<package>-<version>.txt` — Cargo's package file list for each of the 15 intended publishable crates.
+- `package-files/<package>-<version>.txt` — Cargo's package file list for each of the 18 intended publishable crates.
 - `RELEASE-MANIFEST.json` — repository, source commit/ref, workflow run, Rust/Cargo versions, package/version inventory, internal dependency graph, and calculated publication order.
-- `SHA256SUMS` — SHA-256 digests for the source snapshot, all 15 package-file lists, and the release manifest.
+- `SHA256SUMS` — SHA-256 digests for the source snapshot, all 18 package-file lists, and the release manifest.
 - `provenance.sigstore.json` — generated only for a manual `workflow_dispatch` run; this is the Sigstore bundle returned by GitHub artifact attestation.
 
 Pull-request runs validate evidence generation and checksums only. They intentionally do not create signed attestations. Manual release-artifact runs use `actions/attest@v4` to create GitHub build-provenance attestations for every subject listed in `SHA256SUMS`.
@@ -38,10 +38,10 @@ After downloading the workflow artifact, verify the checksums from inside the ex
 sha256sum -c SHA256SUMS
 ```
 
-A complete evidence bundle contains 17 checksum subjects:
+A complete evidence bundle contains 20 checksum subjects:
 
 - one source archive;
-- 15 Cargo package-file lists; and
+- 18 Cargo package-file lists; and
 - one release manifest.
 
 All entries must report `OK`.
@@ -76,7 +76,7 @@ For the intended release commit or tag:
 4. Run `sha256sum -c SHA256SUMS`.
 5. Verify the source archive attestation with `gh attestation verify`, including the expected repository and signer workflow.
 6. Review `RELEASE-MANIFEST.json` and confirm the commit, package versions, Rust toolchain, internal dependencies, and publication order.
-7. Review the 15 package file lists for unexpected source, credential, generated, or local-only files.
+7. Review the 18 package file lists for unexpected source, credential, generated, or local-only files.
 8. Publish packages sequentially in the manifest order, waiting for each internal dependency to appear in the registry before proceeding to dependents.
 9. Retain the checksum file, manifest, package-file lists, source snapshot, and attestation bundle with the release evidence.
 

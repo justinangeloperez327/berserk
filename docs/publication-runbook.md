@@ -6,7 +6,7 @@ It does **not** replace the release checklist, independent security/API review, 
 
 ## Publication model
 
-Berserk publishes 15 coordinated crates. Internal workspace dependencies use exact versions, so first publication must proceed in dependency order. A downstream crate cannot be packaged or published until the internal crate version it depends on is visible in the crates.io index.
+Berserk publishes 18 coordinated crates. Internal workspace dependencies use exact versions, so first publication must proceed in dependency order. A downstream crate cannot be packaged or published until the internal crate version it depends on is visible in the crates.io index.
 
 `scripts/release_plan.py` is the source of truth for the dependency-safe order. The same planner is used by `.github/workflows/release-artifacts.yml` when creating release evidence.
 
@@ -36,7 +36,7 @@ From the repository root:
 python3 scripts/release_plan.py --version VERSION
 ```
 
-The command must report exactly 15 publishable packages and a dependency-safe order.
+The command must report exactly 18 publishable packages and a dependency-safe order.
 
 To render the exact publication commands without executing them:
 
@@ -96,7 +96,7 @@ If the planner detects a dependency cycle, unexpected publishable crate, disable
 
 ## Verify the completed crates.io set
 
-After all 15 publishes are recorded as successful, verify every exact version from outside the workspace. At minimum verify the facade and representative lower-level crates:
+After all 18 publishes are recorded as successful, verify every exact version from outside the workspace. At minimum verify the facade and representative lower-level crates:
 
 ```sh
 cd /tmp
@@ -105,7 +105,7 @@ cargo info berserk-core@VERSION --registry crates-io
 cargo info claw-orm@VERSION --registry crates-io
 ```
 
-The publication record should contain remote-verification status for all 15 packages, not only these examples.
+The publication record should contain remote-verification status for all 18 packages, not only these examples.
 
 ## Fresh crates.io consumer test
 
@@ -141,8 +141,8 @@ A first release is complete only after the publication record contains:
 - exact version;
 - release-evidence workflow run and attestation reference;
 - generated publication plan;
-- all 15 package/version publication results;
-- all 15 remote verification results;
+- all 18 package/version publication results;
+- all 18 remote verification results;
 - fresh crates.io consumer result;
 - GitHub Release reference;
 - any exceptions/incidents and their disposition; and

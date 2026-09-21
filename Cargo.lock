@@ -135,6 +135,15 @@ name = "berserk-client"
 version = "1.0.0"
 
 [[package]]
+name = "berserk-codegen"
+version = "1.0.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "berserk-core"
 version = "1.0.0"
 
@@ -160,9 +169,8 @@ version = "1.0.0"
 name = "berserk-macros"
 version = "1.0.0"
 dependencies = [
+ "berserk-codegen",
  "proc-macro2",
- "quote",
- "syn 2.0.119",
 ]
 
 [[package]]
