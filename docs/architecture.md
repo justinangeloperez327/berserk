@@ -59,6 +59,15 @@ model would provide; it adds no runtime reflection. `model_fields!` and
 handwritten `impl Model` remain supported for custom mappings. Visibility does
 not change mass assignment or the specialized `PersistableModel` write mapping.
 
+Relationship declarations also generate a static name registry used by
+`ModelQuery::with(["relation"])`. Named eager loading resolves only declared
+relationships, batches each relation over the complete parent set, and keeps the
+loaded data in a sidecar owned with the parent collection. Framework JSON and
+Axe adapters project that sidecar into parent objects for presentation. This is
+explicit eager loading: no relationship access triggers SQL and no runtime
+reflection is introduced. The existing typed descriptor API remains available
+for code that needs concrete related Rust model types.
+
 Query result sets and eager-loaded parents use `Collection<T>`. `Page<T>` owns
 the same collection and retains its slice/vector accessors for compatibility.
 The main framework converts visible model attributes into JSON or Axe values.
