@@ -1,12 +1,12 @@
 # Public API contract
 
-The [v1.2.0 release guide](v1.2.0.md) describes the current release candidate, preserving the v1.0.0 stable API baseline.
+The [v1.0.0 release guide](v1.0.0.md) defines the intended first public stable API. Berserk has not yet been published publicly, so repository work completed after the original 1.0 freeze is being consolidated into that first release rather than presented as already-published 1.1/1.2 releases.
 
-Status: v1.2.0 release candidate on the stable 1.x public API. Breaking public API changes require a new major release; compatibility-affecting changes must be documented in the changelog and upgrade notes.
+Status: preparing the first public v1.0.0 release. Once v1.0.0 is published, breaking public API changes require a new major release; compatibility-affecting changes must be documented in the changelog and upgrade notes.
 
 ## Stabilization boundary
 
-v1.0.0 is the stable API baseline. New application code should use the APIs documented in this file.
+v1.0.0 is the intended first public stable API baseline. New application code should use the APIs documented in this file.
 
 The default prelude contains application framework primitives. General support helpers `Arr` and `Str` remain available through explicit root imports and are intentionally not part of `berserk::prelude::*`.
 
@@ -223,9 +223,9 @@ The main `berserk` facade enables `server` by default; it can be disabled for in
 
 ## Stability and compatibility
 
-- Package and release metadata are aligned to v1.2.0.
+- Public documentation targets the first v1.0.0 release; repository package metadata may be normalized to 1.0.0 as part of the final release preparation.
 - Minimum supported Rust version: 1.88.
 - Publication is an explicit owner-controlled release action; repository automation validates artifacts but does not publish by default.
-- v1.0.0 establishes the stable public API surface; breaking public API changes require a new major release.
+- v1.0.0 will establish the stable public API surface when published; after that point, breaking public API changes require a new major release.
 
 `README.md`, crate-level Rustdoc, tests, and this contract should agree on public behavior. When implementation and this document diverge, that drift is a release-review finding and must be corrected before publication.
