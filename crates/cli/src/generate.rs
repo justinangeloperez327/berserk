@@ -136,10 +136,9 @@ impl Generator {
     pub fn make_controller(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.ensure_application()?;
         validate_type_name(name)?;
-        let source = berserk_codegen::controller_source(
-            &berserk_codegen::ControllerSpec::basic(name),
-        )
-        .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
+        let source =
+            berserk_codegen::controller_source(&berserk_codegen::ControllerSpec::basic(name))
+                .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
         self.make_source_type(name, "app/controllers", &source)
     }
 
@@ -153,9 +152,9 @@ impl Generator {
         validate_type_name(name)?;
         validate_type_name(model)?;
         validate_type_name(request)?;
-        let source = berserk_codegen::controller_source(
-            &berserk_codegen::ControllerSpec::crud(name, model, request),
-        )
+        let source = berserk_codegen::controller_source(&berserk_codegen::ControllerSpec::crud(
+            name, model, request,
+        ))
         .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
         self.make_source_type(name, "app/controllers", &source)
     }
