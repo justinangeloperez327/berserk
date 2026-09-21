@@ -72,6 +72,7 @@ pub struct Builder {
     columns: Vec<String>,
     joins: Vec<Join>,
     predicates: Vec<Predicate>,
+    constraints: Vec<Predicate>,
     orders: Vec<(String, Direction)>,
     limit: Option<u64>,
     offset: Option<u64>,
@@ -90,6 +91,7 @@ impl Builder {
             columns: vec!["*".into()],
             joins: Vec::new(),
             predicates: Vec::new(),
+            constraints: Vec::new(),
             orders: Vec::new(),
             limit: None,
             offset: None,
@@ -139,6 +141,25 @@ impl Builder {
         V: Into<Value>,
     {
         self.in_list(Boolean::And, column.into(), values, false)
+    }
+
+    /// Restrict every result to these keys, independently of ordinary AND/OR filters.
+    ///
+    /// Compiles as `constraint AND (ordinary filters)`. Repeated constraints are
+    /// combined with AND. Empty keys match nothing, including when `or_where` is used.
+    /// Useful for composing relationship queries without widening their parent scope.
+    pub fn constrain_in<I, V>(mut self, column: impl Into<String>, values: I) -> Self
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<Value>,
+    {
+        self.constraints.push(Predicate::In {
+            boolean: Boolean::And,
+            column: column.into(),
+            values: values.into_iter().map(Into::into).collect(),
+            negated: false,
+        });
+        self
     }
     pub fn or_where_in<I, V>(self, column: impl Into<String>, values: I) -> Self
     where
@@ -460,6 +481,7 @@ impl Builder {
         }
         unique_columns(values)?;
         if !self.predicates.is_empty()
+            || !self.constraints.is_empty()
             || !self.joins.is_empty()
             || !self.orders.is_empty()
             || self.limit.is_some()
@@ -541,7 +563,7 @@ impl Builder {
     }
 
     fn require_safe_mutation(&self) -> Result<()> {
-        if self.predicates.is_empty() && !self.allow_all {
+        if self.predicates.is_empty() && self.constraints.is_empty() && !self.allow_all {
             Err(query_error(
                 "update or delete without filters requires allow_all",
             ))
@@ -573,11 +595,31 @@ impl Builder {
         sql: &mut String,
         bindings: &mut Vec<Value>,
     ) -> Result<()> {
-        if self.predicates.is_empty() {
+        if self.predicates.is_empty() && self.constraints.is_empty() {
             return Ok(());
         }
         sql.push_str(" WHERE ");
-        for (index, predicate) in self.predicates.iter().enumerate() {
+        if !self.constraints.is_empty() {
+            Self::compile_predicate_list(&self.constraints, driver, sql, bindings)?;
+            if self.predicates.is_empty() {
+                return Ok(());
+            }
+            sql.push_str(" AND (");
+        }
+        Self::compile_predicate_list(&self.predicates, driver, sql, bindings)?;
+        if !self.constraints.is_empty() {
+            sql.push(')');
+        }
+        Ok(())
+    }
+
+    fn compile_predicate_list(
+        predicates: &[Predicate],
+        driver: Driver,
+        sql: &mut String,
+        bindings: &mut Vec<Value>,
+    ) -> Result<()> {
+        for (index, predicate) in predicates.iter().enumerate() {
             let boolean = match predicate {
                 Predicate::Compare { boolean, .. }
                 | Predicate::In { boolean, .. }

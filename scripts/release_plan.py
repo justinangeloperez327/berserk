@@ -78,6 +78,16 @@ def build_plan(metadata: dict[str, Any], expected_version: str | None) -> dict[s
         raise ValueError(f"workspace version is {version}, expected {expected_version}")
 
     expected_set = set(EXPECTED_PACKAGES)
+    for package in workspace_packages:
+        if package["version"] != version:
+            raise ValueError(f"{package['name']}: workspace version must be {version}")
+        for dependency in package.get("dependencies", []):
+            if dependency["name"] in expected_set and dependency.get("path"):
+                if dependency["req"] != f"={version}":
+                    raise ValueError(
+                        f"{package['name']}: internal dependency {dependency['name']} "
+                        f"must require ={version}, got {dependency['req']}"
+                    )
     internal_dependencies: dict[str, list[str]] = {}
     for name in EXPECTED_PACKAGES:
         dependencies = {

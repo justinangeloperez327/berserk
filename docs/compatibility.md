@@ -2,7 +2,7 @@
 
 ## Current status
 
-Berserk v1.0.0 is the current stable baseline. Rust 1.88 is the minimum supported Rust version (MSRV). CI and release workflows define the tested feature, platform, and database combinations; the support matrix is documented in [support-policy.md](support-policy.md).
+Berserk v1.2.0 is the current release candidate; v1.0.0 remains the stable API baseline. Rust 1.88 is the minimum supported Rust version (MSRV). CI and release workflows define the tested feature, platform, and database combinations; the support matrix is documented in [support-policy.md](support-policy.md).
 
 The 1.0 public API is stable under semantic versioning. Breaking public API changes require a new major release. New aliases and convenience surfaces should still be avoided unless they solve a concrete gap. Compatibility-affecting changes must be documented rather than introduced silently.
 
@@ -44,3 +44,7 @@ As the framework approaches 1.0, deprecated APIs should remain available long en
 ## Release ownership
 
 Only the project owner decides when and where to publish. Automation may build, test, package, and verify release artifacts but must not publish by default.
+
+## Relationship compatibility in 1.2
+
+Existing relationship constructors and HasOne/RelatedSet result types are preserved. The 1.0 explicit `load(connection, ...)` methods remain as deprecated forwarders to `load_on`. New scoped loading is available through `Relationship::load`. Integer relationship keys now compare equal across signed/unsigned driver representations; malformed NULL pivot keys return Decode errors instead of disappearing silently. See [relationships](relationships.md) and [upgrade notes](upgrade-notes.md).

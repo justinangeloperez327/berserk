@@ -12,3 +12,15 @@ publish = true
 
 [dependencies]
 berserk-database.workspace = true
+
+[features]
+sqlite = ["berserk-database/sqlite"]
+postgres = ["berserk-database/postgres"]
+mysql = ["berserk-database/mysql"]
+
+[dev-dependencies]
+berserk-database = { workspace = true, features = ["sqlite"] }
+
+[[example]]
+name = "relationships"
+required-features = ["sqlite"]

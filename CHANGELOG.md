@@ -4,6 +4,30 @@ Berserk follows the spirit of Keep a Changelog. Versioning and compatibility pol
 
 ## Unreleased
 
+## 1.2.0 (release candidate)
+
+### Added
+
+- Parameterized many-to-many `attach`, `attach_many`, `detach`, `detach_many`, `detach_all`, and transactional `sync`, with explicit connection variants and `SyncResult`.
+- `query_for` returning ordinary `ModelQuery` for all four relationships; parent constraints remain effective across OR filters through additive `Query::constrain_in`.
+- Scoped `Relationship::load`, comprehensive SQLite/error/query-count tests, and live PostgreSQL/MySQL relationship contracts in CI.
+- A focused SQLite relationship example and complete relationship guide.
+
+### Fixed
+
+- Signed/unsigned driver key comparisons in eager loading and synchronization.
+- Restored stable 1.0 explicit `load(connection, ...)` methods as deprecated forwarders to `load_on`.
+- Malformed NULL pivot keys now report Decode errors; duplicate pivot rows and shared related models are preserved.
+- Synchronized workspace packages, internal dependency requirements, and lockfiles at 1.2.0; release planning now rejects stale internal requirements.
+
+### Compatibility
+
+- Rust 1.88 remains the MSRV. HasOne retains RelatedSet; no Clone requirement, new error hierarchy, declaration macros, or external dependencies are added.
+- Existing NULL/dangling parent keys remain skipped during batch loading, and missing related records remain omitted.
+- Sync reconciles membership, retains duplicates for unchanged keys, and rejects nested transactions. See `docs/relationships.md`.
+
+## 1.1 migration work (included in 1.2)
+
 ### Added
 
 - Driver-neutral migration DSL with `Table`, `Column`, indexes, foreign keys, composite primary keys, and explicit table alteration operations.

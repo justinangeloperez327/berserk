@@ -1,6 +1,6 @@
 # Known limitations
 
-This document records intentional or unresolved boundaries of the current Berserk v1.0.0 stable baseline. They are not necessarily defects, but applications must account for them.
+This document records intentional or unresolved boundaries of the Berserk v1.2.0 release candidate. They are not necessarily defects, but applications must account for them.
 
 ## Security review status
 
@@ -51,3 +51,7 @@ Berserk is modular. Applications must enable the features required by the APIs t
 ## Stable compatibility
 
 v1.0.0 establishes the stable public API baseline. Breaking public API changes require a new major release under semantic versioning. Compatibility-affecting changes should be recorded in `CHANGELOG.md` and [upgrade-notes.md](upgrade-notes.md).
+
+## Relationship boundaries
+
+`sync` and `attach_many` use one transaction and reject nesting; they do not serialize competing writers. Eager loads use bounded query counts but do not chunk arbitrarily large key lists. Paginate parents for driver parameter and memory limits. Many-to-many queries preserve pivot rows and require qualified ambiguous columns. Joined mutations are unsupported. HasOne retains RelatedSet for compatibility. Foreign/owner key accessors remain explicit. See [relationships](relationships.md).

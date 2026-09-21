@@ -1,6 +1,10 @@
 # Berserk roadmap
 
-Berserk v1.0.0 is the current stable baseline. The 1.0 public API freeze and release audit are complete.
+Berserk v1.2.0 is the current release candidate, preserving the v1.0.0 stable API baseline.
+
+## 1.2 release candidate
+
+Claw relationship querying, atomic pivot operations, eager-loading verification, compatibility restoration, and a focused runnable example. See [relationships](relationships.md) and [v1.2.0](v1.2.0.md). Publication and merge remain maintainer actions.
 
 ## Completed
 

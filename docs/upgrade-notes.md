@@ -1,5 +1,15 @@
 # Upgrade notes
 
+## v1.0.x / 1.1 development → v1.2.0
+
+All workspace packages and internal requirements move together to 1.2.0; Rust 1.88 remains supported. No constructor or HasOne result type is replaced.
+
+Use `relationship.load_on(&mut connection, &models)` for explicit loading. The original 1.0 `load(connection, models)` signatures are preserved as deprecated forwarding methods. Scoped direct loading uses `Relationship::load(&relationship, &models)`; eager queries retain `get/get_on` and `paginate/paginate_on`.
+
+Pivot reads preserve duplicate rows. Add `UNIQUE(user_id, role_id)` if duplicate links are invalid for your application. NULL pivot keys now report `Decode` rather than silently dropping links. Signed/unsigned representations of equal positive keys are reconciled correctly on live drivers. Missing related records are still omitted.
+
+Pivot mutations and `query_for` are additive. `sync` and `attach_many` own transactions and reject nesting; empty sync clears a parent's links while empty attach/detach does nothing. See the [relationship guide](relationships.md) before using these operations with existing data.
+
 ## v0.8.0 → v0.9.0
 
 v0.9.0 starts the 1.0 stabilization window.

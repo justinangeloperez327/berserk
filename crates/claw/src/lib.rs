@@ -15,7 +15,7 @@ mod relationship;
 mod route_binding;
 
 pub use decode::{field, FromValue};
-pub use many_to_many::BelongsToMany;
+pub use many_to_many::{BelongsToMany, SyncResult};
 pub use model::Model;
 pub use pagination::Page;
 pub use persistence::PersistableModel;
@@ -30,7 +30,7 @@ pub use berserk_database::{
 pub mod prelude {
     pub use crate::{
         field, BelongsTo, BelongsToMany, FromValue, HasMany, HasOne, Model, ModelQuery, Page,
-        PersistableModel, RelatedSet, ScopedRouteModel,
+        PersistableModel, RelatedSet, ScopedRouteModel, SyncResult,
     };
     pub use crate::{DatabaseScope, IntoInsert, IntoUpdate, Relationship, Transaction};
 }

@@ -1,11 +1,19 @@
-use crate::{relationship::unique_non_null, Model, RelatedSet};
+use crate::{
+    relationship::{keys_equal, unique_non_null, validate_key},
+    Model, ModelQuery, RelatedSet,
+};
 use berserk_database::{Connection, DatabaseError, ErrorKind, Query, Result, Value};
 use std::marker::PhantomData;
+
+mod pivot;
+pub use pivot::SyncResult;
 
 /// Related records connected through a pivot table.
 ///
 /// The relation batches parent keys into one pivot query and related keys into
 /// one model query, avoiding an N+1 query per parent.
+/// Duplicate pivot rows are preserved. The related key accessor must return the
+/// value of `R::PRIMARY_KEY`; a database UNIQUE constraint controls link uniqueness.
 pub struct BelongsToMany<P, R> {
     pivot_table: &'static str,
     foreign_pivot_key: &'static str,
@@ -33,6 +41,32 @@ impl<P, R: Model> BelongsToMany<P, R> {
         }
     }
 
+    /// Build a joined model query preserving actual pivot rows, including duplicates.
+    /// Qualify ambiguous columns with the related table name (for example `roles.id`).
+    /// Joined updates/deletes are rejected by the portable query builder; use pivot APIs.
+    pub fn query_for(&self, parent: &P) -> Result<ModelQuery<R>> {
+        let key = (self.parent_key)(parent);
+        validate_key(&key)?;
+        Ok(R::query()
+            .select([format!("{}.*", R::TABLE)])
+            .scope(|query| {
+                query
+                    .join(
+                        self.pivot_table,
+                        format!("{}.{}", self.pivot_table, self.related_pivot_key),
+                        format!("{}.{}", R::TABLE, R::PRIMARY_KEY),
+                    )
+                    .constrain_in(
+                        format!("{}.{}", self.pivot_table, self.foreign_pivot_key),
+                        [key],
+                    )
+            }))
+    }
+
+    pub fn load(&self, parents: &[P]) -> Result<RelatedSet<R>> {
+        berserk_database::scope::with_connection(|connection| self.load_on(connection, parents))
+    }
+
     pub fn load_on(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
         let parent_keys = unique_non_null(parents.iter().map(self.parent_key));
         if parent_keys.is_empty() {
@@ -41,7 +75,7 @@ impl<P, R: Model> BelongsToMany<P, R> {
 
         let links = Query::table(self.pivot_table)
             .select([self.foreign_pivot_key, self.related_pivot_key])
-            .where_in(self.foreign_pivot_key, parent_keys)
+            .where_in(self.foreign_pivot_key, parent_keys.iter().cloned())
             .get(connection)?;
 
         let mut pairs = Vec::with_capacity(links.len());
@@ -65,7 +99,13 @@ impl<P, R: Model> BelongsToMany<P, R> {
                     ),
                 )
             })?;
-            if related != Value::Null && !related_keys.contains(&related) {
+            if parent == Value::Null || related == Value::Null {
+                return Err(DatabaseError::new(
+                    ErrorKind::Decode,
+                    "pivot keys cannot be NULL",
+                ));
+            }
+            if !related_keys.iter().any(|key| keys_equal(key, &related)) {
                 related_keys.push(related.clone());
             }
             pairs.push((parent, related));
@@ -86,10 +126,14 @@ impl<P, R: Model> BelongsToMany<P, R> {
 
         let mut result = RelatedSet::default();
         for (parent, related) in pairs {
-            let Some((_, row)) = keyed_rows.iter().find(|(key, _)| key == &related) else {
+            let Some(parent) = parent_keys.iter().find(|key| keys_equal(key, &parent)) else {
                 continue;
             };
-            result.insert(parent, R::from_row(row)?);
+            let Some((_, row)) = keyed_rows.iter().find(|(key, _)| keys_equal(key, &related))
+            else {
+                continue;
+            };
+            result.insert(parent.clone(), R::from_row(row)?);
         }
         Ok(result)
     }
