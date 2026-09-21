@@ -229,15 +229,16 @@ impl Generator {
     }
     pub fn make_migration(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.ensure_application()?;
-        validate_snake_name(name)?;
-        let directory = self.safe_directory("src/database/migrations")?;
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|_| CliError::new(ErrorKind::Clock, "system clock is before Unix epoch"))?
             .as_secs();
+        let source = berserk_codegen::migration_source(&berserk_codegen::MigrationSpec::new(
+            name, timestamp,
+        ))
+        .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
+        let directory = self.safe_directory("src/database/migrations")?;
         let path = directory.join(format!("{timestamp}_{name}.rs"));
-        let type_name = pascal_case(name);
-        let source = migration_source(&type_name, timestamp, name);
         write_new(&path, source.as_bytes())?;
         Ok(vec![GeneratedFile { path }])
     }
@@ -451,25 +452,6 @@ fn validate_type_name(name: &str) -> Result<()> {
         Ok(())
     }
 }
-fn validate_snake_name(name: &str) -> Result<()> {
-    if name.is_empty()
-        || name.len() > 96
-        || !name.bytes().enumerate().all(|(index, byte)| {
-            byte.is_ascii_lowercase()
-                || byte.is_ascii_digit() && index > 0
-                || byte == b'_' && index > 0
-        })
-        || name.ends_with('_')
-        || name.contains("__")
-    {
-        Err(CliError::new(
-            ErrorKind::InvalidName,
-            "migration name must be snake_case without repeated or edge underscores",
-        ))
-    } else {
-        Ok(())
-    }
-}
 fn snake_case(name: &str) -> String {
     let mut output = String::new();
     for (index, character) in name.chars().enumerate() {
@@ -479,18 +461,6 @@ fn snake_case(name: &str) -> String {
         output.push(character.to_ascii_lowercase());
     }
     output
-}
-fn pascal_case(name: &str) -> String {
-    name.split('_')
-        .filter(|part| !part.is_empty())
-        .map(|part| {
-            let mut chars = part.chars();
-            chars
-                .next()
-                .map(|first| first.to_ascii_uppercase().to_string() + chars.as_str())
-                .unwrap_or_default()
-        })
-        .collect()
 }
 fn rust_keyword(name: &str) -> bool {
     matches!(
@@ -547,20 +517,5 @@ fn rust_keyword(name: &str) -> bool {
             | "yield"
             | "try"
             | "gen"
-    )
-}
-
-fn migration_source(type_name: &str, timestamp: u64, name: &str) -> String {
-    let migration_name = format!("{timestamp}_{name}");
-    if let Some(table) = name
-        .strip_prefix("create_")
-        .and_then(|value| value.strip_suffix("_table"))
-    {
-        return format!(
-            "use berserk::database::{{migrations::{{Column, MigrationPlan, Table}}, Driver, Migration, Result, Statement}};\n\npub struct {type_name};\n\nimpl Migration for {type_name} {{\n    fn name(&self) -> &'static str {{ \"{migration_name}\" }}\n\n    fn up(&self, driver: Driver) -> Result<Vec<Statement>> {{\n        MigrationPlan::new()\n            .create(Table::create(\"{table}\").columns([\n                Column::id(),\n                Column::timestamp(\"created_at\"),\n                Column::timestamp(\"updated_at\"),\n            ]))\n            .compile(driver)\n    }}\n\n    fn down(&self, driver: Driver) -> Result<Vec<Statement>> {{\n        MigrationPlan::new()\n            .table(Table::drop(\"{table}\"))\n            .compile(driver)\n    }}\n}}\n"
-        );
-    }
-    format!(
-        "use berserk::database::{{migrations::MigrationPlan, Driver, Migration, Result, Statement}};\n\npub struct {type_name};\n\nimpl Migration for {type_name} {{\n    fn name(&self) -> &'static str {{ \"{migration_name}\" }}\n\n    fn up(&self, driver: Driver) -> Result<Vec<Statement>> {{\n        MigrationPlan::new().compile(driver)\n    }}\n\n    fn down(&self, driver: Driver) -> Result<Vec<Statement>> {{\n        MigrationPlan::new().compile(driver)\n    }}\n}}\n"
     )
 }
