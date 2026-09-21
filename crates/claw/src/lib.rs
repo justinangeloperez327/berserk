@@ -35,14 +35,22 @@ pub mod prelude {
         HasOne, Model, ModelQuery, Page, PersistableModel, RelatedSet, ScopedRouteModel,
         SyncResult,
     };
-    pub use crate::{DatabaseScope, IntoInsert, IntoUpdate, Relationship, Transaction};
+    pub use crate::{
+        DatabaseScope, IntoInsert, IntoUpdate, NamedRelation, NamedRelations, RelationCardinality,
+        Relationship, Transaction,
+    };
 }
 
 mod eager;
 mod fields;
 mod writes;
 pub use berserk_database::scope::{with_scoped_connection, DatabaseScope};
-pub use eager::{EagerQuery, Loaded, LoadedPage, Relationship};
+pub use eager::{
+    named_belongs_to, EagerQuery, IntoEager, Loaded, LoadedPage, NamedEagerQuery, NamedRelation,
+    NamedRelations, RelationCardinality, Relationship,
+};
+#[doc(hidden)]
+pub use eager::{NamedEager, TypedEager};
 pub use writes::{IntoInsert, IntoUpdate};
 
 /// Run a synchronous unit of work using the active connection and transaction.

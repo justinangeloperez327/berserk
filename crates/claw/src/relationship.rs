@@ -36,6 +36,18 @@ impl<M> RelatedSet<M> {
         self.groups.is_empty()
     }
 
+    pub fn map<T>(self, mut mapper: impl FnMut(M) -> T) -> RelatedSet<T> {
+        let mut groups = Vec::with_capacity(self.groups.len());
+        for (key, models) in self.groups {
+            let mut mapped = Vec::with_capacity(models.len());
+            for model in models {
+                mapped.push(mapper(model));
+            }
+            groups.push((key, mapped));
+        }
+        RelatedSet { groups }
+    }
+
     pub(crate) fn insert(&mut self, key: Value, model: M) {
         if let Some((_, models)) = self
             .groups

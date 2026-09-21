@@ -115,6 +115,52 @@ Parent restrictions use the additive `Query::constrain_in` primitive. SQL is equ
 
 ## Eager loading and results
 
+For application code, the preferred eager-loading syntax is relationship names:
+
+```rust
+let users = User::query()
+    .with(["posts", "profile", "roles"])
+    .get()?;
+```
+
+A single relationship is also accepted:
+
+```rust
+let users = User::query()
+    .with("posts")
+    .get()?;
+```
+
+An empty list is valid and performs no relationship queries:
+
+```rust
+let users = User::query()
+    .with([])
+    .get()?;
+```
+
+The names are validated against the relationships declared by `#[derive(Model)]`.
+Unknown names return `InvalidInput`. Duplicate names are loaded once. Each
+requested relationship is batch-loaded across the complete parent result, so the
+number of queries does not grow per parent.
+
+Named eager loading returns `Loaded<M, NamedRelations>`. Berserk's JSON and Axe
+presentation adapters include requested relations directly in each parent object:
+to-many relations become arrays; to-one relations become an object or `null`.
+Only each related model's visible attributes are exposed, so `#[hidden]` still
+applies.
+
+```rust
+let users = User::query()
+    .with(["posts", "roles"])
+    .get()?;
+
+response().json(users)?;
+```
+
+The lower-level typed eager API remains available when application code needs the
+actual related Rust model types rather than presentation-safe named data:
+
 ```rust
 let loaded = User::query()
     .order_by("id", Direction::Asc)
@@ -126,21 +172,23 @@ let (posts, roles) = loaded.relations;
 for user in &loaded.models {
     let user_posts = posts.get(&user.key()).unwrap_or(&[]);
     let user_roles = roles.get(&user.key()).unwrap_or(&[]);
-    // Build an application response from user, user_posts, and user_roles.
 }
 ```
 
 | Public type | Meaning |
 | --- | --- |
-| `Relationship<M>` | Batch-loading contract with associated `Output`, explicit `load_on`, and default scoped `load` |
-| `RelatedSet<R>` | Owned models grouped by the linking key; `get` returns an optional slice |
-| `EagerQuery<M, R>` | A normal parent query plus the requested relationship loaders |
-| `Loaded<M, R>` | Public `models: Vec<M>` and `relations: R` fields |
-| `LoadedPage<M, R>` | Public `page: Page<M>` and `relations: R` fields |
+| `Relationship<M>` | Typed batch-loading contract |
+| `RelatedSet<R>` | Typed related models grouped by linking key |
+| `EagerQuery<M, R>` | Zero-erasure typed eager query |
+| `NamedEagerQuery<M>` | Relationship-name eager query |
+| `NamedRelations` | Requested named relationship output |
+| `Loaded<M, R>` | Parent collection plus eager relationship output |
+| `LoadedPage<M, R>` | Parent page plus eager relationship output |
 
-`RelatedSet::len` counts populated groups, not records. A missing group is `None`; `groups()` exposes the populated groups. Integer key lookup treats equivalent signed and unsigned values equally; it does not globally change `Value::PartialEq`. `HasOne` retains `RelatedSet` for compatibility, with slices guaranteed to contain at most one record after successful loading. Retrieve one with `profiles.get(&user.key()).and_then(|items| items.first())`.
-
-Two chained `with` calls return `(first, second)` relationship output. Three return `((first, second), third)`. This nests output tuples, not relationship traversal. Custom `Relationship` implementations remain source-compatible because scoped loading has a default implementation.
+Named loading is explicit eager loading, not lazy loading. Accessing a relationship
+that was not requested does not execute another query. Flat declared relationship
+names are supported by this API; dotted nested relationship paths are not resolved
+implicitly.
 
 ### Query counts and pagination
 

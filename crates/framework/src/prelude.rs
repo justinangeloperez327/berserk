@@ -1,4 +1,6 @@
 //! Common framework imports.
+#[cfg(feature = "claw")]
+pub use crate::Model;
 pub use crate::{
     ActionResult, ApiResource, ApiResourceController, App, Error, IntoResponse, Request, Resource,
     ResourceCollection, ResourceController, Response, Result, Route, ServerConfig, State,
@@ -12,8 +14,6 @@ pub use crate::{
 pub use berserk_auth::Principal;
 #[cfg(feature = "claw")]
 pub use claw_orm::{Collection, PersistableModel, ScopedRouteModel};
-#[cfg(feature = "claw")]
-pub use crate::Model;
 
 pub use crate::{FormRequest, FromJson, Json, ValidationErrors, ValidationResult};
 

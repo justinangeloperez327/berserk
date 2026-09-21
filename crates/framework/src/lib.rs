@@ -34,6 +34,8 @@ pub use berserk_database as database;
 pub use berserk_events as events;
 #[cfg(feature = "jobs")]
 pub use berserk_jobs as jobs;
+#[cfg(feature = "claw")]
+pub use berserk_macros::Model;
 #[cfg(feature = "notifications")]
 pub use berserk_notifications as notifications;
 #[cfg(feature = "openapi")]
@@ -44,8 +46,6 @@ pub use berserk_storage as storage;
 pub use claw_orm as claw;
 #[cfg(feature = "claw")]
 pub use claw_orm::Model;
-#[cfg(feature = "claw")]
-pub use berserk_macros::Model;
 
 #[cfg(feature = "database")]
 pub use http::RequestConnection;

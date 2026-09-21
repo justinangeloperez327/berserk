@@ -37,11 +37,21 @@ fn expand_model(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
 
     let data = match &input.data {
         Data::Struct(data) => data,
-        _ => return Err(syn::Error::new(input.span(), "Model can only be derived for structs")),
+        _ => {
+            return Err(syn::Error::new(
+                input.span(),
+                "Model can only be derived for structs",
+            ))
+        }
     };
     let fields = match &data.fields {
         Fields::Named(fields) => &fields.named,
-        _ => return Err(syn::Error::new(data.fields.span(), "Model requires a struct with named fields")),
+        _ => {
+            return Err(syn::Error::new(
+                data.fields.span(),
+                "Model requires a struct with named fields",
+            ))
+        }
     };
 
     struct FieldSpec {
@@ -55,7 +65,10 @@ fn expand_model(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
 
     let mut specs = Vec::with_capacity(fields.len());
     for field in fields {
-        let ident = field.ident.clone().ok_or_else(|| syn::Error::new(field.span(), "Model field must be named"))?;
+        let ident = field
+            .ident
+            .clone()
+            .ok_or_else(|| syn::Error::new(field.span(), "Model field must be named"))?;
         let column = string_attribute(&field.attrs, "column")?
             .unwrap_or_else(|| LitStr::new(&ident.to_string(), ident.span()));
         specs.push(FieldSpec {
@@ -71,21 +84,47 @@ fn expand_model(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     let primary: Vec<_> = specs.iter().filter(|field| field.primary_key).collect();
     let primary = match primary.as_slice() {
         [field] => *field,
-        [] => return Err(syn::Error::new(input.span(), "Model requires exactly one #[primary_key] field")),
-        _ => return Err(syn::Error::new(input.span(), "Model cannot have more than one #[primary_key] field")),
+        [] => {
+            return Err(syn::Error::new(
+                input.span(),
+                "Model requires exactly one #[primary_key] field",
+            ))
+        }
+        _ => {
+            return Err(syn::Error::new(
+                input.span(),
+                "Model cannot have more than one #[primary_key] field",
+            ))
+        }
     };
 
     let name = &input.ident;
     let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
     let field_idents: Vec<_> = specs.iter().map(|field| &field.ident).collect();
     let columns: Vec<_> = specs.iter().map(|field| &field.column).collect();
-    let fillable: Vec<_> = specs.iter().filter(|field| field.fillable).map(|field| &field.column).collect();
-    let hidden: Vec<_> = specs.iter().filter(|field| field.hidden).map(|field| &field.column).collect();
+    let fillable: Vec<_> = specs
+        .iter()
+        .filter(|field| field.fillable)
+        .map(|field| &field.column)
+        .collect();
+    let hidden: Vec<_> = specs
+        .iter()
+        .filter(|field| field.hidden)
+        .map(|field| &field.column)
+        .collect();
     let primary_ident = &primary.ident;
     let primary_type = &primary.ty;
     let primary_column = &primary.column;
-    let relationship_impl =
-        relations::expand(&input.attrs, &impl_generics, name, &type_generics, where_clause)?;
+    let relations::Expansion {
+        model_items: relationship_model_items,
+        inherent_impl: relationship_impl,
+    } = relations::expand(
+        &input.attrs,
+        &impl_generics,
+        name,
+        &type_generics,
+        where_clause,
+    )?;
 
     Ok(quote! {
         impl #impl_generics ::berserk::claw::Model for #name #type_generics #where_clause {
@@ -93,6 +132,8 @@ fn expand_model(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             const PRIMARY_KEY: &'static str = #primary_column;
             const FILLABLE: &'static [&'static str] = &[#(#fillable),*];
             const HIDDEN: &'static [&'static str] = &[#(#hidden),*];
+
+            #relationship_model_items
 
             fn from_row(row: &::berserk::claw::Row) -> ::berserk::claw::Result<Self> {
                 Ok(Self {
@@ -121,13 +162,22 @@ fn expand_model(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
 
 fn string_attribute(attrs: &[Attribute], name: &str) -> syn::Result<Option<LitStr>> {
     let mut value = None;
-    for attribute in attrs.iter().filter(|attribute| attribute.path().is_ident(name)) {
+    for attribute in attrs
+        .iter()
+        .filter(|attribute| attribute.path().is_ident(name))
+    {
         if value.is_some() {
-            return Err(syn::Error::new_spanned(attribute, format!("duplicate #[{name}(...)] attribute")));
+            return Err(syn::Error::new_spanned(
+                attribute,
+                format!("duplicate #[{name}(...)] attribute"),
+            ));
         }
         let literal = attribute.parse_args::<LitStr>()?;
         if literal.value().is_empty() {
-            return Err(syn::Error::new_spanned(attribute, format!("#[{name}(...)] cannot be empty")));
+            return Err(syn::Error::new_spanned(
+                attribute,
+                format!("#[{name}(...)] cannot be empty"),
+            ));
         }
         value = Some(literal);
     }
@@ -136,12 +186,21 @@ fn string_attribute(attrs: &[Attribute], name: &str) -> syn::Result<Option<LitSt
 
 fn marker_attribute(attrs: &[Attribute], name: &str) -> syn::Result<bool> {
     let mut found = false;
-    for attribute in attrs.iter().filter(|attribute| attribute.path().is_ident(name)) {
+    for attribute in attrs
+        .iter()
+        .filter(|attribute| attribute.path().is_ident(name))
+    {
         if found {
-            return Err(syn::Error::new_spanned(attribute, format!("duplicate #[{name}] attribute")));
+            return Err(syn::Error::new_spanned(
+                attribute,
+                format!("duplicate #[{name}] attribute"),
+            ));
         }
         if !matches!(&attribute.meta, Meta::Path(_)) {
-            return Err(syn::Error::new_spanned(attribute, format!("#[{name}] does not take arguments")));
+            return Err(syn::Error::new_spanned(
+                attribute,
+                format!("#[{name}] does not take arguments"),
+            ));
         }
         found = true;
     }

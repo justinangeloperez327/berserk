@@ -1,5 +1,7 @@
 use crate::{Collection, ModelQuery};
-use berserk_database::{Connection, Direction, Execution, Query, Result, Row, Value};
+use berserk_database::{
+    Connection, DatabaseError, Direction, ErrorKind, Execution, Query, Result, Row, Value,
+};
 use std::collections::BTreeMap;
 
 /// Explicit scalar field mapping shared by Claw presentation integrations.
@@ -13,6 +15,8 @@ pub trait Model: Sized {
     const FILLABLE: &'static [&'static str] = &[];
     /// Attributes excluded from automatic presentation mapping.
     const HIDDEN: &'static [&'static str] = &[];
+    /// Relationship names declared for named eager loading.
+    const RELATIONS: &'static [&'static str] = &[];
 
     fn from_row(row: &Row) -> Result<Self>;
     fn key(&self) -> Value;
@@ -34,6 +38,26 @@ pub trait Model: Sized {
             .into_iter()
             .filter(|(name, _)| !Self::HIDDEN.contains(&name.as_str()))
             .collect()
+    }
+
+    #[doc(hidden)]
+    fn load_named_relation(
+        name: &str,
+        _connection: &mut dyn Connection,
+        _models: &[Self],
+    ) -> Result<crate::NamedRelation> {
+        let available = if Self::RELATIONS.is_empty() {
+            "none".to_owned()
+        } else {
+            Self::RELATIONS.join(", ")
+        };
+        Err(DatabaseError::new(
+            ErrorKind::InvalidInput,
+            format!(
+                "unknown relationship '{name}' for model '{}'; available: {available}",
+                Self::TABLE
+            ),
+        ))
     }
 
     /// Convert a raw route parameter into this model's lookup key.
