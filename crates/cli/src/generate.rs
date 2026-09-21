@@ -86,21 +86,27 @@ impl Generator {
             let mut files = vec![GeneratedFile {
                 path: target.join("Cargo.toml"),
             }];
+            let routes = berserk_codegen::routes_source(&berserk_codegen::RoutesSpec::application())
+                .map_err(|error| {
+                    CliError::new(
+                        ErrorKind::Process,
+                        format!("could not generate application routes: {error}"),
+                    )
+                })?;
             for (path, source) in [
                 ("src/main.rs", include_str!("../templates/main.rs.stub")),
                 (
                     "src/config/mod.rs",
                     include_str!("../templates/config.rs.stub"),
                 ),
-                (
-                    "src/app/routes.rs",
-                    include_str!("../templates/routes.rs.stub"),
-                ),
             ] {
                 let path = target.join(path);
                 write_new(&path, source.as_bytes())?;
                 files.push(GeneratedFile { path });
             }
+            let routes_path = target.join("src/app/routes.rs");
+            write_new(&routes_path, routes.as_bytes())?;
+            files.push(GeneratedFile { path: routes_path });
             for (path, source) in [
                 (
                     "src/app/mod.rs",

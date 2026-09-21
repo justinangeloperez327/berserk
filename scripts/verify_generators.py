@@ -44,6 +44,11 @@ def main():
         if replacements != 1:
             raise RuntimeError("expected exactly one generated Berserk dependency")
         manifest.write_text(manifest_text)
+        generated_routes = (consumer / "src/app/routes.rs").read_text()
+        if 'app.route().get("/health"' not in generated_routes:
+            raise RuntimeError("generated application routes are not using route codegen")
+        if "request.config::<AppConfig>()" not in generated_routes:
+            raise RuntimeError("generated application routes lost the welcome route contract")
         for kind, name in [("model", "User"), ("controller", "UserController"), ("resource", "UserResource"), ("policy", "UserPolicy")]:
             run(str(cli), f"make:{kind}", name, cwd=consumer)
         run(str(cli), "make:request", "SimpleInput", cwd=consumer)
