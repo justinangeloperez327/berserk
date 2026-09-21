@@ -13,8 +13,8 @@ mod relations;
 mod request;
 
 pub use controller::{controller_source, ControllerKind, ControllerSpec};
-pub use request::{request_source, RequestKind, RequestSpec};
 use proc_macro2::TokenStream;
+pub use request::{request_source, RequestKind, RequestSpec};
 use syn::DeriveInput;
 
 /// Expand a Berserk `Model` declaration into its Rust implementation.
