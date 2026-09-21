@@ -133,9 +133,11 @@ HTTP framing metadata remains transport-owned where required. Invalid response m
 With `claw`, the response factory accepts ordinary models and model collections
 through their visible attributes: `response().json(user)` and
 `response().collection(users)` need no `ApiResource` implementation. Custom
-resources remain supported. With `view`, `view(...)`, `Response::view(...)`,
-and `response().view(...)` render Axe templates. Enable both features to pass
-models directly using `[("users", users)]` or Berserk's `view_data!` macro.
+resources remain supported. With `view`, the free helper uses
+`view("users/index").with(data)` (or `.render()` for no data), while
+`Response::view(...)` and `response().view(...)` retain their direct
+`(view, data)` form. Enable both features to pass models directly using
+`[("users", users)]` or Berserk's `view_data!` macro.
 
 See [model presentation](model-presentation.md) for the field mapping helper,
 visibility contract, pagination, custom resources, and compatibility decisions.

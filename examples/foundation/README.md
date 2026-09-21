@@ -18,7 +18,7 @@ The routes use individual verbs while the handlers demonstrate the same typed pl
 ```rust
 pub fn browse() -> Result<Response> {
     let users = User::all()?;
-    view("users/index", [("users", users)])
+    view("users/index").with([("users", users)])
 }
 ```
 
