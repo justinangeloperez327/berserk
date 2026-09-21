@@ -519,4 +519,3 @@ fn rust_keyword(name: &str) -> bool {
             | "gen"
     )
 }
-
