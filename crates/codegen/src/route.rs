@@ -4,10 +4,7 @@ use crate::naming::{snake_case, validate_type_name};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RouteSpec {
     /// A model-bound REST resource registered through `Route::crud`.
-    Crud {
-        path: String,
-        controller: String,
-    },
+    Crud { path: String, controller: String },
 }
 
 impl RouteSpec {
@@ -57,11 +54,7 @@ impl RoutesSpec {
         self
     }
 
-    pub fn crud(
-        self,
-        path: impl Into<String>,
-        controller: impl Into<String>,
-    ) -> Self {
+    pub fn crud(self, path: impl Into<String>, controller: impl Into<String>) -> Self {
         self.route(RouteSpec::crud(path, controller))
     }
 
@@ -132,9 +125,7 @@ pub fn routes_source(spec: &RoutesSpec) -> syn::Result<String> {
         );
     }
     if spec.includes_health() {
-        source.push_str(
-            "    app.route().get(\"/health\", || response().text(\"OK\"))?;\n",
-        );
+        source.push_str("    app.route().get(\"/health\", || response().text(\"OK\"))?;\n");
     }
 
     for route in spec.routes() {
@@ -159,8 +150,7 @@ fn validate_crud_path(path: &str) -> syn::Result<()> {
         && path.split('/').skip(1).all(|segment| {
             !segment.is_empty()
                 && segment.bytes().all(|byte| {
-                    byte.is_ascii_alphanumeric()
-                        || matches!(byte, b'-' | b'_' | b'.' | b'~')
+                    byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~')
                 })
         });
 
@@ -188,18 +178,11 @@ mod tests {
 
     #[test]
     fn crud_routes_import_and_register_the_controller() {
-        let source = routes_source(
-            &RoutesSpec::new().crud("/users", "UserController"),
-        )
-        .unwrap();
+        let source = routes_source(&RoutesSpec::new().crud("/users", "UserController")).unwrap();
 
         syn::parse_file(&source).unwrap();
-        assert!(source.contains(
-            "use crate::app::controllers::user_controller::UserController;"
-        ));
-        assert!(source.contains(
-            "app.route().crud(\"/users\", UserController)?;"
-        ));
+        assert!(source.contains("use crate::app::controllers::user_controller::UserController;"));
+        assert!(source.contains("app.route().crud(\"/users\", UserController)?;"));
     }
 
     #[test]
@@ -213,9 +196,7 @@ mod tests {
 
         assert_eq!(
             source
-                .matches(
-                    "use crate::app::controllers::user_controller::UserController;"
-                )
+                .matches("use crate::app::controllers::user_controller::UserController;")
                 .count(),
             1
         );
@@ -223,19 +204,8 @@ mod tests {
 
     #[test]
     fn invalid_crud_routes_are_rejected() {
-        assert!(
-            routes_source(&RoutesSpec::new().crud("users", "UserController"))
-                .is_err()
-        );
-        assert!(
-            routes_source(
-                &RoutesSpec::new().crud("/users/{id}", "UserController")
-            )
-            .is_err()
-        );
-        assert!(
-            routes_source(&RoutesSpec::new().crud("/users/", "UserController"))
-                .is_err()
-        );
+        assert!(routes_source(&RoutesSpec::new().crud("users", "UserController")).is_err());
+        assert!(routes_source(&RoutesSpec::new().crud("/users/{id}", "UserController")).is_err());
+        assert!(routes_source(&RoutesSpec::new().crud("/users/", "UserController")).is_err());
     }
 }
