@@ -84,8 +84,10 @@ fn expand_model(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     let primary_ident = &primary.ident;
     let primary_type = &primary.ty;
     let primary_column = &primary.column;
-    let relationship_impl =
-        relations::expand(&input.attrs, &impl_generics, name, &type_generics, where_clause)?;
+    let relations::Expansion {
+        model_items: relationship_model_items,
+        inherent_impl: relationship_impl,
+    } = relations::expand(&input.attrs, &impl_generics, name, &type_generics, where_clause)?;
 
     Ok(quote! {
         impl #impl_generics ::berserk::claw::Model for #name #type_generics #where_clause {
@@ -93,6 +95,8 @@ fn expand_model(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             const PRIMARY_KEY: &'static str = #primary_column;
             const FILLABLE: &'static [&'static str] = &[#(#fillable),*];
             const HIDDEN: &'static [&'static str] = &[#(#hidden),*];
+
+            #relationship_model_items
 
             fn from_row(row: &::berserk::claw::Row) -> ::berserk::claw::Result<Self> {
                 Ok(Self {
