@@ -20,19 +20,26 @@ All packages live under `crates/` with short folder names:
 - `testing`: in-memory HTTP assertions, fakes, recorders, and isolated temporary workspaces.
 - `validation`: explicit field errors, validation rules, and sanitization helpers.
 
-Beginning in Phase 13, `database` owns the shared connection, transaction, statement, value, row, capability, and error contracts. Phases 14–15 implement `database/src/drivers/postgres/`, `mysql/`, and `sqlite/`. They remain inside one database package, not three packages. Backend features are additive and disabled by default. The main `framework` package forwards those optional features. Backend-specific behavior remains explicit.
+Current package boundaries are architectural boundaries, not development phases. The `database` crate owns shared connection, transaction, statement, value, row, capability, migration, and driver contracts. Cache, storage, events, jobs, outbound HTTP, and notifications remain independent components and integrate through the main framework without depending on HTTP internals.
 
-Folder names and Cargo package names are independent. Use a distinctive framework prefix for published package names; avoid naming the Rust crate itself `core` because Rust already supplies a core crate. Published names use `berserk`, `berserk-*`, and `claw-orm`.
+The `cli` remains independent of runtime application state; applications provide runtime-specific resources such as migration execution. The `testing` crate may depend on the framework, while production framework crates do not depend on testing. Hardening is cross-cutting rather than a separate runtime layer.
 
-Phase 22 keeps `cache` and `storage` independent of HTTP and database code. Applications may use the contracts directly or enable the main framework's `cache` and `storage` re-export features. Remote adapters must implement the same explicit contracts and map their failures into public component errors.
+Folder names and Cargo package names are independent. Published package names use `berserk`, `berserk-*`, and `claw-orm`.
 
-Phase 23 keeps domain events synchronous and background jobs explicit. `events` and `jobs` do not depend on HTTP, databases, cache, or storage. This prevents event publication from silently becoming remote I/O and allows durable brokers to be added later behind separate adapters and delivery guarantees.
+### Extensibility and control
 
-Phase 24 keeps outbound protocols outside `core`. `notifications` depends on the `client` contract for webhooks, while neither component depends on the main framework. The framework only re-exports them through optional `client` and `notifications` features. TLS and SMTP implementations require opt-in adapters rather than weakening transport security to preserve a dependency-free default.
+Berserk uses inversion of control at framework boundaries: application code supplies behavior or implementations, and Berserk invokes them at the appropriate point in the request or application flow. This is distinct from a global dependency-injection container.
 
-Phase 25 keeps `cli` independent of runtime application state. Applications supply a `MigrationExecutor` because only the application knows its database connection and registered migrations. `testing` depends on the main framework and selected component contracts, so it is never re-exported by or linked into the production framework; applications add it as a development dependency.
+Prefer:
 
-Phase 26 does not add a runtime crate. Hardening remains cross-cutting: crate roots forbid unsafe code, sensitive diagnostic output is metadata-only, the workspace declares an MSRV, and automated checks exercise the feature and consumer boundaries. Release automation stops before publication; artifact ownership and publication authority remain external to framework runtime code.
+- small traits that describe a replaceable capability;
+- application-owned implementations registered explicitly on an `App` instance;
+- handler signatures that declare required framework-provided input;
+- middleware and callbacks composed through explicit APIs;
+- concrete defaults where a replaceable boundary is not needed.
+
+Avoid introducing an interface for every concrete type. A trait is justified when the framework needs to call application-defined behavior, multiple implementations are useful, or testing/replacement requires a stable boundary. Application code should retain control over construction, configuration, ownership, and explicit escape hatches.
+
 
 ## Dependency direction
 
