@@ -2,12 +2,27 @@
 #![forbid(unsafe_code)]
 
 use proc_macro::TokenStream;
+
+mod relations;
 use quote::quote;
 use syn::{
     parse_macro_input, spanned::Spanned, Attribute, Data, DeriveInput, Fields, LitStr, Meta, Type,
 };
 
-#[proc_macro_derive(Model, attributes(table, primary_key, fillable, hidden, column))]
+#[proc_macro_derive(
+    Model,
+    attributes(
+        table,
+        primary_key,
+        fillable,
+        hidden,
+        column,
+        has_many,
+        has_one,
+        belongs_to,
+        belongs_to_many
+    )
+)]
 pub fn derive_model(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
     match expand_model(&input) {
@@ -69,6 +84,8 @@ fn expand_model(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     let primary_ident = &primary.ident;
     let primary_type = &primary.ty;
     let primary_column = &primary.column;
+    let relationship_impl =
+        relations::expand(&input.attrs, &impl_generics, name, &type_generics, where_clause)?;
 
     Ok(quote! {
         impl #impl_generics ::berserk::claw::Model for #name #type_generics #where_clause {
@@ -97,6 +114,8 @@ fn expand_model(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
                 value.parse::<#primary_type>().ok().map(Into::into)
             }
         }
+
+        #relationship_impl
     })
 }
 
