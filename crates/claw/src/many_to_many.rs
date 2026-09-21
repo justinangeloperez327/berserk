@@ -2,6 +2,9 @@ use crate::{relationship::unique_non_null, Model, RelatedSet};
 use berserk_database::{Connection, DatabaseError, ErrorKind, Query, Result, Value};
 use std::marker::PhantomData;
 
+mod pivot;
+pub use pivot::SyncResult;
+
 /// Related records connected through a pivot table.
 ///
 /// The relation batches parent keys into one pivot query and related keys into

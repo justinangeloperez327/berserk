@@ -159,3 +159,25 @@ pub(crate) fn unique_non_null(values: impl IntoIterator<Item = Value>) -> Vec<Va
     }
     unique
 }
+
+// Drivers may decode a positive integer as signed even when a model uses u64.
+pub(crate) fn keys_equal(left: &Value, right: &Value) -> bool {
+    match (left, right) {
+        (Value::I64(signed), Value::U64(unsigned)) | (Value::U64(unsigned), Value::I64(signed)) => {
+            u64::try_from(*signed).ok() == Some(*unsigned)
+        }
+        _ => left == right,
+    }
+}
+
+pub(crate) fn validate_key(key: &Value) -> Result<()> {
+    match key {
+        Value::I64(_) | Value::U64(_) => Ok(()),
+        Value::Text(value) if !value.is_empty() => Ok(()),
+        Value::Bytes(value) if !value.is_empty() => Ok(()),
+        _ => Err(DatabaseError::new(
+            ErrorKind::InvalidInput,
+            "relationship keys must be integers or nonempty text/bytes",
+        )),
+    }
+}
