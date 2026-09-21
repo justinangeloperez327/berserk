@@ -1,6 +1,6 @@
 # Release checklist
 
-For the 1.2.0 candidate, use [v1.2.0](v1.2.0.md) and the full PR checks. Historical 1.0 checkmarks below do not establish 1.2 readiness.
+For the first public release candidate, use [v1.0.0](v1.0.0.md) and the full PR checks. Earlier validation evidence does not establish final 1.0 readiness; rerun release-specific checks against the exact publication commit.
 
 Use this checklist for each Berserk release candidate. Historical evidence from an earlier release does not automatically satisfy a later release gate; rerun release-specific validation against the exact candidate commit.
 
