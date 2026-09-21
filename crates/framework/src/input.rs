@@ -262,6 +262,7 @@ impl Request {
 mod form_request_tests {
     use super::*;
 
+    #[derive(Debug)]
     struct DeniedInput;
 
     impl FromJson for DeniedInput {
