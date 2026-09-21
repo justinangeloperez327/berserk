@@ -6,9 +6,11 @@
 //! build-time code generation later.
 #![forbid(unsafe_code)]
 
+mod controller;
 mod model;
 mod relations;
 
+pub use controller::{controller_source, ControllerKind, ControllerSpec};
 use proc_macro2::TokenStream;
 use syn::DeriveInput;
 

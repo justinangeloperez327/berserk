@@ -134,11 +134,30 @@ impl Generator {
         )
     }
     pub fn make_controller(&self, name: &str) -> Result<Vec<GeneratedFile>> {
-        self.make_type(
-            name,
-            "app/controllers",
-            include_str!("../templates/controller.rs.stub"),
+        self.ensure_application()?;
+        validate_type_name(name)?;
+        let source = berserk_codegen::controller_source(
+            &berserk_codegen::ControllerSpec::basic(name),
         )
+        .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
+        self.make_source_type(name, "app/controllers", &source)
+    }
+
+    pub fn make_resource_controller(
+        &self,
+        name: &str,
+        model: &str,
+        request: &str,
+    ) -> Result<Vec<GeneratedFile>> {
+        self.ensure_application()?;
+        validate_type_name(name)?;
+        validate_type_name(model)?;
+        validate_type_name(request)?;
+        let source = berserk_codegen::controller_source(
+            &berserk_codegen::ControllerSpec::crud(name, model, request),
+        )
+        .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
+        self.make_source_type(name, "app/controllers", &source)
     }
     pub fn make_request(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.make_type(
@@ -172,12 +191,22 @@ impl Generator {
         self.ensure_application()?;
         validate_type_name(name)?;
         let module = snake_case(name);
-        let directory = self.safe_directory(&format!("src/{folder}"))?;
-        let source_path = directory.join(format!("{module}.rs"));
-        let index = directory.join("mod.rs");
         let source = template
             .replace("{{name}}", name)
             .replace("{{table}}", &format!("{module}s"));
+        self.make_source_type(name, folder, &source)
+    }
+
+    fn make_source_type(
+        &self,
+        name: &str,
+        folder: &str,
+        source: &str,
+    ) -> Result<Vec<GeneratedFile>> {
+        let module = snake_case(name);
+        let directory = self.safe_directory(&format!("src/{folder}"))?;
+        let source_path = directory.join(format!("{module}.rs"));
+        let index = directory.join("mod.rs");
         write_new(&source_path, source.as_bytes())?;
         if let Err(error) = append_module(&index, &module) {
             let _ = fs::remove_file(&source_path);
