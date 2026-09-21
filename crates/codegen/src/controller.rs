@@ -78,13 +78,10 @@ fn crud_controller(name: &str, model: &str, request: &str) -> String {
 }
 
 fn validate_type_name(name: &str, kind: &str) -> syn::Result<()> {
-    let valid_shape = name
-        .bytes()
-        .enumerate()
-        .all(|(index, byte)| {
-            byte.is_ascii_alphabetic() && (index > 0 || byte.is_ascii_uppercase())
-                || byte.is_ascii_digit() && index > 0
-        });
+    let valid_shape = name.bytes().enumerate().all(|(index, byte)| {
+        byte.is_ascii_alphabetic() && (index > 0 || byte.is_ascii_uppercase())
+            || byte.is_ascii_digit() && index > 0
+    });
     if name.is_empty() || name.len() > 64 || !valid_shape {
         return Err(syn::Error::new(
             Span::call_site(),
