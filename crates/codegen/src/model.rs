@@ -1,8 +1,6 @@
 use crate::relations;
 use quote::quote;
-use syn::{
-    spanned::Spanned, Attribute, Data, DeriveInput, Fields, LitStr, Meta, Type,
-};
+use syn::{spanned::Spanned, Attribute, Data, DeriveInput, Fields, LitStr, Meta, Type};
 
 pub(crate) fn expand(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     let table = string_attribute(&input.attrs, "table")?

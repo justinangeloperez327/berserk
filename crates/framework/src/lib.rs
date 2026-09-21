@@ -91,9 +91,9 @@ pub use operational::{
 };
 
 mod responses;
+pub use responses::{redirect, response, ResponseFactory};
 #[cfg(feature = "view")]
 pub use responses::{view, ViewBuilder};
-pub use responses::{redirect, response, ResponseFactory};
 #[cfg(feature = "auth")]
 mod authorization;
 #[cfg(feature = "auth")]

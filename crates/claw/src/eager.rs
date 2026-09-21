@@ -309,15 +309,19 @@ where
     let mut grouped = RelatedSet::default();
 
     for model in models {
-        let foreign = model.attributes().get(foreign_key).cloned().ok_or_else(|| {
-            berserk_database::DatabaseError::new(
-                berserk_database::ErrorKind::Decode,
-                format!(
-                    "belongs_to relationship requires mapped column '{foreign_key}' on model '{}'",
-                    C::TABLE
-                ),
-            )
-        })?;
+        let foreign = model
+            .attributes()
+            .get(foreign_key)
+            .cloned()
+            .ok_or_else(|| {
+                berserk_database::DatabaseError::new(
+                    berserk_database::ErrorKind::Decode,
+                    format!(
+                        "belongs_to relationship requires mapped column '{foreign_key}' on model '{}'",
+                        C::TABLE
+                    ),
+                )
+            })?;
 
         if foreign == Value::Null {
             continue;
@@ -363,7 +367,7 @@ where
     }
 }
 
-impl<'a, M: Model, const N: usize> IntoEager<M, NamedEager> for [&'a str; N] {
+impl<M: Model, const N: usize> IntoEager<M, NamedEager> for [&str; N] {
     type Query = NamedEagerQuery<M>;
 
     fn into_eager(self, query: ModelQuery<M>) -> Self::Query {
@@ -371,7 +375,7 @@ impl<'a, M: Model, const N: usize> IntoEager<M, NamedEager> for [&'a str; N] {
     }
 }
 
-impl<'a, M: Model> IntoEager<M, NamedEager> for &'a str {
+impl<M: Model> IntoEager<M, NamedEager> for &str {
     type Query = NamedEagerQuery<M>;
 
     fn into_eager(self, query: ModelQuery<M>) -> Self::Query {
@@ -379,7 +383,7 @@ impl<'a, M: Model> IntoEager<M, NamedEager> for &'a str {
     }
 }
 
-impl<'a, M: Model> IntoEager<M, NamedEager> for Vec<&'a str> {
+impl<M: Model> IntoEager<M, NamedEager> for Vec<&str> {
     type Query = NamedEagerQuery<M>;
 
     fn into_eager(self, query: ModelQuery<M>) -> Self::Query {

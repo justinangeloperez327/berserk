@@ -55,13 +55,8 @@ mod models {
     fn relation_value(relation: &NamedRelation, parent_key: &claw_orm::Value) -> Value {
         let values = relation.get(parent_key).unwrap_or(&[]);
         match relation.cardinality() {
-            RelationCardinality::Many => {
-                Value::List(values.iter().map(attributes_value).collect())
-            }
-            RelationCardinality::One => values
-                .first()
-                .map(attributes_value)
-                .unwrap_or(Value::Null),
+            RelationCardinality::Many => Value::List(values.iter().map(attributes_value).collect()),
+            RelationCardinality::One => values.first().map(attributes_value).unwrap_or(Value::Null),
         }
     }
 

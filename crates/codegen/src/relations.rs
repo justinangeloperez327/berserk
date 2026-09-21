@@ -3,7 +3,6 @@ use quote::quote;
 use std::collections::BTreeSet;
 use syn::{
     parse::{Parse, ParseStream},
-    spanned::Spanned,
     Attribute, Ident, LitStr, Token, Type,
 };
 
@@ -411,7 +410,7 @@ fn required_option(
 ) -> syn::Result<LitStr> {
     args.options
         .iter()
-        .find(|(key, _)| key.to_string() == name)
+        .find(|(key, _)| key == name)
         .map(|(_, value)| value.clone())
         .ok_or_else(|| {
             syn::Error::new_spanned(
@@ -423,7 +422,7 @@ fn required_option(
 
 fn reject_unknown_options(args: &RelationshipArgs, allowed: &[&str]) -> syn::Result<()> {
     for (key, _) in &args.options {
-        if !allowed.iter().any(|allowed| key.to_string() == *allowed) {
+        if !allowed.iter().any(|allowed| key == *allowed) {
             return Err(syn::Error::new(
                 key.span(),
                 format!("unsupported relationship option '{key}'"),

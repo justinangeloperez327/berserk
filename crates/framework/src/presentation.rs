@@ -88,14 +88,12 @@ fn scalar_json(value: claw_orm::Value) -> Result<Json> {
         Value::Bool(value) => value.into(),
         Value::I64(value) => value.into(),
         Value::U64(value) => value.into(),
-        Value::F64(value) => {
-            Json::parse(value.to_string().as_bytes()).map_err(|_| {
-                crate::ConfigError::new(
-                    "model presentation",
-                    "non-finite number cannot be encoded as JSON",
-                )
-            })?
-        }
+        Value::F64(value) => Json::parse(value.to_string().as_bytes()).map_err(|_| {
+            crate::ConfigError::new(
+                "model presentation",
+                "non-finite number cannot be encoded as JSON",
+            )
+        })?,
         Value::Text(value) => value.into(),
         Value::Bytes(value) => Json::Array(
             value
