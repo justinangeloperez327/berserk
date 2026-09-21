@@ -2,7 +2,7 @@
 
 Berserk is a Rust web framework focused on a clear developer experience, explicit behavior, type safety, and predictable performance.
 
-> **Current version:** v1.2.0 release candidate. Relationship improvements preserve the 1.x stable API baseline. Rust 1.88 is the minimum supported Rust version (MSRV).
+> **Current version:** v1.2.0. Relationship improvements preserve the 1.x stable API baseline. Rust 1.88 is the minimum supported Rust version (MSRV).
 
 ## Why Berserk?
 
@@ -31,14 +31,14 @@ When using the published package:
 
 ```toml
 [dependencies]
-berserk = "1.0"
+berserk = "1.2"
 ```
 
 Enable optional components as needed:
 
 ```toml
 [dependencies]
-berserk = { version = "1.0", features = ["postgres", "auth", "cache", "storage"] }
+berserk = { version = "1.2", features = ["postgres", "auth", "cache", "storage"] }
 ```
 
 Repository consumers can use the framework crate by path while developing Berserk itself.
@@ -202,7 +202,7 @@ The generated application remains explicit: controllers, models, requests, middl
 
 Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
 
-See [docs/public-api.md](docs/public-api.md) for the current API contract, [docs/migrations.md](docs/migrations.md) for the migration DSL, [docs/relationships.md](docs/relationships.md) for Claw relationships, and [docs/v1.2.0.md](docs/v1.2.0.md) for the 1.2 release candidate.
+See [docs/public-api.md](docs/public-api.md) for the current API contract, [docs/migrations.md](docs/migrations.md) for the migration DSL, [docs/relationships.md](docs/relationships.md) for Claw relationships, and [docs/v1.2.0.md](docs/v1.2.0.md) for the 1.2 release.
 
 ## Workspace
 
@@ -253,7 +253,7 @@ Additional security, dependency, database, fuzz, load, package, and release chec
 
 ## Security
 
-Berserk v1.0.0 is stable but should not be represented as independently security-certified. Review [SECURITY.md](SECURITY.md) and [known limitations](docs/known-limitations.md) before deployment.
+Berserk v1.2.0 is stable but should not be represented as independently security-certified. Review [SECURITY.md](SECURITY.md) and [known limitations](docs/known-limitations.md) before deployment.
 
 ## License
 
