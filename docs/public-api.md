@@ -97,7 +97,7 @@ Higher-level input APIs include:
 - `Request::query(name)` for one decoded value, rejecting duplicates, and `query_pairs()` for all decoded pairs;
 - `Request::config::<T>()` for validated configuration and `shared::<T>()` for an owned service `Arc<T>`;
 - `Request::multipart(max_parts, max_part_headers)` for the bounded buffered multipart subset;
-- `Request::validate::<T>()`, existing `form_request::<T>()`, and direct FormRequest extraction, including authorization after validation;
+- `Request::validate::<T>()`, existing `form_request::<T>()`, and direct FormRequest extraction, with authorization before semantic validation;
 - handler-level `Validated<T>` extraction.
 
 Validated controller input follows one fixed order:
