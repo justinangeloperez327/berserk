@@ -55,11 +55,8 @@ mod tests {
 
     #[test]
     fn create_table_migration_is_valid_rust() {
-        let source = migration_source(&MigrationSpec::new(
-            "create_users_table",
-            1_789_994_000,
-        ))
-        .unwrap();
+        let source =
+            migration_source(&MigrationSpec::new("create_users_table", 1_789_994_000)).unwrap();
         syn::parse_file(&source).unwrap();
         assert!(source.contains("pub struct CreateUsersTable;"));
         assert!(source.contains("Table::create(\"users\")"));
