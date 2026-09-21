@@ -1,6 +1,6 @@
 # Public API contract
 
-The [v1.0.0 release guide](v1.0.0.md) defines the intended first public stable API. Berserk has not yet been published publicly, so repository work completed after the original 1.0 freeze is being consolidated into that first release rather than presented as already-published 1.1/1.2 releases.
+The [v1.0.0 release guide](v1.0.0.md) defines the intended first public stable API. Berserk has not yet been published publicly, so all completed repository work is being consolidated into that first release.
 
 Status: preparing the first public v1.0.0 release. Once v1.0.0 is published, breaking public API changes require a new major release; compatibility-affecting changes must be documented in the changelog and upgrade notes.
 
