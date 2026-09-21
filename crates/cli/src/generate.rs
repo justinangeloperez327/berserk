@@ -64,7 +64,21 @@ impl Generator {
         }
         fs::create_dir(&target).map_err(CliError::from_io)?;
         let result = (|| {
-            fs::create_dir(target.join("src")).map_err(CliError::from_io)?;
+            for directory in [
+                "src",
+                "src/app",
+                "src/app/controllers",
+                "src/app/models",
+                "src/app/validations",
+                "src/app/middleware",
+                "src/app/resources",
+                "src/app/policies",
+                "src/database",
+                "src/database/migrations",
+                "src/config",
+            ] {
+                fs::create_dir(target.join(directory)).map_err(CliError::from_io)?;
+            }
             let version = env!("CARGO_PKG_VERSION");
             let rust_version = env!("CARGO_PKG_RUST_VERSION");
             let cargo = format!("[package]\nname = \"{package}\"\nversion = \"0.1.0\"\nedition = \"2021\"\nrust-version = \"{rust_version}\"\n\n[dependencies]\nberserk = {{ version = \"{version}\", features = [\"claw\"] }}\n");
@@ -74,18 +88,35 @@ impl Generator {
             }];
             for (path, source) in [
                 ("src/main.rs", include_str!("../templates/main.rs.stub")),
-                ("src/config.rs", include_str!("../templates/config.rs.stub")),
-                ("src/routes.rs", include_str!("../templates/routes.rs.stub")),
+                (
+                    "src/config/mod.rs",
+                    include_str!("../templates/config.rs.stub"),
+                ),
+                (
+                    "src/app/routes.rs",
+                    include_str!("../templates/routes.rs.stub"),
+                ),
             ] {
                 let path = target.join(path);
                 write_new(&path, source.as_bytes())?;
                 files.push(GeneratedFile { path });
             }
-            for folder in ["controllers", "models", "requests", "middleware"] {
-                let directory = target.join("src").join(folder);
-                fs::create_dir(&directory).map_err(CliError::from_io)?;
-                let path = directory.join("mod.rs");
-                write_new(&path, b"")?;
+            for (path, source) in [
+                (
+                    "src/app/mod.rs",
+                    b"pub mod controllers;\npub mod middleware;\npub mod models;\npub mod policies;\npub mod resources;\npub mod routes;\npub mod validations;\n".as_slice(),
+                ),
+                ("src/app/controllers/mod.rs", b"".as_slice()),
+                ("src/app/models/mod.rs", b"".as_slice()),
+                ("src/app/validations/mod.rs", b"".as_slice()),
+                ("src/app/middleware/mod.rs", b"".as_slice()),
+                ("src/app/resources/mod.rs", b"".as_slice()),
+                ("src/app/policies/mod.rs", b"".as_slice()),
+                ("src/database/mod.rs", b"pub mod migrations;\n".as_slice()),
+                ("src/database/migrations/mod.rs", b"".as_slice()),
+            ] {
+                let path = target.join(path);
+                write_new(&path, source)?;
                 files.push(GeneratedFile { path });
             }
             Ok(files)
@@ -96,40 +127,44 @@ impl Generator {
         result
     }
     pub fn make_model(&self, name: &str) -> Result<Vec<GeneratedFile>> {
-        self.make_type(name, "models", include_str!("../templates/model.rs.stub"))
+        self.make_type(
+            name,
+            "app/models",
+            include_str!("../templates/model.rs.stub"),
+        )
     }
     pub fn make_controller(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.make_type(
             name,
-            "controllers",
+            "app/controllers",
             include_str!("../templates/controller.rs.stub"),
         )
     }
     pub fn make_request(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.make_type(
             name,
-            "requests",
+            "app/validations",
             include_str!("../templates/request.rs.stub"),
         )
     }
     pub fn make_middleware(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.make_type(
             name,
-            "middleware",
+            "app/middleware",
             include_str!("../templates/middleware.rs.stub"),
         )
     }
     pub fn make_resource(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.make_type(
             name,
-            "resources",
+            "app/resources",
             include_str!("../templates/resource.rs.stub"),
         )
     }
     pub fn make_policy(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.make_type(
             name,
-            "policies",
+            "app/policies",
             include_str!("../templates/policy.rs.stub"),
         )
     }
@@ -156,7 +191,7 @@ impl Generator {
     pub fn make_migration(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.ensure_application()?;
         validate_snake_name(name)?;
-        let directory = self.safe_directory("migrations")?;
+        let directory = self.safe_directory("src/database/migrations")?;
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .map_err(|_| CliError::new(ErrorKind::Clock, "system clock is before Unix epoch"))?

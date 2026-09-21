@@ -239,6 +239,10 @@ cargo doc --workspace --all-features --no-deps
 
 Additional security, dependency, database, fuzz, load, package, and release checks are defined by the repository workflows and [release checklist](docs/release-checklist.md).
 
+## Project structure
+
+`berserk new` generates a conventional `app/`, `database/`, and `config/` layout, but the runtime does not require those folders. Applications may use feature modules or any other valid Rust module organization. See [docs/project-structure.md](docs/project-structure.md).
+
 ## Documentation
 
 - [Public API](docs/public-api.md)

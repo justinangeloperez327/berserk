@@ -1,9 +1,6 @@
+mod app;
 mod config;
-pub mod controllers;
-pub mod middleware;
-pub mod models;
-pub mod requests;
-mod routes;
+mod database;
 
 use berserk::{App, HandleErrors, RequestId, Result};
 
@@ -14,6 +11,6 @@ fn main() -> Result<()> {
     app.configure(config)?;
     app.middleware(RequestId);
     app.middleware(HandleErrors);
-    routes::register(&mut app)?;
+    app::routes::register(&mut app)?;
     app.listen(address)
 }

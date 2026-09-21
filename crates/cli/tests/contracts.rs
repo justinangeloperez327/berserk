@@ -80,12 +80,27 @@ fn project_and_model_generation_refuse_overwrites() {
     let files = generator
         .new_project(PathBuf::from("demo-api").as_path())
         .unwrap();
-    assert_eq!(files.len(), 8);
+    assert_eq!(files.len(), 13);
     assert!(
         fs::read_to_string(temporary.path().join("demo-api/src/main.rs"))
             .unwrap()
             .contains("App::new")
     );
+
+    for path in [
+        "src/app/controllers/mod.rs",
+        "src/app/models/mod.rs",
+        "src/app/validations/mod.rs",
+        "src/app/routes.rs",
+        "src/database/migrations/mod.rs",
+        "src/config/mod.rs",
+    ] {
+        assert!(
+            temporary.path().join("demo-api").join(path).is_file(),
+            "missing generated convention: {path}"
+        );
+    }
+
     assert_eq!(
         generator
             .new_project(PathBuf::from("demo-api").as_path())
@@ -97,10 +112,10 @@ fn project_and_model_generation_refuse_overwrites() {
     application.make_model("UserProfile").unwrap();
     assert!(temporary
         .path()
-        .join("demo-api/src/models/user_profile.rs")
+        .join("demo-api/src/app/models/user_profile.rs")
         .is_file());
     assert!(
-        fs::read_to_string(temporary.path().join("demo-api/src/models/mod.rs"))
+        fs::read_to_string(temporary.path().join("demo-api/src/app/models/mod.rs"))
             .unwrap()
             .contains("pub mod user_profile;")
     );
