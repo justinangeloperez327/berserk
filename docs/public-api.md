@@ -1,8 +1,8 @@
 # Public API contract
 
-The [v1.0.0 release guide](v1.0.0.md) documents the current stable Berserk API, building on the v0.9.0 stabilization baseline.
+The [v1.2.0 release guide](v1.2.0.md) describes the current release candidate, preserving the v1.0.0 stable API baseline.
 
-Status: v1.0.0 stable public API. Breaking public API changes require a new major release; compatibility-affecting changes must be documented in the changelog and upgrade notes.
+Status: v1.2.0 release candidate on the stable 1.x public API. Breaking public API changes require a new major release; compatibility-affecting changes must be documented in the changelog and upgrade notes.
 
 ## Stabilization boundary
 
@@ -180,6 +180,8 @@ Claw provides `Model`, optional `PersistableModel`, route-model binding, query b
 
 Model lifecycle helpers include create/update/delete, `save()` for models opting into persistence, `fresh()`, and `refresh()`. Primary keys are used as write filters and are not silently accepted as ordinary persisted fields by `save()`.
 
+Claw relationships include `HasMany`, `HasOne`, `BelongsTo`, `BelongsToMany`, `RelatedSet`, `Relationship`, `EagerQuery`, `Loaded`, and `LoadedPage`. All descriptors expose `query_for(&parent)` returning a normal `ModelQuery`. Many-to-many mutations include `attach`, `attach_many`, `detach`, `detach_many`, `detach_all`, and transactional `sync`, with explicit `_on` equivalents and a `SyncResult` for changed keys. `Query::constrain_in` keeps relationship parent filters independent of ordinary OR filters. The [relationship guide](relationships.md) defines duplicate semantics, query counts, error behavior, scoped loading, and the deprecated 1.0 `load(connection, ...)` compatibility signatures.
+
 ## Authentication
 
 The `auth` feature provides password, bearer-session, principal, guard, and authorization primitives.
@@ -219,7 +221,7 @@ The main `berserk` facade enables `server` by default; it can be disabled for in
 
 ## Stability and compatibility
 
-- Package and release metadata are aligned to v1.0.0.
+- Package and release metadata are aligned to v1.2.0.
 - Minimum supported Rust version: 1.88.
 - Publication is an explicit owner-controlled release action; repository automation validates artifacts but does not publish by default.
 - v1.0.0 establishes the stable public API surface; breaking public API changes require a new major release.

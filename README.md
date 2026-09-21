@@ -2,7 +2,7 @@
 
 Berserk is a Rust web framework focused on a clear developer experience, explicit behavior, type safety, and predictable performance.
 
-> **Current version:** v1.0.0. Berserk's first stable public API baseline is released. Rust 1.88 is the minimum supported Rust version (MSRV).
+> **Current version:** v1.2.0 release candidate. Relationship improvements preserve the 1.x stable API baseline. Rust 1.88 is the minimum supported Rust version (MSRV).
 
 ## Why Berserk?
 
@@ -202,7 +202,7 @@ The generated application remains explicit: controllers, models, requests, middl
 
 Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
 
-See [docs/public-api.md](docs/public-api.md) for the current API contract, [docs/migrations.md](docs/migrations.md) for the migration DSL, and [docs/v1.0.0.md](docs/v1.0.0.md) for v1.0.0 details.
+See [docs/public-api.md](docs/public-api.md) for the current API contract, [docs/migrations.md](docs/migrations.md) for the migration DSL, [docs/relationships.md](docs/relationships.md) for Claw relationships, and [docs/v1.2.0.md](docs/v1.2.0.md) for the 1.2 release candidate.
 
 ## Workspace
 
