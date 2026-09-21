@@ -1,53 +1,33 @@
 # Berserk roadmap
 
-Berserk v1.2.0 is the current stable release, preserving the v1.0.0 stable API baseline.
+Berserk is preparing its first public v1.0.0 release. Repository milestones after the original 1.0 freeze are development history, not public releases.
 
-## v1.2.0 — Claw relationships and migrations
+## First public release — v1.0.0
 
-Claw relationship querying, atomic pivot operations, eager-loading verification, compatibility restoration, and a focused runnable example. See [relationships](relationships.md) and [v1.2.0](v1.2.0.md). 
+The first public release consolidates the framework work completed so far: application assembly, HTTP and routing, typed requests and responses, validation, authentication and authorization, database drivers, Claw ORM, migrations and relationships, application services, testing, observability, developer tooling, and production hardening.
 
-## Completed
+The remaining work before publication is driven by repository evidence rather than pre-assigned version buckets. Current priorities are:
 
-### v0.1.0 — Foundation
+- keep the public surface coherent and beginner-friendly;
+- improve framework plumbing where application code still performs framework work manually;
+- strengthen extensibility and application control through Rust-native inversion of control;
+- preserve explicit execution, type safety, bounded resources, and Rust 1.88 compatibility;
+- remove documentation and implementation drift before publication.
 
-Application assembly, HTTP transport, routing, requests/responses, validation, database contracts and drivers, Claw ORM foundations, middleware/state, optional application components, testing infrastructure, and developer tooling.
+## Development history
 
-### v0.2.0 — Typed application development
+Earlier development milestones remain useful implementation history. They do not represent public package releases.
 
-FormRequest extraction, request-scoped Claw operations, typed CRUD controllers, eager loading, transactions, pagination/resources, unified application errors, async action support, generators, and the foundation application.
+Migration and Claw relationship work completed during development is part of the v1.0.0 public-release target.
 
-### v0.3.0 — Developer experience
+## How future work is organized
 
-Concise request/response APIs, controller ergonomics, typed route parameters, resource routing, middleware ergonomics, typed state/configuration, CLI/application skeleton improvements, and a coherent CRUD example.
+Branches are named for the work they contain, for example `docs-current-contract`, `extensibility-control`, or `request-plumbing`. Branch names do not imply release numbers.
 
-### v0.4.0 — Authentication and security
-
-Authentication, authorization, secure password/token handling, concise route protection, rate limiting, CORS/security headers, and consistent 401/403/429 behavior.
-
-### v0.5.0 — Application services
-
-Explicit instance-scoped integration for cache, storage, events, jobs/queues, outbound HTTP, notifications, and mail-related application services.
-
-### v0.6.0 — Database and Claw ORM
-
-Expanded bound query predicates and model shortcuts, plus a complete migration rollback workflow while retaining explicit database execution and transaction boundaries.
-
-### v0.7.0 — Testing
-
-Expanded in-memory HTTP assertions and direct response inspection, plus richer event, job, and outbound HTTP test probes.
-
-### v0.8.0 — Observability and production
-
-Added programmatic readiness snapshots, operational metrics summaries, drainable in-memory logs, trace sampling inspection, and clearer deployment boundaries.
-
-### v0.9.0 — Stabilization
-
-Defined the preferred Berserk application surface, reduced default-prelude helper exposure, documented compatibility boundaries, repaired inherited formatting defects, and started the 1.0 freeze.
-
-### v1.0.0 — Stable baseline
-
-Established the first stable Berserk public API and documented production baseline.
+Version numbers are assigned when preparing an actual feature release. Ordinary cleanup, architecture, plumbing, and integration work should not be forced into predetermined version roadmap slots.
 
 ## Principles
 
-Roadmap versions describe direction, not a promise that every proposed API will ship unchanged. Security, correctness, Rust safety, MSRV compatibility, and coherent developer experience take priority over copying another framework's syntax.
+Security, correctness, Rust safety, MSRV compatibility, coherent developer experience, extensibility, and explicit application control take priority over copying another framework's syntax.
+
+New abstractions require a demonstrated framework need. Berserk should prefer small Rust traits, explicit composition, and replaceable boundaries over service locators, global mutable registries, reflection, or framework magic.

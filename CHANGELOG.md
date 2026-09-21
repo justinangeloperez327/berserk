@@ -2,53 +2,21 @@
 
 Berserk follows the spirit of Keep a Changelog. Versioning and compatibility policy are defined in `docs/compatibility.md`.
 
+Berserk has not yet been published publicly. The entries below `1.0.0` describe development milestones that are being consolidated into the first public v1.0.0 release rather than previously published package releases.
+
 ## Unreleased
-
-## 1.2.0
-
-### Added
-
-- Parameterized many-to-many `attach`, `attach_many`, `detach`, `detach_many`, `detach_all`, and transactional `sync`, with explicit connection variants and `SyncResult`.
-- `query_for` returning ordinary `ModelQuery` for all four relationships; parent constraints remain effective across OR filters through additive `Query::constrain_in`.
-- Scoped `Relationship::load`, comprehensive SQLite/error/query-count tests, and live PostgreSQL/MySQL relationship contracts in CI.
-- A focused SQLite relationship example and complete relationship guide.
-
-### Fixed
-
-- Signed/unsigned driver key comparisons in eager loading and synchronization.
-- Restored stable 1.0 explicit `load(connection, ...)` methods as deprecated forwarders to `load_on`.
-- Malformed NULL pivot keys now report Decode errors; duplicate pivot rows and shared related models are preserved.
-- Synchronized workspace packages, internal dependency requirements, and lockfiles at 1.2.0; release planning now rejects stale internal requirements.
-
-### Compatibility
-
-- Rust 1.88 remains the MSRV. HasOne retains RelatedSet; no Clone requirement, new error hierarchy, declaration macros, or external dependencies are added.
-- Existing NULL/dangling parent keys remain skipped during batch loading, and missing related records remain omitted.
-- Sync reconciles membership, retains duplicates for unchanged keys, and rejects nested transactions. See `docs/relationships.md`.
-
-## 1.1 migration work (included in 1.2)
-
-### Added
-
-- Driver-neutral migration DSL with `Table`, `Column`, indexes, foreign keys, composite primary keys, and explicit table alteration operations.
-- PostgreSQL, MySQL, and SQLite migration SQL compilation with explicit portability errors for unsupported operations.
-- `MigrationPlan` for composing schema operations into the existing `Migration` contract without breaking the v1.0 trait.
-- Migration generator output using the typed DSL for conventional `create_*_table` migrations.
-- Migration DSL, compiler, constraint, alteration, and plan test coverage.
-- Portable `CURRENT_TIMESTAMP` column defaults, dry-run planning, and migration reset command support.
-- Portable identifier validation and duplicate composite-key/index constraint checks.
-- Check and explicit unique constraints, enum-like columns, generated stored columns, schema comments, and custom SQL type escape hatches.
-- Alter-table index renames, default changes, check/unique constraint changes, and explicit SQLite table rebuild migrations.
-- Serialized migration execution with PostgreSQL/MySQL advisory locking and SQLite immediate write locking.
-- Transactional migration failure recovery on databases that support transactional DDL.
 
 ### Changed
 
-- Migration generation now favors typed schema definitions over handwritten SQL for conventional create-table migrations.
+- Consolidated migration, Claw relationship, and request-plumbing work into the first public v1.0.0 release target.
+- Documentation now distinguishes internal development milestones from public releases.
+- Development branches are named for their work; version numbers are reserved for actual release preparation.
 
-See `docs/migrations.md`.
+### Architecture
 
-## 1.0.0
+- Extensibility work is centered on Rust-native inversion of control: explicit replaceable boundaries and application-owned implementations rather than a global dependency-injection container.
+
+## 1.0.0 — first public release target
 
 ### Changed
 

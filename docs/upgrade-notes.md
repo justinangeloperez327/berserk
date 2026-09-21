@@ -1,14 +1,16 @@
 # Upgrade notes
 
-## v1.0.x / 1.1 development → v1.2.0
+Berserk has not yet been published publicly. These notes describe migrations between repository development milestones and the first public v1.0.0 target; they are not evidence of prior public package releases.
 
-All workspace packages and internal requirements move together to 1.2.0; Rust 1.88 remains supported. No constructor or HasOne result type is replaced.
+## Pre-release development → v1.0.0
 
-Use `relationship.load_on(&mut connection, &models)` for explicit loading. The original 1.0 `load(connection, models)` signatures are preserved as deprecated forwarding methods. Scoped direct loading uses `Relationship::load(&relationship, &models)`; eager queries retain `get/get_on` and `paginate/paginate_on`.
+The first public 1.0 target consolidates the migration and Claw relationship work that was previously tracked internally as 1.1/1.2 development. Rust 1.88 remains supported.
 
-Pivot reads preserve duplicate rows. Add `UNIQUE(user_id, role_id)` if duplicate links are invalid for your application. NULL pivot keys now report `Decode` rather than silently dropping links. Signed/unsigned representations of equal positive keys are reconciled correctly on live drivers. Missing related records are still omitted.
+Relationship query and pivot APIs are additive. Existing explicit `load(connection, models)` signatures are retained as deprecated forwarding methods; use `load_on(connection, models)` for explicit loading and `Relationship::load(&relationship, &models)` for scoped direct loading where applicable.
 
-Pivot mutations and `query_for` are additive. `sync` and `attach_many` own transactions and reject nesting; empty sync clears a parent's links while empty attach/detach does nothing. See the [relationship guide](relationships.md) before using these operations with existing data.
+Pivot reads preserve duplicate rows. Add a database `UNIQUE` constraint when duplicate links are invalid. NULL pivot keys report `Decode`; signed and unsigned representations of equal positive keys are reconciled on supported live drivers. `sync` and `attach_many` own transactions and reject unsupported nesting.
+
+The 1.0 API freeze also removes the pre-1.0 direct application routing shortcuts and `Request::principal()`. Use `app.route().*` and request-scoped `Request::user`, `Request::can`, and `Request::authorize`.
 
 ## v0.8.0 → v0.9.0
 
