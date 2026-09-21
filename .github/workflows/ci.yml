@@ -68,6 +68,8 @@ jobs:
           shared-key: feature-services
       - name: Check auth feature
         run: cargo check -p berserk --all-targets --no-default-features --features auth
+      - name: Check view feature
+        run: cargo check -p berserk --all-targets --no-default-features --features view
       - name: Check OpenAPI feature
         run: cargo check -p berserk --all-targets --no-default-features --features openapi
       - name: Check cache feature

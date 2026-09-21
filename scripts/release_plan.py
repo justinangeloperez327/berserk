@@ -20,6 +20,7 @@ EXPECTED_PACKAGES = [
     "berserk-database",
     "claw-orm",
     "berserk-auth",
+    "berserk-axe",
     "berserk-openapi",
     "berserk-cache",
     "berserk-storage",

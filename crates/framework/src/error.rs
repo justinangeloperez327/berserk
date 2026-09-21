@@ -18,6 +18,8 @@ pub enum Error {
     Database(berserk_database::DatabaseError),
     #[cfg(feature = "auth")]
     Auth(berserk_auth::AuthError),
+    #[cfg(feature = "view")]
+    View(berserk_axe::Error),
     #[cfg(feature = "openapi")]
     OpenApi(berserk_openapi::OpenApiError),
     Operational(crate::operational::OperationalError),
@@ -45,6 +47,8 @@ impl fmt::Display for Error {
             Self::Operational(error) => fmt::Display::fmt(error, f),
             #[cfg(feature = "auth")]
             Self::Auth(error) => fmt::Display::fmt(error, f),
+            #[cfg(feature = "view")]
+            Self::View(error) => fmt::Display::fmt(error, f),
             #[cfg(feature = "openapi")]
             Self::OpenApi(error) => fmt::Display::fmt(error, f),
         }
@@ -65,6 +69,8 @@ impl StdError for Error {
             Self::Operational(error) => Some(error),
             #[cfg(feature = "auth")]
             Self::Auth(error) => Some(error),
+            #[cfg(feature = "view")]
+            Self::View(error) => Some(error),
             #[cfg(feature = "openapi")]
             Self::OpenApi(error) => Some(error),
         }
@@ -113,6 +119,13 @@ impl From<berserk_auth::AuthError> for Error {
 impl From<berserk_openapi::OpenApiError> for Error {
     fn from(error: berserk_openapi::OpenApiError) -> Self {
         Self::OpenApi(error)
+    }
+}
+
+#[cfg(feature = "view")]
+impl From<berserk_axe::Error> for Error {
+    fn from(error: berserk_axe::Error) -> Self {
+        Self::View(error)
     }
 }
 

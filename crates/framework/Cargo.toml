@@ -20,6 +20,7 @@ postgres = ["database", "berserk-database/postgres"]
 mysql = ["database", "berserk-database/mysql"]
 sqlite = ["database", "berserk-database/sqlite"]
 auth = ["dep:berserk-auth"]
+view = ["dep:berserk-axe"]
 openapi = ["dep:berserk-openapi"]
 cache = ["dep:berserk-cache"]
 storage = ["dep:berserk-storage"]
@@ -35,6 +36,7 @@ berserk-validation = { path = "../validation", version = "=1.0.0" }
 berserk-database = { workspace = true, optional = true }
 claw-orm = { workspace = true, optional = true }
 berserk-auth = { workspace = true, optional = true }
+berserk-axe = { workspace = true, optional = true }
 berserk-openapi = { workspace = true, optional = true }
 rand_core = { version = "0.6", features = ["getrandom"] }
 berserk-cache = { workspace = true, optional = true }

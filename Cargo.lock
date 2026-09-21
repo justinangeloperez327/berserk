@@ -78,6 +78,7 @@ name = "berserk"
 version = "1.0.0"
 dependencies = [
  "berserk-auth",
+ "berserk-axe",
  "berserk-cache",
  "berserk-cli",
  "berserk-client",
@@ -108,6 +109,10 @@ dependencies = [
  "sha2 0.11.0",
  "zeroize",
 ]
+
+[[package]]
+name = "berserk-axe"
+version = "1.0.0"
 
 [[package]]
 name = "berserk-benchmarks"

@@ -20,6 +20,14 @@ pub fn redirect(location: &str) -> Result<Response> {
     response().redirect(location)
 }
 
+#[cfg(feature = "view")]
+pub fn view<D>(view: &str, data: D) -> Result<Response>
+where
+    D: Into<berserk_axe::Context>,
+{
+    Response::view(view, data)
+}
+
 impl ResponseFactory {
     pub fn status(mut self, status: u16) -> Self {
         self.status = Some(status);
@@ -38,6 +46,14 @@ impl ResponseFactory {
 
     pub fn text(self, value: impl Into<String>) -> Result<Response> {
         self.finish(Response::text(value))
+    }
+
+    #[cfg(feature = "view")]
+    pub fn view<D>(self, view: &str, data: D) -> Result<Response>
+    where
+        D: Into<berserk_axe::Context>,
+    {
+        self.finish(Response::view(view, data)?)
     }
 
     pub fn empty(self) -> Result<Response> {
