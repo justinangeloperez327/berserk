@@ -90,6 +90,19 @@ enum RelationSpec {
 }
 
 impl RelationSpec {
+    fn method(&self) -> &Ident {
+        match self {
+            Self::HasMany { method, .. }
+            | Self::HasOne { method, .. }
+            | Self::BelongsTo { method, .. }
+            | Self::BelongsToMany { method, .. } => method,
+        }
+    }
+
+    fn name(&self) -> LitStr {
+        LitStr::new(&self.method().to_string(), self.method().span())
+    }
+
     fn method_tokens(&self) -> TokenStream {
         match self {
             Self::HasMany {
@@ -193,6 +206,69 @@ impl RelationSpec {
             },
         }
     }
+
+    fn loader_arm_tokens(&self) -> TokenStream {
+        let name = self.name();
+        match self {
+            Self::HasMany {
+                related, method, ..
+            } => quote! {
+                #name => {
+                    let related = Self::#method().load_on(connection, models)?;
+                    Ok(::berserk::claw::NamedRelation::many(
+                        #name,
+                        related.map(|model| {
+                            <#related as ::berserk::claw::Model>::visible_attributes(&model)
+                        }),
+                    ))
+                }
+            },
+            Self::HasOne {
+                related, method, ..
+            } => quote! {
+                #name => {
+                    let related = Self::#method().load_on(connection, models)?;
+                    Ok(::berserk::claw::NamedRelation::one(
+                        #name,
+                        related.map(|model| {
+                            <#related as ::berserk::claw::Model>::visible_attributes(&model)
+                        }),
+                    ))
+                }
+            },
+            Self::BelongsTo {
+                related, method, ..
+            } => quote! {
+                #name => {
+                    let related = Self::#method().load_on(connection, models)?;
+                    Ok(::berserk::claw::NamedRelation::one(
+                        #name,
+                        related.map(|model| {
+                            <#related as ::berserk::claw::Model>::visible_attributes(&model)
+                        }),
+                    ))
+                }
+            },
+            Self::BelongsToMany {
+                related, method, ..
+            } => quote! {
+                #name => {
+                    let related = Self::#method().load_on(connection, models)?;
+                    Ok(::berserk::claw::NamedRelation::many(
+                        #name,
+                        related.map(|model| {
+                            <#related as ::berserk::claw::Model>::visible_attributes(&model)
+                        }),
+                    ))
+                }
+            },
+        }
+    }
+}
+
+pub(crate) struct Expansion {
+    pub(crate) model_items: TokenStream,
+    pub(crate) inherent_impl: TokenStream,
 }
 
 pub(crate) fn expand(
@@ -201,17 +277,54 @@ pub(crate) fn expand(
     name: &Ident,
     type_generics: &syn::TypeGenerics<'_>,
     where_clause: Option<&syn::WhereClause>,
-) -> syn::Result<TokenStream> {
+) -> syn::Result<Expansion> {
     let relationships = parse(attrs)?;
     if relationships.is_empty() {
-        return Ok(quote! {});
+        return Ok(Expansion {
+            model_items: quote! {},
+            inherent_impl: quote! {},
+        });
     }
 
     let methods = relationships.iter().map(RelationSpec::method_tokens);
-    Ok(quote! {
+    let names: Vec<_> = relationships.iter().map(RelationSpec::name).collect();
+    let loader_arms = relationships.iter().map(RelationSpec::loader_arm_tokens);
+
+    let model_items = quote! {
+        const RELATIONS: &'static [&'static str] = &[#(#names),*];
+
+        fn load_named_relation(
+            name: &str,
+            connection: &mut dyn ::berserk::claw::Connection,
+            models: &[Self],
+        ) -> ::berserk::claw::Result<::berserk::claw::NamedRelation> {
+            match name {
+                #(#loader_arms,)*
+                _ => {
+                    let available = <Self as ::berserk::claw::Model>::RELATIONS.join(", ");
+                    Err(::berserk::claw::DatabaseError::new(
+                        ::berserk::claw::ErrorKind::InvalidInput,
+                        format!(
+                            "unknown relationship '{}' for model '{}'; available: {}",
+                            name,
+                            <Self as ::berserk::claw::Model>::TABLE,
+                            available
+                        ),
+                    ))
+                }
+            }
+        }
+    };
+
+    let inherent_impl = quote! {
         impl #impl_generics #name #type_generics #where_clause {
             #(#methods)*
         }
+    };
+
+    Ok(Expansion {
+        model_items,
+        inherent_impl,
     })
 }
 
