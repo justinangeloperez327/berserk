@@ -46,16 +46,14 @@ def main():
         manifest.write_text(manifest_text)
         for kind, name in [("model", "User"), ("controller", "UserController"), ("request", "CreateUser"), ("resource", "UserResource"), ("policy", "UserPolicy")]:
             run(str(cli), f"make:{kind}", name, cwd=consumer)
-        (consumer / "src/lib.rs").write_text('''pub mod models;
-pub mod controllers;
-pub mod requests;
-pub mod resources;
-pub mod policies;
+        (consumer / "src/lib.rs").write_text('''pub mod app;
+pub mod config;
+pub mod database;
 #[cfg(test)] mod tests {
     #[test] fn generated_form_runs_through_real_controller_adapter() {
         use berserk::{App, Headers, Method, Request, Response};
         let mut app = App::new();
-        app.route().post("/users", |input: crate::requests::create_user::CreateUser| Response::text(input.name)).unwrap();
+        app.route().post("/users", |input: crate::app::validations::create_user::CreateUser| Response::text(input.name)).unwrap();
         let mut headers = Headers::new();
         headers.insert("content-type", "application/json").unwrap();
         let response = app.respond(Request::new(Method::new("POST").unwrap(), "/users", headers, br#"{"name":" Ada "}"#.to_vec()).unwrap());
