@@ -94,4 +94,3 @@ impl<P, R: Model> BelongsToMany<P, R> {
         Ok(result)
     }
 }
-
