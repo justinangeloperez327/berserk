@@ -1,4 +1,7 @@
-use crate::{BelongsTo, Connection, HasMany, HasOne, Model, ModelQuery, Page, RelatedSet, Result};
+use crate::{
+    BelongsTo, BelongsToMany, Connection, HasMany, HasOne, Model, ModelQuery, Page, RelatedSet,
+    Result,
+};
 
 pub trait Relationship<M: Model> {
     type Output;
@@ -13,7 +16,7 @@ macro_rules! relationship {
                 connection: &mut dyn Connection,
                 models: &[M],
             ) -> Result<Self::Output> {
-                self.load(connection, models)
+                self.load_on(connection, models)
             }
         }
     };
@@ -21,6 +24,7 @@ macro_rules! relationship {
 relationship!(HasMany);
 relationship!(HasOne);
 relationship!(BelongsTo);
+relationship!(BelongsToMany);
 impl<M: Model, A: Relationship<M>, B: Relationship<M>> Relationship<M> for (A, B) {
     type Output = (A::Output, B::Output);
     fn load_on(&self, c: &mut dyn Connection, models: &[M]) -> Result<Self::Output> {

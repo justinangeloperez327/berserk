@@ -34,7 +34,7 @@ impl<M> RelatedSet<M> {
         self.groups.is_empty()
     }
 
-    fn insert(&mut self, key: Value, model: M) {
+    pub(crate) fn insert(&mut self, key: Value, model: M) {
         if let Some((_, models)) = self
             .groups
             .iter_mut()
@@ -66,7 +66,7 @@ impl<P, R: Model> HasMany<P, R> {
         }
     }
 
-    pub fn load(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
+    pub fn load_on(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
         let keys = unique_non_null(parents.iter().map(self.parent_key));
         if keys.is_empty() {
             return Ok(RelatedSet::default());
@@ -97,8 +97,8 @@ impl<P, R: Model> HasOne<P, R> {
         }
     }
 
-    pub fn load(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
-        let result = self.inner.load(connection, parents)?;
+    pub fn load_on(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
+        let result = self.inner.load_on(connection, parents)?;
         if result.groups.iter().any(|(_, models)| models.len() > 1) {
             return Err(DatabaseError::new(
                 ErrorKind::Decode,
@@ -130,7 +130,11 @@ impl<C, R: Model> BelongsTo<C, R> {
         }
     }
 
-    pub fn load(&self, connection: &mut dyn Connection, children: &[C]) -> Result<RelatedSet<R>> {
+    pub fn load_on(
+        &self,
+        connection: &mut dyn Connection,
+        children: &[C],
+    ) -> Result<RelatedSet<R>> {
         let keys = unique_non_null(children.iter().filter_map(self.child_key));
         if keys.is_empty() {
             return Ok(RelatedSet::default());
@@ -146,7 +150,7 @@ impl<C, R: Model> BelongsTo<C, R> {
     }
 }
 
-fn unique_non_null(values: impl IntoIterator<Item = Value>) -> Vec<Value> {
+pub(crate) fn unique_non_null(values: impl IntoIterator<Item = Value>) -> Vec<Value> {
     let mut unique = Vec::new();
     for value in values {
         if value != Value::Null && !unique.contains(&value) {
