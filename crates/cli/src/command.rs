@@ -66,9 +66,7 @@ impl Command {
                 &mut arguments,
                 "make:controller <Name> [--resource --model <Model> --request <Request>]",
             )?,
-            "make:request" => {
-                request(&mut arguments, "make:request <Name> [--model <Model>]")?
-            }
+            "make:request" => request(&mut arguments, "make:request <Name> [--model <Model>]")?,
             "make:middleware" => Self::MakeMiddleware {
                 name: one(&mut arguments, "make:middleware <Name>")?,
             },
