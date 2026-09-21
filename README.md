@@ -2,7 +2,7 @@
 
 Berserk is a Rust web framework focused on a clear developer experience, explicit behavior, type safety, and predictable performance.
 
-> **Current version:** v1.2.0. Relationship improvements preserve the 1.x stable API baseline. Rust 1.88 is the minimum supported Rust version (MSRV).
+> **Release target:** v1.0.0. Berserk has not yet been published publicly; current repository work is being consolidated into the first public 1.0 release. Rust 1.88 is the minimum supported Rust version (MSRV).
 
 ## Why Berserk?
 
@@ -15,7 +15,7 @@ Berserk is a Rust web framework focused on a clear developer experience, explici
 
 ## 1.0 stable baseline
 
-v1.0.0 establishes the stable API baseline. New application code uses instance- and request-scoped APIs such as `app.route()`, `Request::user()`, explicit application-service registration, and Claw's bound query builders.
+v1.0.0 is the intended first public stable API baseline. New application code uses instance- and request-scoped APIs such as `app.route()`, `Request::user()`, explicit application-service registration, and Claw's bound query builders.
 
 The pre-1.0 direct application verb shortcuts and `Request::principal()` compatibility alias were removed before the stable release. `Arr` and `Str` remain explicit root utilities and are intentionally excluded from the default prelude.
 
@@ -27,18 +27,18 @@ The pre-1.0 direct application verb shortcuts and `Request::principal()` compati
 
 ## Installation
 
-When using the published package:
+After the first public release, the package will be consumed as:
 
 ```toml
 [dependencies]
-berserk = "1.2"
+berserk = "1.0"
 ```
 
 Enable optional components as needed:
 
 ```toml
 [dependencies]
-berserk = { version = "1.2", features = ["postgres", "auth", "cache", "storage"] }
+berserk = { version = "1.0", features = ["postgres", "auth", "cache", "storage"] }
 ```
 
 Repository consumers can use the framework crate by path while developing Berserk itself.
@@ -97,7 +97,7 @@ response().status(201).json(user)
 response().no_content()
 ```
 
-FormRequest processing preserves Berserk's sanitize-then-validate lifecycle and authorization hooks.
+FormRequest processing follows decode → sanitize → authorize → validate → request-aware validation.
 
 ## Middleware, state, and configuration
 
@@ -202,7 +202,7 @@ The generated application remains explicit: controllers, models, requests, middl
 
 Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
 
-See [docs/public-api.md](docs/public-api.md) for the current API contract, [docs/migrations.md](docs/migrations.md) for the migration DSL, [docs/relationships.md](docs/relationships.md) for Claw relationships, and [docs/v1.2.0.md](docs/v1.2.0.md) for the 1.2 release.
+See [docs/public-api.md](docs/public-api.md) for the current API contract, [docs/migrations.md](docs/migrations.md) for the migration DSL, [docs/relationships.md](docs/relationships.md) for Claw relationships, and [docs/v1.0.0.md](docs/v1.0.0.md) for the first public release target.
 
 ## Workspace
 
@@ -253,7 +253,7 @@ Additional security, dependency, database, fuzz, load, package, and release chec
 
 ## Security
 
-Berserk v1.2.0 is stable but should not be represented as independently security-certified. Review [SECURITY.md](SECURITY.md) and [known limitations](docs/known-limitations.md) before deployment.
+Berserk is preparing its first public v1.0.0 release and should not be represented as independently security-certified. Review [SECURITY.md](SECURITY.md) and [known limitations](docs/known-limitations.md) before deployment.
 
 ## License
 
