@@ -77,7 +77,7 @@ impl<P, R: Model> HasMany<P, R> {
     }
 
     #[deprecated(
-        since = "1.2.0",
+        since = "1.0.0",
         note = "use load_on(connection, parents); use Relationship::load for scoped loading"
     )]
     pub fn load(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
@@ -123,7 +123,7 @@ impl<P, R: Model> HasOne<P, R> {
     }
 
     #[deprecated(
-        since = "1.2.0",
+        since = "1.0.0",
         note = "use load_on(connection, parents); use Relationship::load for scoped loading"
     )]
     pub fn load(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
@@ -174,7 +174,7 @@ impl<C, R: Model> BelongsTo<C, R> {
     }
 
     #[deprecated(
-        since = "1.2.0",
+        since = "1.0.0",
         note = "use load_on(connection, children); use Relationship::load for scoped loading"
     )]
     pub fn load(&self, connection: &mut dyn Connection, children: &[C]) -> Result<RelatedSet<R>> {
