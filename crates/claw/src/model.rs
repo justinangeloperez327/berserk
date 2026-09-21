@@ -1,5 +1,7 @@
 use crate::{Collection, ModelQuery};
-use berserk_database::{Connection, DatabaseError, Direction, ErrorKind, Execution, Query, Result, Row, Value};
+use berserk_database::{
+    Connection, DatabaseError, Direction, ErrorKind, Execution, Query, Result, Row, Value,
+};
 use std::collections::BTreeMap;
 
 /// Explicit scalar field mapping shared by Claw presentation integrations.
