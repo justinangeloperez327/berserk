@@ -1,8 +1,9 @@
+use crate::Collection;
 use berserk_database::{DatabaseError, ErrorKind, Result};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Page<T> {
-    items: Vec<T>,
+    items: Collection<T>,
     page: u64,
     per_page: u64,
     total: u64,
@@ -23,7 +24,7 @@ impl<T> Page<T> {
         Ok(())
     }
 
-    pub(crate) fn new(items: Vec<T>, page: u64, per_page: u64, total: u64) -> Result<Self> {
+    pub(crate) fn new(items: Collection<T>, page: u64, per_page: u64, total: u64) -> Result<Self> {
         Self::validate(page, per_page)?;
         let last_page = if total == 0 {
             1
@@ -44,6 +45,10 @@ impl<T> Page<T> {
     }
 
     pub fn into_items(self) -> Vec<T> {
+        self.items.into_vec()
+    }
+
+    pub fn into_collection(self) -> Collection<T> {
         self.items
     }
 

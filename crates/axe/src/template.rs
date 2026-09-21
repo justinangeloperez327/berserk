@@ -142,7 +142,9 @@ fn write_value(output: &mut impl Write, path: &str, value: &Value, raw: bool) ->
             escape::html_into(output, value).map_err(Into::into)
         }
         Value::SafeHtml(value) => escape::html_into(output, value.as_str()).map_err(Into::into),
-        Value::List(_) | Value::Object(_) => Err(Error::UnsupportedValue(path.to_owned())),
+        Value::Bytes(_) | Value::List(_) | Value::Object(_) => {
+            Err(Error::UnsupportedValue(path.to_owned()))
+        }
     }
 }
 

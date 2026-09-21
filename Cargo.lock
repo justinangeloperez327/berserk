@@ -113,6 +113,9 @@ dependencies = [
 [[package]]
 name = "berserk-axe"
 version = "1.0.0"
+dependencies = [
+ "claw-orm",
+]
 
 [[package]]
 name = "berserk-benchmarks"

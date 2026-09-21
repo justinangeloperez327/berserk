@@ -22,6 +22,14 @@ impl Model for User {
     fn key(&self) -> Value {
         self.id.into()
     }
+    fn attributes(&self) -> std::collections::BTreeMap<String, Value> {
+        [
+            ("id".into(), self.id.into()),
+            ("name".into(), self.name.clone().into()),
+            ("email".into(), self.email.clone().into()),
+        ]
+        .into()
+    }
     fn parse_route_key(value: &str) -> Option<Value> {
         value.parse::<i64>().ok().map(Into::into)
     }

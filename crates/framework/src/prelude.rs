@@ -11,7 +11,7 @@ pub use crate::{
 #[cfg(feature = "auth")]
 pub use berserk_auth::Principal;
 #[cfg(feature = "claw")]
-pub use claw_orm::{Model, PersistableModel, ScopedRouteModel};
+pub use claw_orm::{Collection, Model, PersistableModel, ScopedRouteModel};
 
 pub use crate::{FormRequest, FromJson, Json, ValidationErrors, ValidationResult};
 

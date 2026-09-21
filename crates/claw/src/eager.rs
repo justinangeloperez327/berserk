@@ -1,6 +1,6 @@
 use crate::{
-    BelongsTo, BelongsToMany, Connection, HasMany, HasOne, Model, ModelQuery, Page, RelatedSet,
-    Result,
+    BelongsTo, BelongsToMany, Collection, Connection, HasMany, HasOne, Model, ModelQuery, Page,
+    RelatedSet, Result,
 };
 
 /// A batch loader used by [`ModelQuery::with`]. Tuples compose independent loaders.
@@ -38,7 +38,7 @@ impl<M: Model, A: Relationship<M>, B: Relationship<M>> Relationship<M> for (A, B
 }
 /// Parent models and their separately owned, eagerly loaded relationship output.
 pub struct Loaded<M, R> {
-    pub models: Vec<M>,
+    pub models: Collection<M>,
     pub relations: R,
 }
 /// A parent page and relationships loaded only for that page's items.
