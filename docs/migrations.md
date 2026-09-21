@@ -1,6 +1,6 @@
 # Migrations
 
-Berserk 1.1 provides a driver-neutral migration DSL in `berserk::database::migrations`. Migration definitions are compiled for PostgreSQL, MySQL, or SQLite and executed by the existing `MigrationRunner`.
+Berserk 1.0 provides a driver-neutral migration DSL in `berserk::database::migrations`. Migration definitions are compiled for PostgreSQL, MySQL, or SQLite and executed by the existing `MigrationRunner`.
 
 ## Create a table
 
