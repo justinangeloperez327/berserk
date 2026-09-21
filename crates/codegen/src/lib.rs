@@ -8,9 +8,12 @@
 
 mod controller;
 mod model;
+mod naming;
 mod relations;
+mod request;
 
 pub use controller::{controller_source, ControllerKind, ControllerSpec};
+pub use request::{request_source, RequestKind, RequestSpec};
 use proc_macro2::TokenStream;
 use syn::DeriveInput;
 

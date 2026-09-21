@@ -1,4 +1,4 @@
-use proc_macro2::Span;
+use crate::naming::{snake_case, validate_type_name};
 
 /// Controller source generation mode.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -75,37 +75,6 @@ fn crud_controller(name: &str, model: &str, request: &str) -> String {
     format!(
         "use berserk::{{response, CrudController, Model, Response, Result}};\n\nuse crate::app::models::{model_module}::{model};\nuse crate::app::validations::{request_module}::{request};\n\npub struct {name};\n\nimpl CrudController for {name} {{\n    type Model = {model};\n    type Create = {request};\n    type Update = {request};\n\n    fn index(&self) -> Result<Response> {{\n        response().json({model}::all()?)\n    }}\n\n    fn store(&self, input: Self::Create) -> Result<Response> {{\n        let model = {model}::create(input)?;\n        response().status(201).json(model)\n    }}\n\n    fn show(&self, model: Self::Model) -> Result<Response> {{\n        response().json(model)\n    }}\n\n    fn update(&self, mut model: Self::Model, input: Self::Update) -> Result<Response> {{\n        model.update(input)?;\n        response().json(model)\n    }}\n\n    fn destroy(&self, model: Self::Model) -> Result<Response> {{\n        model.delete()?;\n        response().no_content()\n    }}\n}}\n"
     )
-}
-
-fn validate_type_name(name: &str, kind: &str) -> syn::Result<()> {
-    let valid_shape = name.bytes().enumerate().all(|(index, byte)| {
-        byte.is_ascii_alphabetic() && (index > 0 || byte.is_ascii_uppercase())
-            || byte.is_ascii_digit() && index > 0
-    });
-    if name.is_empty() || name.len() > 64 || !valid_shape {
-        return Err(syn::Error::new(
-            Span::call_site(),
-            format!("{kind} name must be a PascalCase Rust identifier"),
-        ));
-    }
-
-    syn::parse_str::<syn::Ident>(name).map(|_| ()).map_err(|_| {
-        syn::Error::new(
-            Span::call_site(),
-            format!("{kind} name must be a valid Rust identifier"),
-        )
-    })
-}
-
-fn snake_case(name: &str) -> String {
-    let mut output = String::new();
-    for (index, character) in name.chars().enumerate() {
-        if character.is_ascii_uppercase() && index > 0 {
-            output.push('_');
-        }
-        output.push(character.to_ascii_lowercase());
-    }
-    output
 }
 
 #[cfg(test)]
