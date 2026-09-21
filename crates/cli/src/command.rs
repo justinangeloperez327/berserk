@@ -3,20 +3,34 @@ use std::path::PathBuf;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum Command {
-    New { path: PathBuf },
+    New {
+        path: PathBuf,
+    },
     Serve,
-    MakeModel { name: String },
+    MakeModel {
+        name: String,
+    },
     MakeController {
         name: String,
         resource: bool,
         model: Option<String>,
         request: Option<String>,
     },
-    MakeRequest { name: String },
-    MakeMiddleware { name: String },
-    MakeResource { name: String },
-    MakePolicy { name: String },
-    MakeMigration { name: String },
+    MakeRequest {
+        name: String,
+    },
+    MakeMiddleware {
+        name: String,
+    },
+    MakeResource {
+        name: String,
+    },
+    MakePolicy {
+        name: String,
+    },
+    MakeMigration {
+        name: String,
+    },
     Migrate(MigrationCommand),
     Help,
 }
@@ -140,10 +154,7 @@ impl Command {
     }
 }
 
-fn controller(
-    arguments: &mut impl Iterator<Item = String>,
-    usage: &str,
-) -> Result<Command> {
+fn controller(arguments: &mut impl Iterator<Item = String>, usage: &str) -> Result<Command> {
     let name = one(arguments, usage)?;
     let mut resource = false;
     let mut model = None;
