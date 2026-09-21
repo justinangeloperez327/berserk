@@ -3,7 +3,8 @@ use quote::quote;
 use std::collections::BTreeSet;
 use syn::{
     parse::{Parse, ParseStream},
-    spanned::Spanned, Attribute, Ident, LitStr, Token, Type,
+    spanned::Spanned,
+    Attribute, Ident, LitStr, Token, Type,
 };
 
 #[derive(Clone, Copy)]
@@ -389,16 +390,8 @@ fn parse(attrs: &[Attribute]) -> syn::Result<Vec<RelationSpec>> {
                 )?;
                 RelationSpec::BelongsToMany {
                     pivot: required_option(&args, "pivot", attribute)?,
-                    foreign_pivot_key: required_option(
-                        &args,
-                        "foreign_pivot_key",
-                        attribute,
-                    )?,
-                    related_pivot_key: required_option(
-                        &args,
-                        "related_pivot_key",
-                        attribute,
-                    )?,
+                    foreign_pivot_key: required_option(&args, "foreign_pivot_key", attribute)?,
+                    related_pivot_key: required_option(&args, "related_pivot_key", attribute)?,
                     related: args.related,
                     method: args.method,
                 }
