@@ -16,6 +16,8 @@ pub use claw_orm::{Model, PersistableModel, ScopedRouteModel};
 pub use crate::{FormRequest, FromJson, Json, ValidationErrors, ValidationResult};
 
 pub use crate::{redirect, response, HandleErrors};
+#[cfg(feature = "view")]
+pub use crate::{view, view_data, view_object};
 pub use crate::{Cors, SecurityHeaders};
 
 #[cfg(feature = "claw")]

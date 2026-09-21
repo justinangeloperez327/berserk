@@ -50,6 +50,25 @@ impl Response {
         response
     }
 
+    pub fn html(value: impl Into<String>) -> Self {
+        let mut response = Self::empty();
+        response.body = value.into().into_bytes();
+        response
+            .headers
+            .insert("content-type", "text/html; charset=utf-8")
+            .expect("static header is valid");
+        response
+    }
+
+    #[cfg(feature = "view")]
+    pub fn view<D>(view: &str, data: D) -> crate::Result<Self>
+    where
+        D: Into<berserk_axe::Context>,
+    {
+        let context = data.into();
+        Ok(Self::html(berserk_axe::render(view, &context)?))
+    }
+
     pub fn bytes(value: impl Into<Vec<u8>>) -> Self {
         let mut response = Self::empty();
         response.body = value.into();

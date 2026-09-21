@@ -46,7 +46,7 @@ jobs:
           data = json.load(open('/tmp/metadata.json'))
           expected = {
               'berserk', 'berserk-core', 'berserk-validation', 'berserk-database',
-              'claw-orm', 'berserk-auth', 'berserk-openapi', 'berserk-cache',
+              'claw-orm', 'berserk-auth', 'berserk-axe', 'berserk-openapi', 'berserk-cache',
               'berserk-storage', 'berserk-events', 'berserk-jobs', 'berserk-client',
               'berserk-notifications', 'berserk-cli', 'berserk-testing',
           }
@@ -85,7 +85,7 @@ jobs:
           set -euo pipefail
           mkdir -p package-lists
           packages=(
-            berserk-core berserk-validation berserk-database claw-orm berserk-auth
+            berserk-core berserk-validation berserk-database claw-orm berserk-auth berserk-axe
             berserk-openapi berserk-cache berserk-storage berserk-events berserk-jobs
             berserk-client berserk-notifications berserk-cli berserk-testing berserk
           )

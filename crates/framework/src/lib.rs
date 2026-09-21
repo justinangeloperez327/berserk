@@ -20,6 +20,10 @@ pub use support::{Arr, Str};
 
 #[cfg(feature = "auth")]
 pub use berserk_auth as auth;
+#[cfg(feature = "view")]
+pub use berserk_axe as axe;
+#[cfg(feature = "view")]
+pub use berserk_axe::{view_data, view_object};
 #[cfg(feature = "cache")]
 pub use berserk_cache as cache;
 #[cfg(feature = "cli")]
@@ -79,6 +83,8 @@ pub use operational::{
 };
 
 mod responses;
+#[cfg(feature = "view")]
+pub use responses::view;
 pub use responses::{redirect, response, ResponseFactory};
 #[cfg(feature = "auth")]
 mod authorization;
