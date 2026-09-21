@@ -133,6 +133,37 @@ pub struct Loaded<M, R> {
     pub relations: R,
 }
 
+impl<M, R> Loaded<M, R> {
+    pub fn models(&self) -> &Collection<M> {
+        &self.models
+    }
+
+    pub fn relations(&self) -> &R {
+        &self.relations
+    }
+
+    pub fn into_parts(self) -> (Collection<M>, R) {
+        (self.models, self.relations)
+    }
+}
+
+impl<M, R> std::ops::Deref for Loaded<M, R> {
+    type Target = Collection<M>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.models
+    }
+}
+
+impl<'a, M, R> IntoIterator for &'a Loaded<M, R> {
+    type Item = &'a M;
+    type IntoIter = std::slice::Iter<'a, M>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.models.iter()
+    }
+}
+
 /// A parent page and relationships loaded only for that page's items.
 pub struct LoadedPage<M, R> {
     pub page: Page<M>,
