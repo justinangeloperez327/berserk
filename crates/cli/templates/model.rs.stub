@@ -1,8 +1,0 @@
-use berserk::Model;
-
-#[derive(Model)]
-#[table("{{table}}")]
-pub struct {{name}} {
-    #[primary_key]
-    pub id: i64,
-}

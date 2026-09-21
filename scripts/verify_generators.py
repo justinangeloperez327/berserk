@@ -76,6 +76,12 @@ pub mod database;
     }
 }
 ''')
+        generated_model = (consumer / "src/app/models/user.rs").read_text()
+        if '#[table("users")]' not in generated_model:
+            raise RuntimeError("model codegen did not generate the conventional users table")
+        if "#[primary_key]" not in generated_model:
+            raise RuntimeError("model codegen did not generate the conventional primary key")
+
         migrations = list((consumer / "src/database/migrations").glob("*_create_users_table.rs"))
         if len(migrations) != 1:
             raise RuntimeError("expected exactly one generated create_users_table migration")

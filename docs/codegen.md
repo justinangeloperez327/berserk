@@ -159,3 +159,43 @@ berserk make:migration add_email_to_users
 
 The migration generator does not execute migrations, inspect a live database,
 or infer model fields. Schema intent remains explicit in ordinary Rust.
+
+
+## Model source generation
+
+Model scaffolding now has the same reusable source-generation boundary as
+controllers, requests, and migrations:
+
+```rust
+use berserk_codegen::{model_source, FieldSpec, ModelSpec};
+
+let source = model_source(
+    &ModelSpec::new("User")
+        .field(FieldSpec::string("name").fillable())
+        .field(
+            FieldSpec::string("email")
+                .fillable()
+                .column("email_address"),
+        )
+        .field(FieldSpec::string("password").fillable().hidden()),
+)?;
+```
+
+`ModelSpec::new("User")` supplies the conventional `users` table and one
+`i64` `id` primary key. `.table(...)` overrides the table explicitly.
+Fields preserve only model concerns that Claw already understands:
+`primary_key`, `fillable`, `hidden`, and database-column mapping.
+
+Schema-only concepts such as unique constraints and indexes do not belong on
+`FieldSpec`; those remain migration concerns. This prevents the source model
+generator from inventing metadata that the runtime `Model` contract does not
+have.
+
+The CLI's existing command now delegates to this API:
+
+```text
+berserk make:model User
+```
+
+The generated model remains ordinary Rust using `#[derive(Model)]`; source
+codegen does not replace the derive macro or add runtime reflection.
