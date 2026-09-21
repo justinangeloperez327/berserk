@@ -16,6 +16,11 @@ impl<T: Send + Sync + 'static> State<T> {
     pub fn into_arc(self) -> Arc<T> {
         self.0
     }
+
+    /// Wrap an existing shared application value without cloning the value itself.
+    pub fn from_arc(value: Arc<T>) -> Self {
+        Self(value)
+    }
 }
 
 // Manual implementation avoids requiring T: Clone.
@@ -28,6 +33,12 @@ impl<T: Send + Sync + 'static> Clone for State<T> {
 impl<T: Send + Sync + 'static> From<T> for State<T> {
     fn from(value: T) -> Self {
         Self::new(value)
+    }
+}
+
+impl<T: Send + Sync + 'static> From<Arc<T>> for State<T> {
+    fn from(value: Arc<T>) -> Self {
+        Self::from_arc(value)
     }
 }
 
