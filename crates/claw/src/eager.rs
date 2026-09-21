@@ -264,39 +264,24 @@ fn load_named<M: Model>(
 /// Adapter used by ModelQuery::with to preserve typed eager loading while
 /// also accepting relationship names.
 #[doc(hidden)]
-pub trait IntoEager<M: Model> {
+pub trait IntoEager<M: Model, Kind> {
     type Query;
 
     fn into_eager(self, query: ModelQuery<M>) -> Self::Query;
 }
 
-macro_rules! typed_eager {
-    ($name:ident) => {
-        impl<M: Model, R: Model> IntoEager<M> for $name<M, R> {
-            type Query = EagerQuery<M, Self>;
+#[doc(hidden)]
+pub struct TypedEager;
 
-            fn into_eager(self, query: ModelQuery<M>) -> Self::Query {
-                EagerQuery {
-                    query,
-                    relations: self,
-                }
-            }
-        }
-    };
-}
+#[doc(hidden)]
+pub struct NamedEager;
 
-typed_eager!(HasMany);
-typed_eager!(HasOne);
-typed_eager!(BelongsTo);
-typed_eager!(BelongsToMany);
-
-impl<M, A, B> IntoEager<M> for (A, B)
+impl<M, R> IntoEager<M, TypedEager> for R
 where
     M: Model,
-    A: Relationship<M>,
-    B: Relationship<M>,
+    R: Relationship<M>,
 {
-    type Query = EagerQuery<M, (A, B)>;
+    type Query = EagerQuery<M, R>;
 
     fn into_eager(self, query: ModelQuery<M>) -> Self::Query {
         EagerQuery {
@@ -306,7 +291,7 @@ where
     }
 }
 
-impl<'a, M: Model, const N: usize> IntoEager<M> for [&'a str; N] {
+impl<'a, M: Model, const N: usize> IntoEager<M, NamedEager> for [&'a str; N] {
     type Query = NamedEagerQuery<M>;
 
     fn into_eager(self, query: ModelQuery<M>) -> Self::Query {
@@ -314,7 +299,7 @@ impl<'a, M: Model, const N: usize> IntoEager<M> for [&'a str; N] {
     }
 }
 
-impl<'a, M: Model> IntoEager<M> for &'a str {
+impl<'a, M: Model> IntoEager<M, NamedEager> for &'a str {
     type Query = NamedEagerQuery<M>;
 
     fn into_eager(self, query: ModelQuery<M>) -> Self::Query {
@@ -322,7 +307,7 @@ impl<'a, M: Model> IntoEager<M> for &'a str {
     }
 }
 
-impl<'a, M: Model> IntoEager<M> for Vec<&'a str> {
+impl<'a, M: Model> IntoEager<M, NamedEager> for Vec<&'a str> {
     type Query = NamedEagerQuery<M>;
 
     fn into_eager(self, query: ModelQuery<M>) -> Self::Query {
@@ -330,7 +315,7 @@ impl<'a, M: Model> IntoEager<M> for Vec<&'a str> {
     }
 }
 
-impl<M: Model> IntoEager<M> for Vec<String> {
+impl<M: Model> IntoEager<M, NamedEager> for Vec<String> {
     type Query = NamedEagerQuery<M>;
 
     fn into_eager(self, query: ModelQuery<M>) -> Self::Query {
