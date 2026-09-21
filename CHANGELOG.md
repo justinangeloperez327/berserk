@@ -4,7 +4,7 @@ Berserk follows the spirit of Keep a Changelog. Versioning and compatibility pol
 
 ## Unreleased
 
-## 1.2.0 (release candidate)
+## 1.2.0
 
 ### Added
 
