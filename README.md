@@ -186,6 +186,7 @@ berserk make:model User
 berserk make:controller UserController
 berserk make:controller UserController --resource --model User --request UserInput
 berserk make:request CreateUserRequest
+berserk make:request UserInput --model User
 berserk make:middleware Audit
 berserk make:resource UserResource
 berserk make:policy UserPolicy

@@ -159,11 +159,22 @@ impl Generator {
         self.make_source_type(name, "app/controllers", &source)
     }
     pub fn make_request(&self, name: &str) -> Result<Vec<GeneratedFile>> {
-        self.make_type(
-            name,
-            "app/validations",
-            include_str!("../templates/request.rs.stub"),
-        )
+        self.ensure_application()?;
+        validate_type_name(name)?;
+        let source = berserk_codegen::request_source(&berserk_codegen::RequestSpec::basic(name))
+            .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
+        self.make_source_type(name, "app/validations", &source)
+    }
+
+    pub fn make_model_request(&self, name: &str, model: &str) -> Result<Vec<GeneratedFile>> {
+        self.ensure_application()?;
+        validate_type_name(name)?;
+        validate_type_name(model)?;
+        let source = berserk_codegen::request_source(&berserk_codegen::RequestSpec::model_bound(
+            name, model,
+        ))
+        .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
+        self.make_source_type(name, "app/validations", &source)
     }
     pub fn make_middleware(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.make_type(

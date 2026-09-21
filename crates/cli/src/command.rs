@@ -19,6 +19,10 @@ pub enum Command {
     MakeRequest {
         name: String,
     },
+    MakeModelRequest {
+        name: String,
+        model: String,
+    },
     MakeMiddleware {
         name: String,
     },
@@ -62,9 +66,7 @@ impl Command {
                 &mut arguments,
                 "make:controller <Name> [--resource --model <Model> --request <Request>]",
             )?,
-            "make:request" => Self::MakeRequest {
-                name: one(&mut arguments, "make:request <Name>")?,
-            },
+            "make:request" => request(&mut arguments, "make:request <Name> [--model <Model>]")?,
             "make:middleware" => Self::MakeMiddleware {
                 name: one(&mut arguments, "make:middleware <Name>")?,
             },
@@ -92,9 +94,9 @@ impl Command {
                             &mut arguments,
                             "make controller <Name> [--resource --model <Model> --request <Request>]",
                         )?,
-                        "request" => Self::MakeRequest {
-                            name: one(&mut arguments, "make request <Name>")?,
-                        },
+                        "request" => {
+                            request(&mut arguments, "make request <Name> [--model <Model>]")?
+                        }
                         "middleware" => Self::MakeMiddleware {
                             name: one(&mut arguments, "make middleware <Name>")?,
                         },
@@ -150,8 +152,29 @@ impl Command {
     }
 
     pub const fn help() -> &'static str {
-        "berserk commands:\n  new <path>\n  serve\n  make:controller <Name>\n  make:controller <Name> --resource --model <Model> --request <Request>\n  make:request <Name>\n  make:middleware <Name>\n  make:resource <Name>\n  make:policy <Name>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate --dry-run\n  migrate:rollback\n  migrate:reset\n  migrate:status"
+        "berserk commands:\n  new <path>\n  serve\n  make:controller <Name>\n  make:controller <Name> --resource --model <Model> --request <Request>\n  make:request <Name>\n  make:request <Name> --model <Model>\n  make:middleware <Name>\n  make:resource <Name>\n  make:policy <Name>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate --dry-run\n  migrate:rollback\n  migrate:reset\n  migrate:status"
     }
+}
+
+fn request(arguments: &mut impl Iterator<Item = String>, usage: &str) -> Result<Command> {
+    let name = one(arguments, usage)?;
+    let Some(option) = arguments.next() else {
+        return Ok(Command::MakeRequest { name });
+    };
+    if option != "--model" {
+        return Err(CliError::new(
+            ErrorKind::Usage,
+            format!("unknown request option: {option}"),
+        ));
+    }
+    let model = one(arguments, usage)?;
+    if arguments.next().is_some() {
+        return Err(CliError::new(
+            ErrorKind::Usage,
+            format!("usage: berserk {usage}"),
+        ));
+    }
+    Ok(Command::MakeModelRequest { name, model })
 }
 
 fn controller(arguments: &mut impl Iterator<Item = String>, usage: &str) -> Result<Command> {
@@ -241,6 +264,32 @@ impl MigrationExecutor for UnsupportedMigrations {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_basic_request() {
+        assert_eq!(
+            Command::parse(["make:request", "UserInput"]).unwrap(),
+            Command::MakeRequest {
+                name: "UserInput".into(),
+            }
+        );
+    }
+
+    #[test]
+    fn parses_model_bound_request() {
+        assert_eq!(
+            Command::parse(["make:request", "UserInput", "--model", "User"]).unwrap(),
+            Command::MakeModelRequest {
+                name: "UserInput".into(),
+                model: "User".into(),
+            }
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_request_options() {
+        assert!(Command::parse(["make:request", "UserInput", "--field", "name"]).is_err());
+    }
 
     #[test]
     fn parses_basic_controller() {

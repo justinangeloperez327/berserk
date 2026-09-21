@@ -44,29 +44,10 @@ def main():
         if replacements != 1:
             raise RuntimeError("expected exactly one generated Berserk dependency")
         manifest.write_text(manifest_text)
-        for kind, name in [("model", "User"), ("controller", "UserController"), ("request", "CreateUser"), ("resource", "UserResource"), ("policy", "UserPolicy")]:
+        for kind, name in [("model", "User"), ("controller", "UserController"), ("resource", "UserResource"), ("policy", "UserPolicy")]:
             run(str(cli), f"make:{kind}", name, cwd=consumer)
-
-        request = consumer / "src/app/validations/create_user.rs"
-        request.write_text(
-            request.read_text()
-            + """
-use crate::app::models::user::User;
-use berserk::claw::{IntoInsert, IntoUpdate};
-
-impl IntoInsert<User> for CreateUser {
-    fn into_insert(self) -> berserk::database::Result<Vec<(String, berserk::database::Value)>> {
-        Ok(Vec::new())
-    }
-}
-
-impl IntoUpdate<User> for CreateUser {
-    fn into_update(self) -> berserk::database::Result<Vec<(String, berserk::database::Value)>> {
-        Ok(Vec::new())
-    }
-}
-"""
-        )
+        run(str(cli), "make:request", "SimpleInput", cwd=consumer)
+        run(str(cli), "make:request", "CreateUser", "--model", "User", cwd=consumer)
         run(
             str(cli),
             "make:controller",
@@ -94,6 +75,11 @@ pub mod database;
     }
 }
 ''')
+        generated_request = (consumer / "src/app/validations/create_user.rs").read_text()
+        if "impl IntoInsert<User> for CreateUser" not in generated_request:
+            raise RuntimeError("model-bound request did not generate an insert mapping")
+        if "impl IntoUpdate<User> for CreateUser" not in generated_request:
+            raise RuntimeError("model-bound request did not generate an update mapping")
         generated_controller = (
             consumer / "src/app/controllers/user_resource_controller.rs"
         ).read_text()

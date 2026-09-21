@@ -41,6 +41,9 @@ pub fn execute(
         Command::MakeRequest { name } => generator
             .make_request(&name)
             .map(|files| summary("request", &files)),
+        Command::MakeModelRequest { name, model } => generator
+            .make_model_request(&name, &model)
+            .map(|files| summary("request", &files)),
         Command::MakeMiddleware { name } => generator
             .make_middleware(&name)
             .map(|files| summary("middleware", &files)),
