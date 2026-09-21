@@ -166,17 +166,13 @@ impl Generator {
         self.make_source_type(name, "app/validations", &source)
     }
 
-    pub fn make_model_request(
-        &self,
-        name: &str,
-        model: &str,
-    ) -> Result<Vec<GeneratedFile>> {
+    pub fn make_model_request(&self, name: &str, model: &str) -> Result<Vec<GeneratedFile>> {
         self.ensure_application()?;
         validate_type_name(name)?;
         validate_type_name(model)?;
-        let source = berserk_codegen::request_source(
-            &berserk_codegen::RequestSpec::model_bound(name, model),
-        )
+        let source = berserk_codegen::request_source(&berserk_codegen::RequestSpec::model_bound(
+            name, model,
+        ))
         .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
         self.make_source_type(name, "app/validations", &source)
     }
