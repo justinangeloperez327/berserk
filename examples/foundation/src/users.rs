@@ -109,27 +109,19 @@ impl Users {
         )
         .into_response()
     }
-    pub fn store(request: Request) -> Result<Response> {
-        let input = request.validate::<UserInput>()?;
+    pub fn store(input: UserInput) -> Result<Response> {
         let user = Transaction::run(|| User::create(input))?;
         response().status(201).json(user)
     }
-    pub fn show(id: u64) -> Result<Response> {
-        response().json(Self::find(id)?)
+    pub fn show(user: User) -> Result<Response> {
+        response().json(user)
     }
-    pub fn update(id: u64, request: Request) -> Result<Response> {
-        let mut user = Self::find(id)?;
-        let input = request.validate::<UserInput>()?;
+    pub fn update(mut user: User, input: UserInput) -> Result<Response> {
         user.update(input)?;
         response().json(user)
     }
-    pub fn destroy(id: u64) -> Result<Response> {
-        Self::find(id)?.delete()?;
+    pub fn destroy(user: User) -> Result<Response> {
+        user.delete()?;
         response().no_content()
-    }
-
-    fn find(id: u64) -> Result<User> {
-        let key = i64::try_from(id).map_err(|_| Error::bad_request("Invalid route parameter"))?;
-        User::find(key)?.ok_or_else(Error::not_found)
     }
 }
