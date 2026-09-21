@@ -84,7 +84,7 @@ Supported handler inputs include:
 
 A typed route parameter that cannot be parsed returns 400. A route model with no matching row returns 404. Scoped nested route-model binding performs the child lookup through `ScopedRouteModel<Parent>`, so a child outside the parent scope also resolves as 404.
 
-Controller resource contracts are represented by `CrudController` (typed models/forms), `ApiResourceController`, and `ResourceController`. `ActionResult` is the conventional `Result<Response>` alias for controller actions that can fail.
+Controller resource contracts are represented by `CrudController` (typed models/forms), `ApiResourceController`, and `ResourceController`. `ActionResult` is the conventional `Result<Response>` alias for controller actions that can fail. The CLI's model-bound resource scaffold is generated with `make:controller <Name> --resource --model <Model> --request <Request>`; the request type remains responsible for its explicit Claw insert/update mappings.
 
 ## Request and input
 

@@ -59,3 +59,38 @@ framework, Claw, HTTP, database drivers, or Axe.
 
 That boundary keeps compiler tooling reusable and prevents a circular dependency
 between generated application code and the runtime framework.
+
+
+## Controller generation
+
+Controller scaffolding is also owned by `berserk-codegen`. The CLI is only
+responsible for validating the application path, writing the generated source,
+and registering its Rust module.
+
+```rust
+use berserk_codegen::{controller_source, ControllerSpec};
+
+let source = controller_source(&ControllerSpec::basic("UserController"))?;
+
+let source = controller_source(&ControllerSpec::crud(
+    "UserController",
+    "User",
+    "UserInput",
+))?;
+```
+
+The CRUD form generates a `CrudController` implementation compatible with
+`Route::crud`. Its request type must implement `FormRequest` plus Claw's
+`IntoInsert<Model>` and `IntoUpdate<Model>` write mappings. Code generation
+does not infer database write mappings from request fields.
+
+The CLI exposes the same source generator:
+
+```text
+berserk make:controller UserController
+berserk make:controller UserController --resource --model User --request UserInput
+```
+
+Keeping source generation in `berserk-codegen` prevents CLI templates,
+procedural macros, and future build-time tooling from developing separate
+controller conventions.

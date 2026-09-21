@@ -19,9 +19,25 @@ pub fn execute(
             .new_project(&path)
             .map(|files| summary("project", &files)),
         Command::Serve => serve(generator),
-        Command::MakeController { name } => generator
-            .make_controller(&name)
-            .map(|files| summary("controller", &files)),
+        Command::MakeController {
+            name,
+            resource,
+            model,
+            request,
+        } => {
+            let files = if resource {
+                let model = model.ok_or_else(|| {
+                    CliError::new(ErrorKind::Usage, "resource controller requires --model")
+                })?;
+                let request = request.ok_or_else(|| {
+                    CliError::new(ErrorKind::Usage, "resource controller requires --request")
+                })?;
+                generator.make_resource_controller(&name, &model, &request)?
+            } else {
+                generator.make_controller(&name)?
+            };
+            Ok(summary("controller", &files))
+        }
         Command::MakeRequest { name } => generator
             .make_request(&name)
             .map(|files| summary("request", &files)),

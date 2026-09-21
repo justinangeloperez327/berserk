@@ -184,6 +184,7 @@ berserk new my-api
 berserk serve
 berserk make:model User
 berserk make:controller UserController
+berserk make:controller UserController --resource --model User --request UserInput
 berserk make:request CreateUserRequest
 berserk make:middleware Audit
 berserk make:resource UserResource
@@ -222,7 +223,9 @@ crates/
 ├── jobs            # Background jobs and scheduling
 ├── client          # Outbound HTTP
 ├── notifications   # Notifications
-├── cli             # Developer commands and generators
+├── codegen         # Reusable parsing and Rust source/token generation
+├── macros          # Thin procedural-macro entry points
+├── cli             # Developer commands and filesystem generators
 └── testing         # Test helpers and fakes
 ```
 

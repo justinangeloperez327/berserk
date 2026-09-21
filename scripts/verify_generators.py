@@ -46,6 +46,38 @@ def main():
         manifest.write_text(manifest_text)
         for kind, name in [("model", "User"), ("controller", "UserController"), ("request", "CreateUser"), ("resource", "UserResource"), ("policy", "UserPolicy")]:
             run(str(cli), f"make:{kind}", name, cwd=consumer)
+
+        request = consumer / "src/app/validations/create_user.rs"
+        request.write_text(
+            request.read_text()
+            + """
+use crate::app::models::user::User;
+use berserk::claw::{IntoInsert, IntoUpdate};
+
+impl IntoInsert<User> for CreateUser {
+    fn into_insert(self) -> berserk::database::Result<Vec<(String, berserk::database::Value)>> {
+        Ok(Vec::new())
+    }
+}
+
+impl IntoUpdate<User> for CreateUser {
+    fn into_update(self) -> berserk::database::Result<Vec<(String, berserk::database::Value)>> {
+        Ok(Vec::new())
+    }
+}
+"""
+        )
+        run(
+            str(cli),
+            "make:controller",
+            "UserResourceController",
+            "--resource",
+            "--model",
+            "User",
+            "--request",
+            "CreateUser",
+            cwd=consumer,
+        )
         (consumer / "src/lib.rs").write_text('''pub mod app;
 pub mod config;
 pub mod database;
@@ -62,6 +94,11 @@ pub mod database;
     }
 }
 ''')
+        generated_controller = (
+            consumer / "src/app/controllers/user_resource_controller.rs"
+        ).read_text()
+        if "impl CrudController for UserResourceController" not in generated_controller:
+            raise RuntimeError("resource controller was not generated through the CRUD contract")
         run("cargo", "test", "--manifest-path", str(manifest), cwd=consumer)
 
 if __name__ == "__main__":

@@ -129,6 +129,9 @@ version = "1.0.0"
 [[package]]
 name = "berserk-cli"
 version = "1.0.0"
+dependencies = [
+ "berserk-codegen",
+]
 
 [[package]]
 name = "berserk-client"
