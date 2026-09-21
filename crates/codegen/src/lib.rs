@@ -7,12 +7,14 @@
 #![forbid(unsafe_code)]
 
 mod controller;
+mod migration;
 mod model;
 mod naming;
 mod relations;
 mod request;
 
 pub use controller::{controller_source, ControllerKind, ControllerSpec};
+pub use migration::{migration_source, MigrationSpec};
 use proc_macro2::TokenStream;
 pub use request::{request_source, RequestKind, RequestSpec};
 use syn::DeriveInput;

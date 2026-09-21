@@ -17,6 +17,7 @@ Berserk has not yet been published publicly. The entries below `1.0.0` describe 
 - Extensibility work is centered on Rust-native inversion of control: explicit replaceable boundaries and application-owned implementations rather than a global dependency-injection container.
 - Controller scaffolding now has one source of truth in `berserk-codegen`; the CLI writes generated source instead of maintaining a separate controller template.
 - FormRequest scaffolding and optional model-bound Claw write mappings now use the same `berserk-codegen` boundary; the CLI request template is removed.
+- Migration source generation now lives in `berserk-codegen`; the CLI owns timestamps and filesystem placement while schema source generation has one reusable implementation.
 
 ## 1.0.0 — first public release target
 

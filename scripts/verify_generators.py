@@ -48,6 +48,7 @@ def main():
             run(str(cli), f"make:{kind}", name, cwd=consumer)
         run(str(cli), "make:request", "SimpleInput", cwd=consumer)
         run(str(cli), "make:request", "CreateUser", "--model", "User", cwd=consumer)
+        run(str(cli), "make:migration", "create_users_table", cwd=consumer)
         run(
             str(cli),
             "make:controller",
@@ -75,6 +76,15 @@ pub mod database;
     }
 }
 ''')
+        migrations = list((consumer / "src/database/migrations").glob("*_create_users_table.rs"))
+        if len(migrations) != 1:
+            raise RuntimeError("expected exactly one generated create_users_table migration")
+        generated_migration = migrations[0].read_text()
+        if 'Table::create("users")' not in generated_migration:
+            raise RuntimeError("create-table migration did not generate the users table plan")
+        if 'Table::drop("users")' not in generated_migration:
+            raise RuntimeError("create-table migration did not generate the rollback plan")
+
         generated_request = (consumer / "src/app/validations/create_user.rs").read_text()
         if "impl IntoInsert<User> for CreateUser" not in generated_request:
             raise RuntimeError("model-bound request did not generate an insert mapping")

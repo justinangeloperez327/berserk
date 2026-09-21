@@ -129,3 +129,33 @@ berserk make:request UserInput --model User
 
 This removes request source templates from the CLI and keeps controller/request
 generation on the same reusable codegen boundary.
+
+
+## Migration generation
+
+Migration scaffolding now uses the same reusable codegen boundary:
+
+```rust
+use berserk_codegen::{migration_source, MigrationSpec};
+
+let source = migration_source(&MigrationSpec::new(
+    "create_users_table",
+    1_789_994_000,
+))?;
+```
+
+Conventional `create_<table>_table` names generate a starter
+`MigrationPlan` with an identifier and explicit timestamp columns plus a
+matching drop plan. Other valid snake_case names generate empty up/down plans
+for application-specific schema operations.
+
+The CLI remains responsible for choosing the filesystem timestamp and writing
+the source:
+
+```text
+berserk make:migration create_users_table
+berserk make:migration add_email_to_users
+```
+
+The migration generator does not execute migrations, inspect a live database,
+or infer model fields. Schema intent remains explicit in ordinary Rust.
