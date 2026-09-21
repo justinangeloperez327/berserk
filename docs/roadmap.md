@@ -16,15 +16,15 @@ The remaining work before publication is driven by repository evidence rather th
 
 ## Development history
 
-Earlier 0.x milestones and the internal 1.1/1.2 work remain useful implementation history. They do not represent public package releases.
+Earlier development milestones remain useful implementation history. They do not represent public package releases.
 
-The migration and Claw relationship work previously grouped under internal 1.1/1.2 milestones is part of the v1.0.0 public-release target.
+Migration and Claw relationship work completed during development is part of the v1.0.0 public-release target.
 
 ## How future work is organized
 
 Branches are named for the work they contain, for example `docs-current-contract`, `extensibility-control`, or `request-plumbing`. Branch names do not imply release numbers.
 
-Version numbers are assigned when preparing an actual feature release. Ordinary cleanup, architecture, plumbing, and integration work should not be forced into predetermined 1.1, 1.2, 1.3, and similar roadmap slots.
+Version numbers are assigned when preparing an actual feature release. Ordinary cleanup, architecture, plumbing, and integration work should not be forced into predetermined version roadmap slots.
 
 ## Principles
 
