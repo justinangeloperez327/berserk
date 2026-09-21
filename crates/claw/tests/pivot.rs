@@ -337,3 +337,22 @@ fn custom_table_and_columns_and_text_keys_remain_bound() {
     );
     assert_eq!(Query::table("memberships").count(&mut c).unwrap(), 1);
 }
+
+#[test]
+fn deferred_constraint_commit_failure_does_not_leave_sync_changes() {
+    let mut c = SqliteConnection::in_memory().unwrap();
+    c.connection_mut().execute_batch(
+        "PRAGMA foreign_keys = ON;
+         CREATE TABLE users (id INTEGER PRIMARY KEY);
+         CREATE TABLE roles (id INTEGER PRIMARY KEY);
+         CREATE TABLE role_user (user_id INTEGER REFERENCES users(id), role_id INTEGER REFERENCES roles(id) DEFERRABLE INITIALLY DEFERRED);
+         INSERT INTO users VALUES (1);
+         INSERT INTO roles VALUES (10);
+         INSERT INTO role_user VALUES (1, 10);"
+    ).unwrap();
+    assert_eq!(
+        roles().sync_on(&mut c, &User(1), [999]).unwrap_err().kind(),
+        &ErrorKind::Constraint
+    );
+    assert_eq!(ids(&mut c, 1), [10]);
+}

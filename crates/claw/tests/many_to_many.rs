@@ -158,3 +158,54 @@ fn many_to_many_reports_missing_pivot_columns() {
     assert!(matches!(error.kind(), claw_orm::ErrorKind::Decode));
     assert!(error.to_string().contains("role_id"));
 }
+
+#[test]
+fn missing_foreign_and_null_pivot_keys_report_decode_errors() {
+    for row in [
+        Row::new(vec![Column::new("role_id", 10)]).unwrap(),
+        Row::new(vec![
+            Column::new("user_id", Value::Null),
+            Column::new("role_id", 10),
+        ])
+        .unwrap(),
+        Row::new(vec![
+            Column::new("user_id", 1),
+            Column::new("role_id", Value::Null),
+        ])
+        .unwrap(),
+    ] {
+        let mut c = FakeConnection::with_results([vec![row]]);
+        assert_eq!(
+            relation()
+                .load_on(&mut c, &[User { id: 1 }])
+                .unwrap_err()
+                .kind(),
+            &claw_orm::ErrorKind::Decode
+        );
+        assert_eq!(c.statements.len(), 1);
+    }
+}
+
+#[test]
+fn missing_related_records_are_omitted_without_losing_valid_links() {
+    let mut c =
+        FakeConnection::with_results([vec![pivot(1, 10), pivot(1, 999)], vec![role(10, "Editor")]]);
+    let result = relation().load_on(&mut c, &[User { id: 1 }]).unwrap();
+    assert_eq!(result.get(&Value::U64(1)).unwrap().len(), 1);
+    assert_eq!(c.statements.len(), 2);
+}
+
+#[test]
+fn signed_driver_keys_match_unsigned_model_keys_and_preserve_duplicate_links() {
+    let row = || {
+        Row::new(vec![
+            Column::new("user_id", 1_i64),
+            Column::new("role_id", 10_i64),
+        ])
+        .unwrap()
+    };
+    let mut c = FakeConnection::with_results([vec![row(), row()], vec![role(10, "Editor")]]);
+    let result = relation().load_on(&mut c, &[User { id: 1 }]).unwrap();
+    assert_eq!(result.get(&Value::U64(1)).unwrap().len(), 2);
+    assert_eq!(result.get(&Value::I64(1)).unwrap().len(), 2);
+}

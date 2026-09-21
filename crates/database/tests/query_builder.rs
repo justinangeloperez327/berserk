@@ -145,3 +145,50 @@ fn between_predicates_keep_bounds_bound_and_ordered() {
         .to_statement(Driver::Sqlite)
         .is_err());
 }
+
+#[test]
+fn required_key_constraints_group_alternatives_and_preserve_binding_order() {
+    let query = Query::table("posts")
+        .constrain_in("user_id", [7])
+        .constrain_in("tenant_id", [2])
+        .where_("published", "=", true)
+        .or_where("id", "=", 99);
+    let statement = query.to_statement(Driver::Postgres).unwrap();
+    assert_eq!(statement.sql(), "SELECT * FROM \"posts\" WHERE \"user_id\" IN ($1) AND \"tenant_id\" IN ($2) AND (\"published\" = $3 OR \"id\" = $4)");
+    assert_eq!(
+        statement.bindings(),
+        [
+            Value::I64(7),
+            Value::I64(2),
+            Value::Bool(true),
+            Value::I64(99)
+        ]
+    );
+    let update = query
+        .update([("published", false)])
+        .to_statement(Driver::Postgres)
+        .unwrap();
+    assert!(update.sql().contains("\"user_id\" IN ($2)"));
+    assert_eq!(update.bindings()[0], Value::Bool(false));
+}
+
+#[test]
+fn constraints_cannot_turn_empty_relationships_into_unfiltered_mutations() {
+    let query = Query::table("posts")
+        .constrain_in("user_id", [] as [u64; 0])
+        .or_where("id", "=", 1);
+    let delete = query.delete().to_statement(Driver::Sqlite).unwrap();
+    assert_eq!(
+        delete.sql(),
+        "DELETE FROM \"posts\" WHERE 1 = 0 AND (\"id\" = ?)"
+    );
+    assert!(Query::table("posts")
+        .constrain_in("user_id", [1])
+        .insert([("title", "test")])
+        .to_statement(Driver::Sqlite)
+        .is_err());
+    assert!(Query::table("posts")
+        .constrain_in("user_id", [Value::Null])
+        .to_statement(Driver::Sqlite)
+        .is_err());
+}

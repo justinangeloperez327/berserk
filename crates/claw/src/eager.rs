@@ -6,6 +6,9 @@ use crate::{
 pub trait Relationship<M: Model> {
     type Output;
     fn load_on(&self, connection: &mut dyn Connection, models: &[M]) -> Result<Self::Output>;
+    fn load(&self, models: &[M]) -> Result<Self::Output> {
+        berserk_database::scope::with_connection(|connection| self.load_on(connection, models))
+    }
 }
 macro_rules! relationship {
     ($name:ident) => {

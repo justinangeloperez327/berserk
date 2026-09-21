@@ -1,4 +1,4 @@
-use crate::Model;
+use crate::{Model, ModelQuery};
 use berserk_database::{Connection, DatabaseError, ErrorKind, Result, Value};
 use std::marker::PhantomData;
 
@@ -18,7 +18,7 @@ impl<M> RelatedSet<M> {
     pub fn get(&self, key: &Value) -> Option<&[M]> {
         self.groups
             .iter()
-            .find(|(candidate, _)| candidate == key)
+            .find(|(candidate, _)| keys_equal(candidate, key))
             .map(|(_, models)| models.as_slice())
     }
 
@@ -38,7 +38,7 @@ impl<M> RelatedSet<M> {
         if let Some((_, models)) = self
             .groups
             .iter_mut()
-            .find(|(candidate, _)| candidate == &key)
+            .find(|(candidate, _)| keys_equal(candidate, &key))
         {
             models.push(model);
         } else {
@@ -64,6 +64,21 @@ impl<P, R: Model> HasMany<P, R> {
             parent_key,
             related_key,
         }
+    }
+
+    /// Build a normal model query restricted to one parent's foreign key.
+    pub fn query_for(&self, parent: &P) -> Result<ModelQuery<R>> {
+        let key = (self.parent_key)(parent);
+        validate_key(&key)?;
+        Ok(R::query().scope(|query| query.constrain_in(self.foreign_key, [key])))
+    }
+
+    #[deprecated(
+        since = "1.2.0",
+        note = "use load_on(connection, parents); use Relationship::load for scoped loading"
+    )]
+    pub fn load(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
+        self.load_on(connection, parents)
     }
 
     pub fn load_on(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
@@ -95,6 +110,19 @@ impl<P, R: Model> HasOne<P, R> {
         Self {
             inner: HasMany::new(foreign_key, parent_key, related_key),
         }
+    }
+
+    /// Build a normal query. Unlike `load_on`, this does not enforce cardinality.
+    pub fn query_for(&self, parent: &P) -> Result<ModelQuery<R>> {
+        self.inner.query_for(parent)
+    }
+
+    #[deprecated(
+        since = "1.2.0",
+        note = "use load_on(connection, parents); use Relationship::load for scoped loading"
+    )]
+    pub fn load(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
+        self.load_on(connection, parents)
     }
 
     pub fn load_on(&self, connection: &mut dyn Connection, parents: &[P]) -> Result<RelatedSet<R>> {
@@ -130,6 +158,23 @@ impl<C, R: Model> BelongsTo<C, R> {
         }
     }
 
+    /// Build an owner query. An absent nullable foreign key matches no records.
+    pub fn query_for(&self, child: &C) -> Result<ModelQuery<R>> {
+        let key = (self.child_key)(child).filter(|key| *key != Value::Null);
+        if let Some(key) = &key {
+            validate_key(key)?;
+        }
+        Ok(R::query().scope(|query| query.constrain_in(self.owner_key, key)))
+    }
+
+    #[deprecated(
+        since = "1.2.0",
+        note = "use load_on(connection, children); use Relationship::load for scoped loading"
+    )]
+    pub fn load(&self, connection: &mut dyn Connection, children: &[C]) -> Result<RelatedSet<R>> {
+        self.load_on(connection, children)
+    }
+
     pub fn load_on(
         &self,
         connection: &mut dyn Connection,
@@ -153,7 +198,7 @@ impl<C, R: Model> BelongsTo<C, R> {
 pub(crate) fn unique_non_null(values: impl IntoIterator<Item = Value>) -> Vec<Value> {
     let mut unique = Vec::new();
     for value in values {
-        if value != Value::Null && !unique.contains(&value) {
+        if value != Value::Null && !unique.iter().any(|key| keys_equal(key, &value)) {
             unique.push(value);
         }
     }
