@@ -1,4 +1,4 @@
-# Claw ORM 1.2 relationships
+# Claw ORM relationships — Berserk 1.0
 
 Relationships are explicit descriptors over existing `Model`, `ModelQuery`, and database contracts. They never perform hidden lazy loading and require no `Clone` bound on models. This guide uses `User`, `Post`, `Profile`, `Role`, and `role_user`; the [runnable example](../crates/claw/examples/relationships.rs) defines the complete models and schema.
 
@@ -39,7 +39,7 @@ For a nullable `Post::user_id: Option<u64>`, use `|post: &Post| post.user_id.map
 | `BelongsTo<Post, User>` | `users.id` | Optional post foreign key; user owner key |
 | `BelongsToMany<User, Role>` | Pivot foreign key, then `Role::PRIMARY_KEY` | User linking key; role primary key |
 
-The many-to-many related accessor must return the value of `R::PRIMARY_KEY`. Parent keys may be custom. `BelongsTo` can use an explicit alternate owner column and matching accessor. These accessors cannot be inferred from column strings: Rust has no runtime field reflection, and a foreign key need not equal a model's primary key. Version 1.2 keeps the existing constructors without new declaration macros or implicit naming rules.
+The many-to-many related accessor must return the value of `R::PRIMARY_KEY`. Parent keys may be custom. `BelongsTo` can use an explicit alternate owner column and matching accessor. These accessors cannot be inferred from column strings: Rust has no runtime field reflection, and a foreign key need not equal a model's primary key. Version 1.0 keeps the existing constructors without new declaration macros or implicit naming rules.
 
 Use `NOT NULL` and foreign keys on the pivot, `UNIQUE(user_id, role_id)` for unique links, and `UNIQUE(profiles.user_id)` for one profile per user. Index relationship foreign keys for large tables. The ORM does not silently create constraints.
 
@@ -182,13 +182,13 @@ Atomicity means all-or-nothing changes; it does not serialize concurrent synchro
 
 Claw continues using `DatabaseError`, `ErrorKind`, and the existing `Result`. Invalid mutation/query keys report `InvalidInput`; malformed rows, model decoding failures, and violated HasOne cardinality report `Decode`. Invalid SQL identifiers and unsupported joined mutations report `Query`. Driver query, constraint, connection, and transaction errors propagate. A scoped terminal operation without a connection scope reports `Configuration`. No new error hierarchy is introduced.
 
-The 1.0 inherent signatures `HasMany::load(connection, parents)`, `HasOne::load(connection, parents)`, and `BelongsTo::load(connection, children)` are restored as deprecated forwarding methods after their removal during 1.2 development. Existing callers continue compiling. Use `load_on(connection, models)` for explicit loading. For scoped direct loading of any relationship, use:
+The 1.0 inherent signatures `HasMany::load(connection, parents)`, `HasOne::load(connection, parents)`, and `BelongsTo::load(connection, children)` are restored as deprecated forwarding methods after their removal during pre-release development. Existing callers continue compiling. Use `load_on(connection, models)` for explicit loading. For scoped direct loading of any relationship, use:
 
 ```rust
 let profiles = Relationship::load(&User::profile(), &users)?;
 let roles = Relationship::load(&User::roles(), &users)?;
 ```
 
-Rust cannot overload an inherent method by argument count, so scoped loading cannot reuse `.load(models)` on the three legacy types until a major release removes their deprecated signatures. `BelongsToMany`, new in 1.2, supports `.load(models)` directly. Ordinary `get/get_on`, `find/find_on`, `save/save_on`, `update/update_on`, and `paginate/paginate_on` are unchanged.
+Rust cannot overload an inherent method by argument count, so scoped loading cannot reuse `.load(models)` on the three legacy types until a major release removes their deprecated signatures. `BelongsToMany`, added during pre-release development, supports `.load(models)` directly. Ordinary `get/get_on`, `find/find_on`, `save/save_on`, `update/update_on`, and `paginate/paginate_on` are unchanged.
 
-HasOne's public representation and all constructor signatures remain intact. There are no pivot models, nested eager traversal, polymorphic relationships, soft deletes, observers, automatic timestamps, dynamic properties, or new macro systems in 1.2.
+HasOne's public representation and all constructor signatures remain intact. There are no pivot models, nested eager traversal, polymorphic relationships, soft deletes, observers, automatic timestamps, dynamic properties, or new macro systems in the 1.0 target.
