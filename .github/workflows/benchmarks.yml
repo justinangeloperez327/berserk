@@ -35,7 +35,7 @@ jobs:
         run: python3 benchmarks/collect.py
       - name: Retain measurements and environment
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: performance-baseline-${{ github.sha }}
           path: benchmark-results/

@@ -128,7 +128,7 @@ jobs:
           cp "${{ steps.attest.outputs.bundle-path }}" release-artifacts/provenance.sigstore.json
 
       - name: Upload release-candidate evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: berserk-release-evidence-${{ github.sha }}
           path: release-artifacts/

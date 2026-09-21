@@ -95,7 +95,7 @@ jobs:
                   raise SystemExit(f"missing RSS evidence: {path}")
           PY
       - name: Retain load evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: concurrent-load-${{ github.sha }}
           path: load-results/
@@ -135,7 +135,7 @@ jobs:
               raise SystemExit('missing peak RSS evidence')
           PY
       - name: Retain prolonged soak evidence
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: prolonged-soak-${{ github.sha }}
           path: soak-results/
