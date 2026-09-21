@@ -60,6 +60,13 @@ pub struct Role {
     pub name: String,
 }
 
+#[allow(dead_code)]
+fn eager_loading_examples() {
+    let _ = User::query().with([]);
+    let _ = User::query().with(["posts", "profile", "roles"]);
+    let _ = User::query().with(User::posts());
+}
+
 pub struct UserInput {
     name: String,
     email: String,
