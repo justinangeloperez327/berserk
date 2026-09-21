@@ -37,16 +37,15 @@ impl<M> RelatedSet<M> {
     }
 
     pub fn map<T>(self, mut mapper: impl FnMut(M) -> T) -> RelatedSet<T> {
-        RelatedSet {
-            groups: self
-                .groups
-                .into_iter()
-                .map(|(key, models)| {
-                    let models = models.into_iter().map(&mut mapper).collect();
-                    (key, models)
-                })
-                .collect(),
+        let mut groups = Vec::with_capacity(self.groups.len());
+        for (key, models) in self.groups {
+            let mut mapped = Vec::with_capacity(models.len());
+            for model in models {
+                mapped.push(mapper(model));
+            }
+            groups.push((key, mapped));
         }
+        RelatedSet { groups }
     }
 
     pub(crate) fn insert(&mut self, key: Value, model: M) {
