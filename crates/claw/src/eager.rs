@@ -309,15 +309,19 @@ where
     let mut grouped = RelatedSet::default();
 
     for model in models {
-        let foreign = model.attributes().get(foreign_key).cloned().ok_or_else(|| {
-            berserk_database::DatabaseError::new(
-                berserk_database::ErrorKind::Decode,
-                format!(
-                    "belongs_to relationship requires mapped column '{foreign_key}' on model '{}'",
-                    C::TABLE
-                ),
-            )
-        })?;
+        let foreign = model
+            .attributes()
+            .get(foreign_key)
+            .cloned()
+            .ok_or_else(|| {
+                berserk_database::DatabaseError::new(
+                    berserk_database::ErrorKind::Decode,
+                    format!(
+                        "belongs_to relationship requires mapped column '{foreign_key}' on model '{}'",
+                        C::TABLE
+                    ),
+                )
+            })?;
 
         if foreign == Value::Null {
             continue;
