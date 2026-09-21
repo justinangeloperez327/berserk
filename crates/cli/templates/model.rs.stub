@@ -8,6 +8,9 @@ impl Model for {{name}} {
     const FILLABLE: &'static [&'static str] = &[];
     fn from_row(row: &Row) -> Result<Self> { Ok(Self { id: field(row, "id")? }) }
     fn key(&self) -> Value { self.id.into() }
+    fn attributes(&self) -> std::collections::BTreeMap<String, Value> {
+        [("id".into(), self.id.into())].into()
+    }
     fn parse_route_key(value: &str) -> Option<Value> { value.parse::<i64>().ok().map(Into::into) }
 }
 

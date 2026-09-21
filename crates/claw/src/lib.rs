@@ -5,6 +5,7 @@
 //! independently.
 #![forbid(unsafe_code)]
 
+mod collection;
 mod decode;
 mod many_to_many;
 mod model;
@@ -14,6 +15,7 @@ mod query;
 mod relationship;
 mod route_binding;
 
+pub use collection::Collection;
 pub use decode::{field, FromValue};
 pub use many_to_many::{BelongsToMany, SyncResult};
 pub use model::Model;
@@ -29,8 +31,8 @@ pub use berserk_database::{
 
 pub mod prelude {
     pub use crate::{
-        field, BelongsTo, BelongsToMany, FromValue, HasMany, HasOne, Model, ModelQuery, Page,
-        PersistableModel, RelatedSet, ScopedRouteModel, SyncResult,
+        field, BelongsTo, BelongsToMany, Collection, FromValue, HasMany, HasOne, Model, ModelQuery,
+        Page, PersistableModel, RelatedSet, ScopedRouteModel, SyncResult,
     };
     pub use crate::{DatabaseScope, IntoInsert, IntoUpdate, Relationship, Transaction};
 }

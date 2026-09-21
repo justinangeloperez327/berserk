@@ -65,3 +65,86 @@ fn homogeneous_array_data_is_supported_without_macro() {
     assert_eq!(response.body(), b"<strong>Users</strong>");
     let _ = std::fs::remove_file(path);
 }
+
+#[cfg(feature = "claw")]
+mod claw_collection {
+    use super::write_view;
+    use berserk::{
+        claw::{Collection, Model, Row, Value},
+        view_data, Response,
+    };
+
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    struct User {
+        id: i64,
+        name: String,
+        password_hash: String,
+    }
+
+    impl Model for User {
+        const TABLE: &'static str = "users";
+        const HIDDEN: &'static [&'static str] = &["password_hash"];
+
+        fn from_row(_: &Row) -> berserk::database::Result<Self> {
+            unreachable!("database decoding is not used by this view integration test")
+        }
+
+        fn key(&self) -> Value {
+            self.id.into()
+        }
+
+        fn attributes(&self) -> std::collections::BTreeMap<String, Value> {
+            [
+                ("id".into(), self.id.into()),
+                ("name".into(), self.name.clone().into()),
+                ("password_hash".into(), self.password_hash.clone().into()),
+            ]
+            .into()
+        }
+    }
+
+    #[test]
+    fn claw_collection_maps_automatically_into_view_data() {
+        let path = write_view(
+            "__axe_tests/claw_collection",
+            "@foreach(user in users)<p>{{ user.name }}</p>@endforeach",
+        );
+        let users = Collection::from(vec![
+            User {
+                id: 1,
+                name: "Ada".into(),
+                password_hash: "secret-a".into(),
+            },
+            User {
+                id: 2,
+                name: "Linus".into(),
+                password_hash: "secret-b".into(),
+            },
+        ]);
+
+        let response =
+            Response::view("__axe_tests/claw_collection", view_data!["users" => users]).unwrap();
+
+        assert_eq!(response.body(), b"<p>Ada</p><p>Linus</p>");
+        let _ = std::fs::remove_file(path);
+    }
+
+    #[test]
+    fn hidden_model_attributes_are_not_exposed_to_axe() {
+        let path = write_view(
+            "__axe_tests/claw_hidden",
+            "@foreach(user in users){{ user.password_hash }}@endforeach",
+        );
+        let users = Collection::from(vec![User {
+            id: 1,
+            name: "Ada".into(),
+            password_hash: "secret".into(),
+        }]);
+
+        let error =
+            Response::view("__axe_tests/claw_hidden", view_data!["users" => users]).unwrap_err();
+
+        assert!(error.to_string().contains("user.password_hash"));
+        let _ = std::fs::remove_file(path);
+    }
+}

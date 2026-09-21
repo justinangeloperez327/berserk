@@ -1,4 +1,4 @@
-use crate::{Model, Page};
+use crate::{Collection, Model, Page};
 use berserk_database::{
     Connection, DatabaseError, Direction, Driver, ErrorKind, Execution, Query, Result, Statement,
     Value,
@@ -19,7 +19,7 @@ impl<M: Model> ModelQuery<M> {
     pub fn or_where(self, column: impl Into<String>, value: impl Into<Value>) -> Self {
         self.or_where_op(column, "=", value)
     }
-    pub fn get(&self) -> Result<Vec<M>> {
+    pub fn get(&self) -> Result<Collection<M>> {
         berserk_database::scope::with_connection(|c| self.get_on(c))
     }
     pub fn first(self) -> Result<Option<M>> {
@@ -216,12 +216,13 @@ impl<M: Model> ModelQuery<M> {
         self.builder.to_statement(driver)
     }
 
-    pub fn get_on(&self, connection: &mut dyn Connection) -> Result<Vec<M>> {
+    pub fn get_on(&self, connection: &mut dyn Connection) -> Result<Collection<M>> {
         self.builder
             .get(connection)?
             .iter()
             .map(M::from_row)
-            .collect()
+            .collect::<Result<Vec<_>>>()
+            .map(Collection::from)
     }
 
     pub fn first_on(self, connection: &mut dyn Connection) -> Result<Option<M>> {

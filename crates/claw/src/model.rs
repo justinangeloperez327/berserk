@@ -1,5 +1,6 @@
-use crate::ModelQuery;
+use crate::{Collection, ModelQuery};
 use berserk_database::{Connection, Direction, Execution, Query, Result, Row, Value};
+use std::collections::BTreeMap;
 
 /// A typed database record managed by Claw ORM.
 pub trait Model: Sized {
@@ -7,9 +8,28 @@ pub trait Model: Sized {
     const PRIMARY_KEY: &'static str = "id";
     /// Columns accepted by typed create/update. Empty is deny-all.
     const FILLABLE: &'static [&'static str] = &[];
+    /// Attributes excluded from automatic presentation mapping.
+    const HIDDEN: &'static [&'static str] = &[];
 
     fn from_row(row: &Row) -> Result<Self>;
     fn key(&self) -> Value;
+
+    /// Scalar model attributes used by framework integrations.
+    ///
+    /// Rust does not provide runtime reflection for arbitrary structs. The safe
+    /// default exposes only the primary key; models with additional fields
+    /// override this mapping once and Claw reuses it everywhere.
+    fn attributes(&self) -> BTreeMap<String, Value> {
+        BTreeMap::from([(Self::PRIMARY_KEY.to_owned(), self.key())])
+    }
+
+    #[doc(hidden)]
+    fn visible_attributes(&self) -> BTreeMap<String, Value> {
+        self.attributes()
+            .into_iter()
+            .filter(|(name, _)| !Self::HIDDEN.contains(&name.as_str()))
+            .collect()
+    }
 
     /// Convert a raw route parameter into this model's lookup key.
     ///
@@ -33,7 +53,7 @@ pub trait Model: Sized {
     ) -> ModelQuery<Self> {
         Self::query().or_where_op(column, operator, value)
     }
-    fn all() -> Result<Vec<Self>> {
+    fn all() -> Result<Collection<Self>> {
         Self::query().get()
     }
     fn first() -> Result<Option<Self>> {
@@ -51,7 +71,7 @@ pub trait Model: Sized {
     fn find_or_fail(key: impl Into<Value>) -> Result<Self> {
         Self::find(key)?.ok_or_else(crate::writes::not_found)
     }
-    fn find_many<I, V>(keys: I) -> Result<Vec<Self>>
+    fn find_many<I, V>(keys: I) -> Result<Collection<Self>>
     where
         I: IntoIterator<Item = V>,
         V: Into<Value>,
@@ -198,7 +218,7 @@ pub trait Model: Sized {
         Self::query().offset(offset)
     }
 
-    fn all_on(connection: &mut dyn Connection) -> Result<Vec<Self>> {
+    fn all_on(connection: &mut dyn Connection) -> Result<Collection<Self>> {
         Self::query().get_on(connection)
     }
 
@@ -214,7 +234,7 @@ pub trait Model: Sized {
         Self::where_op(Self::PRIMARY_KEY, "=", key).first_on(connection)
     }
 
-    fn find_many_on<I, V>(connection: &mut dyn Connection, keys: I) -> Result<Vec<Self>>
+    fn find_many_on<I, V>(connection: &mut dyn Connection, keys: I) -> Result<Collection<Self>>
     where
         I: IntoIterator<Item = V>,
         V: Into<Value>,
