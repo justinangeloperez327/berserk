@@ -257,7 +257,6 @@ impl Request {
     }
 }
 
-
 #[cfg(test)]
 mod form_request_tests {
     use super::*;
@@ -325,7 +324,9 @@ mod form_request_tests {
 
     #[test]
     fn form_request_authorizes_before_validation() {
-        let error = json_request("{}").form_request::<DeniedInput>().unwrap_err();
+        let error = json_request("{}")
+            .form_request::<DeniedInput>()
+            .unwrap_err();
         assert_eq!(error.status_code(), 403);
     }
 
