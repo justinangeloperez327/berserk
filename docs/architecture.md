@@ -6,6 +6,7 @@ All packages live under `crates/` with short folder names:
 
 - `framework`: main import, App assembly, HTTP, routing, handlers, middleware, server, logging, health, metrics, trace propagation, and rate limiting.
 - `core`: small shared foundations, state, configuration utilities, lifecycle contracts, core errors.
+- `macros`: compile-time Berserk application derives, including the ergonomic `Model` derive; it contains no runtime framework state.
 - `database`: execution interfaces, lexical request/job scope, query builder, migrations, and driver contracts.
 - `claw`: typed models, guarded input conversions, relationships, eager loading, and pagination.
 - `axe`: HTML templates, view values, escaping, and rendering; no database or ORM dependency.
@@ -50,11 +51,13 @@ The main framework assembles components. Core must not depend on the main framew
 
 ### Model presentation
 
-`berserk::claw::Model` is the only ordinary model contract. Its attributes and
-explicit `HIDDEN` list define the default presentation. `model_fields!` can
-generate hydration and attributes from one field list inside `impl Model`;
-manual implementations remain supported. Visibility does not change `FILLABLE`
-or the specialized `PersistableModel` write mapping.
+Claw's `Model` trait remains the ordinary model contract. Berserk re-exports it
+together with a compile-time `#[derive(Model)]` macro so application models can
+declare table, primary-key, fillable, hidden, and optional column metadata on the
+struct itself. The derive generates the same trait implementation that a manual
+model would provide; it adds no runtime reflection. `model_fields!` and
+handwritten `impl Model` remain supported for custom mappings. Visibility does
+not change mass assignment or the specialized `PersistableModel` write mapping.
 
 Query result sets and eager-loaded parents use `Collection<T>`. `Page<T>` owns
 the same collection and retains its slice/vector accessors for compatibility.

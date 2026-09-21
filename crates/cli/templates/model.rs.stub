@@ -1,13 +1,8 @@
-use berserk::claw::{model_fields, Model, Value};
+use berserk::Model;
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct {{name}} { pub id: i64 }
-impl Model for {{name}} {
-    const TABLE: &'static str = "{{table}}";
-    const FILLABLE: &'static [&'static str] = &[];
-    // List sensitive mapped column names here; no name-based hiding is applied.
-    const HIDDEN: &'static [&'static str] = &[];
-    model_fields! { id }
-    fn key(&self) -> Value { self.id.into() }
-    fn parse_route_key(value: &str) -> Option<Value> { value.parse::<i64>().ok().map(Into::into) }
+#[derive(Model)]
+#[table("{{table}}")]
+pub struct {{name}} {
+    #[primary_key]
+    pub id: i64,
 }

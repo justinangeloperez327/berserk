@@ -5,43 +5,44 @@ Claw's model contract; ordinary models need no additional serialization or view
 trait. No `Clone` bound is placed on the model.
 
 ```rust
-use berserk::claw::{model_fields, Model, Value};
+use berserk::Model;
 
+#[derive(Model)]
+#[table("users")]
 pub struct User {
+    #[primary_key]
     pub id: i64,
+
+    #[fillable]
     pub name: String,
+
+    #[fillable]
     pub email: String,
-    pub password_hash: String,
-}
 
-impl Model for User {
-    const TABLE: &'static str = "users";
-    const FILLABLE: &'static [&'static str] = &["name", "email"];
-    const HIDDEN: &'static [&'static str] = &["password_hash"];
-
-    model_fields! { id, name, email, password_hash }
-
-    fn key(&self) -> Value { self.id.into() }
-    fn parse_route_key(value: &str) -> Option<Value> {
-        value.parse::<i64>().ok().map(Into::into)
-    }
+    #[fillable]
+    #[hidden]
+    pub password: String,
 }
 ```
 
-The optional, declarative `model_fields!` helper generates `from_row` and
-`attributes` from one list. Struct field types infer the decoder. Supported
-field values implement `FromValue`, `Clone`, and conversion into the database
-`Value`; built-in scalar types and nullable `Option<T>` fields are supported.
-Only individual attribute values are cloned. Use `name => "display_name"` for a
-renamed column, and use the mapped column name in `HIDDEN`. Manual `Model`
-implementations remain valid for custom mappings. Without an `attributes`
-override, the compatible safe default exposes only the primary key.
+`#[derive(Model)]` generates the Claw `Model` implementation, including row
+hydration, attribute mapping, primary-key handling, route-key parsing,
+`FILLABLE`, and `HIDDEN`. `#[table("...")]` is required, exactly one field
+must be marked `#[primary_key]`, and fields opt into mass assignment with
+`#[fillable]`. `#[hidden]` removes a mapped field from default JSON and Axe
+presentation without removing it from hydration or persistence. Use
+`#[column("database_name")]` when a Rust field maps to a different database
+column.
 
-`HIDDEN` applies to the default JSON and view presentation. It does not control
-mass assignment (`FILLABLE`), persistence, or Rust's independent `Debug` derive.
-No field is hidden by a naming heuristic. Attribute mappings should include
-only scalar values deliberately intended for presentation; relationships and
-request state are never loaded or exposed implicitly.
+Struct field types still determine decoding and database-value conversion.
+Mapped values therefore need the same capabilities as manual models: decoding
+through Claw, cloning for presentation, and conversion into `Value`. The
+existing `model_fields!` helper and handwritten `impl Model` remain supported
+for custom mappings or lower-level Claw usage.
+
+`#[hidden]` does not control mass assignment, persistence, or Rust's independent
+`Debug` implementation. No field is hidden by a naming heuristic.
+Relationships and request state are never loaded or exposed implicitly.
 
 ## Controllers
 
@@ -132,5 +133,4 @@ For a custom paginated representation, use
   turbofish callers may need an additional inferred `_`. Resource collection
   constructors now require a supported presentation type when constructed.
 
-No runtime reflection, procedural macro crate, or new dependency is introduced.
-The workspace remains on Rust 1.88.
+The derive is compile-time only; Berserk still uses no runtime reflection. Manual Claw models remain available, and the workspace remains on Rust 1.88.

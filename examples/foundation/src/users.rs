@@ -1,24 +1,20 @@
 use berserk::{
-    claw::{model_fields, IntoInsert, IntoUpdate, Model, Transaction, Value},
-    response, view, Error, FormRequest, FromJson, IntoResponse, Json, Request, ResourceCollection,
-    Response, Result, ValidationErrors, ValidationResult,
+    claw::{IntoInsert, IntoUpdate, Transaction, Value},
+    response, view, Error, FormRequest, FromJson, IntoResponse, Json, Model, Request,
+    ResourceCollection, Response, Result, ValidationErrors, ValidationResult,
 };
 
+#[derive(Model)]
+#[table("users")]
 pub struct User {
+    #[primary_key]
     pub id: i64,
+
+    #[fillable]
     pub name: String,
+
+    #[fillable]
     pub email: String,
-}
-impl Model for User {
-    const TABLE: &'static str = "users";
-    const FILLABLE: &'static [&'static str] = &["name", "email"];
-    model_fields! { id, name, email }
-    fn key(&self) -> Value {
-        self.id.into()
-    }
-    fn parse_route_key(value: &str) -> Option<Value> {
-        value.parse::<i64>().ok().map(Into::into)
-    }
 }
 pub struct UserInput {
     name: String,
