@@ -237,16 +237,19 @@ impl RelationSpec {
                 }
             },
             Self::BelongsTo {
-                related, method, ..
+                method,
+                foreign_key,
+                ..
             } => quote! {
                 #name => {
-                    let related = Self::#method().load_on(connection, models)?;
-                    Ok(::berserk::claw::NamedRelation::one(
-                        #name,
-                        related.map(|model| {
-                            <#related as ::berserk::claw::Model>::visible_attributes(&model)
-                        }),
-                    ))
+                    let relation = Self::#method();
+                    let related = ::berserk::claw::named_belongs_to(
+                        &relation,
+                        #foreign_key,
+                        connection,
+                        models,
+                    )?;
+                    Ok(::berserk::claw::NamedRelation::one(#name, related))
                 }
             },
             Self::BelongsToMany {
