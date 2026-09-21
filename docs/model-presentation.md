@@ -173,3 +173,9 @@ For a custom paginated representation, use
   constructors now require a supported presentation type when constructed.
 
 The derive is compile-time only; Berserk still uses no runtime reflection. Manual Claw models remain available, and the workspace remains on Rust 1.88.
+
+The CLI's `make:model` scaffold is generated through `berserk-codegen::ModelSpec`.
+That source-level specification can describe Rust field types plus Claw's
+primary-key, fillable, hidden, and column metadata. Database constraints such
+as indexes and uniqueness stay in migrations rather than being duplicated as
+model metadata.

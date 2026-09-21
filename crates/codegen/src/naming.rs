@@ -64,3 +64,44 @@ pub(crate) fn pascal_case(name: &str) -> String {
         })
         .collect()
 }
+
+pub(crate) fn validate_field_name(name: &str) -> syn::Result<()> {
+    let valid_shape = !name.is_empty()
+        && name.len() <= 64
+        && name.bytes().enumerate().all(|(index, byte)| {
+            byte.is_ascii_lowercase()
+                || byte.is_ascii_digit() && index > 0
+                || byte == b'_' && index > 0
+        })
+        && !name.ends_with('_')
+        && !name.contains("__");
+
+    if !valid_shape || syn::parse_str::<syn::Ident>(name).is_err() {
+        return Err(syn::Error::new(
+            Span::call_site(),
+            "model field name must be a snake_case Rust identifier",
+        ));
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_database_name(name: &str, kind: &str) -> syn::Result<()> {
+    let valid = !name.is_empty()
+        && name.len() <= 63
+        && name.bytes().enumerate().all(|(index, byte)| {
+            byte.is_ascii_lowercase()
+                || byte.is_ascii_digit() && index > 0
+                || byte == b'_' && index > 0
+        })
+        && !name.ends_with('_')
+        && !name.contains("__");
+
+    if valid {
+        Ok(())
+    } else {
+        Err(syn::Error::new(
+            Span::call_site(),
+            format!("{kind} name must be portable lowercase snake_case"),
+        ))
+    }
+}

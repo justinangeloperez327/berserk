@@ -18,6 +18,7 @@ Berserk has not yet been published publicly. The entries below `1.0.0` describe 
 - Controller scaffolding now has one source of truth in `berserk-codegen`; the CLI writes generated source instead of maintaining a separate controller template.
 - FormRequest scaffolding and optional model-bound Claw write mappings now use the same `berserk-codegen` boundary; the CLI request template is removed.
 - Migration source generation now lives in `berserk-codegen`; the CLI owns timestamps and filesystem placement while schema source generation has one reusable implementation.
+- Model scaffolding now uses a reusable `ModelSpec`/`FieldSpec` source representation in `berserk-codegen`; the CLI model template is removed while the existing `#[derive(Model)]` runtime contract remains unchanged.
 
 ## 1.0.0 — first public release target
 

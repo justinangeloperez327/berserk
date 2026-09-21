@@ -127,11 +127,11 @@ impl Generator {
         result
     }
     pub fn make_model(&self, name: &str) -> Result<Vec<GeneratedFile>> {
-        self.make_type(
-            name,
-            "app/models",
-            include_str!("../templates/model.rs.stub"),
-        )
+        self.ensure_application()?;
+        validate_type_name(name)?;
+        let source = berserk_codegen::model_source(&berserk_codegen::ModelSpec::new(name))
+            .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
+        self.make_source_type(name, "app/models", &source)
     }
     pub fn make_controller(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.ensure_application()?;
