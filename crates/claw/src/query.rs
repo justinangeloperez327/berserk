@@ -45,7 +45,10 @@ impl<M: Model> ModelQuery<M> {
         let page = berserk_database::scope::current_page()?;
         berserk_database::scope::with_connection(|c| self.paginate_on(c, page, per_page))
     }
-    pub fn with<E: crate::IntoEager<M>>(self, relations: E) -> E::Query {
+    pub fn with<E, Kind>(self, relations: E) -> E::Query
+    where
+        E: crate::IntoEager<M, Kind>,
+    {
         relations.into_eager(self)
     }
 
