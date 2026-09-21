@@ -14,6 +14,10 @@ pub struct NoArgs;
 #[doc(hidden)]
 pub struct RequestArg;
 
+/// Handler argument marker for application-owned typed state.
+#[doc(hidden)]
+pub struct StateArg<T>(PhantomData<fn() -> T>);
+
 #[doc(hidden)]
 pub struct RouteParam<T>(PhantomData<fn() -> T>);
 
@@ -168,6 +172,22 @@ where
 
     fn call(&self, request: Request) -> Result<Response> {
         self(request).into_response()
+    }
+}
+
+impl<F, T, R> Handler<StateArg<T>> for F
+where
+    F: Fn(crate::State<T>) -> R + Send + Sync + 'static,
+    T: Send + Sync + 'static,
+    R: IntoResponse,
+{
+    fn expected_route_params() -> Option<usize> {
+        Some(0)
+    }
+
+    fn call(&self, request: Request) -> Result<Response> {
+        let state = crate::State::from(request.shared::<T>()?);
+        self(state).into_response()
     }
 }
 
@@ -797,3 +817,53 @@ where
 
 #[cfg(feature = "async")]
 pub mod async_handlers;
+
+
+#[cfg(test)]
+mod state_injection_tests {
+    use super::*;
+    use crate::{App, Method};
+
+    #[derive(Debug)]
+    struct Greeting(&'static str);
+
+    fn greeting(state: crate::State<Greeting>) -> Response {
+        Response::text(state.0)
+    }
+
+    #[test]
+    fn handler_receives_registered_typed_state() {
+        let mut app = App::new();
+        app.state(Greeting("hello")).unwrap();
+        app.route().get("/greeting", greeting).unwrap();
+
+        let request = Request::new(
+            Method::new("GET").unwrap(),
+            "/greeting",
+            crate::Headers::new(),
+            [],
+        )
+        .unwrap();
+
+        let response = app.handle(request).unwrap();
+        assert_eq!(response.status().as_u16(), 200);
+        assert_eq!(response.body(), b"hello");
+    }
+
+    #[test]
+    fn missing_typed_state_fails_explicitly() {
+        let mut app = App::new();
+        app.route().get("/greeting", greeting).unwrap();
+
+        let request = Request::new(
+            Method::new("GET").unwrap(),
+            "/greeting",
+            crate::Headers::new(),
+            [],
+        )
+        .unwrap();
+
+        let error = app.handle(request).unwrap_err();
+        assert_eq!(error.status_code(), 500);
+    }
+}
