@@ -27,6 +27,7 @@ Berserk has not yet been published publicly. The entries below `1.0.0` describe 
 - Generated migrations are registered through the application's migration module index so generator verification compiles migration source rather than leaving it as an unreferenced file.
 - Named Claw eager queries now preserve normal parent-query composition after `.with(...)`, including filters, list/range/null predicates, ordering, limits, offsets, scopes, statement inspection, and pagination.
 - Named eager-loaded pages now have first-class JSON and Axe presentation with `data` plus pagination `meta`, while retaining direct page and relation access in Claw.
+- Named Claw eager loading now supports dotted nested paths with shared-prefix batching, recursive JSON/Axe presentation, a four-segment depth limit, and a 32-path per-level bound.
 
 ## 1.0.0 — first public release target
 
