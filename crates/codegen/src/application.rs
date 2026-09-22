@@ -207,10 +207,9 @@ mod tests {
     #[test]
     fn application_routes_can_be_replaced_by_tools() {
         let routes = RoutesSpec::new().route(RouteSpec::crud("/users", "UserController"));
-        let files = application_files(
-            &ApplicationSpec::new("my-api", "1.0.0", "1.88").routes(routes),
-        )
-        .unwrap();
+        let files =
+            application_files(&ApplicationSpec::new("my-api", "1.0.0", "1.88").routes(routes))
+                .unwrap();
 
         let routes = files
             .iter()
@@ -224,23 +223,13 @@ mod tests {
 
     #[test]
     fn application_metadata_rejects_source_injection() {
-        assert!(application_files(&ApplicationSpec::new(
-            "bad\nname",
-            "1.0.0",
-            "1.88"
-        ))
-        .is_err());
+        assert!(application_files(&ApplicationSpec::new("bad\nname", "1.0.0", "1.88")).is_err());
         assert!(application_files(&ApplicationSpec::new(
             "good-name",
             "1.0.0\"\nmalicious = true",
             "1.88"
         ))
         .is_err());
-        assert!(application_files(&ApplicationSpec::new(
-            "good-name",
-            "1.0.0",
-            "nightly"
-        ))
-        .is_err());
+        assert!(application_files(&ApplicationSpec::new("good-name", "1.0.0", "nightly")).is_err());
     }
 }
