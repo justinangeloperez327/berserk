@@ -20,7 +20,7 @@ candidate.
   duplicating names or conventions.
 - [x] Provide one coherent CRUD generation workflow and compile its complete
   output as an independent consumer application.
-- [ ] Preserve normal Claw query composition after named eager loading so
+- [x] Preserve normal Claw query composition after named eager loading so
   filtering, ordering, limits, and pagination do not become a separate query
   experience after `.with(...)`.
 - [ ] Support nested named eager loading with explicit, bounded semantics such

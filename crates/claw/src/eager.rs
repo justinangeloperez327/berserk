@@ -1,7 +1,8 @@
 use crate::{
-    Attributes, BelongsTo, BelongsToMany, Collection, Connection, HasMany, HasOne, Model,
-    ModelQuery, Page, RelatedSet, Result, Value,
+    Attributes, BelongsTo, BelongsToMany, Collection, Connection, Direction, Driver, HasMany,
+    HasOne, Model, ModelQuery, Page, RelatedSet, Result, Statement, Value,
 };
+use berserk_database::Query;
 
 /// A batch loader used by typed eager loading.
 pub trait Relationship<M: Model> {
@@ -236,6 +237,170 @@ impl<M: Model> NamedEagerQuery<M> {
     pub fn with<const N: usize>(mut self, relations: [&str; N]) -> Self {
         self.extend(relations);
         self
+    }
+
+
+    pub fn select<I, S>(mut self, columns: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.query = self.query.select(columns);
+        self
+    }
+
+    pub fn where_(mut self, column: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.query = self.query.where_(column, value);
+        self
+    }
+
+    pub fn or_where(mut self, column: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.query = self.query.or_where(column, value);
+        self
+    }
+
+    pub fn where_op(
+        mut self,
+        column: impl Into<String>,
+        operator: impl Into<String>,
+        value: impl Into<Value>,
+    ) -> Self {
+        self.query = self.query.where_op(column, operator, value);
+        self
+    }
+
+    pub fn or_where_op(
+        mut self,
+        column: impl Into<String>,
+        operator: impl Into<String>,
+        value: impl Into<Value>,
+    ) -> Self {
+        self.query = self.query.or_where_op(column, operator, value);
+        self
+    }
+
+    pub fn where_in<I, V>(mut self, column: impl Into<String>, values: I) -> Self
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<Value>,
+    {
+        self.query = self.query.where_in(column, values);
+        self
+    }
+
+    pub fn where_not_in<I, V>(mut self, column: impl Into<String>, values: I) -> Self
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<Value>,
+    {
+        self.query = self.query.where_not_in(column, values);
+        self
+    }
+
+    pub fn or_where_in<I, V>(mut self, column: impl Into<String>, values: I) -> Self
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<Value>,
+    {
+        self.query = self.query.or_where_in(column, values);
+        self
+    }
+
+    pub fn or_where_not_in<I, V>(mut self, column: impl Into<String>, values: I) -> Self
+    where
+        I: IntoIterator<Item = V>,
+        V: Into<Value>,
+    {
+        self.query = self.query.or_where_not_in(column, values);
+        self
+    }
+
+    pub fn where_between(
+        mut self,
+        column: impl Into<String>,
+        lower: impl Into<Value>,
+        upper: impl Into<Value>,
+    ) -> Self {
+        self.query = self.query.where_between(column, lower, upper);
+        self
+    }
+
+    pub fn or_where_between(
+        mut self,
+        column: impl Into<String>,
+        lower: impl Into<Value>,
+        upper: impl Into<Value>,
+    ) -> Self {
+        self.query = self.query.or_where_between(column, lower, upper);
+        self
+    }
+
+    pub fn where_not_between(
+        mut self,
+        column: impl Into<String>,
+        lower: impl Into<Value>,
+        upper: impl Into<Value>,
+    ) -> Self {
+        self.query = self.query.where_not_between(column, lower, upper);
+        self
+    }
+
+    pub fn or_where_not_between(
+        mut self,
+        column: impl Into<String>,
+        lower: impl Into<Value>,
+        upper: impl Into<Value>,
+    ) -> Self {
+        self.query = self.query.or_where_not_between(column, lower, upper);
+        self
+    }
+
+    pub fn where_null(mut self, column: impl Into<String>) -> Self {
+        self.query = self.query.where_null(column);
+        self
+    }
+
+    pub fn where_not_null(mut self, column: impl Into<String>) -> Self {
+        self.query = self.query.where_not_null(column);
+        self
+    }
+
+    pub fn or_where_null(mut self, column: impl Into<String>) -> Self {
+        self.query = self.query.or_where_null(column);
+        self
+    }
+
+    pub fn or_where_not_null(mut self, column: impl Into<String>) -> Self {
+        self.query = self.query.or_where_not_null(column);
+        self
+    }
+
+    pub fn order_by(mut self, column: impl Into<String>, direction: Direction) -> Self {
+        self.query = self.query.order_by(column, direction);
+        self
+    }
+
+    pub fn limit(mut self, limit: u64) -> Self {
+        self.query = self.query.limit(limit);
+        self
+    }
+
+    pub fn offset(mut self, offset: u64) -> Self {
+        self.query = self.query.offset(offset);
+        self
+    }
+
+    pub fn scope(mut self, scope: impl FnOnce(Query) -> Query) -> Self {
+        self.query = self.query.scope(scope);
+        self
+    }
+
+    pub fn builder(&self) -> &Query {
+        self.query.builder()
+    }
+
+    pub fn to_statement(&self, driver: Driver) -> Result<Statement> {
+        self.query.to_statement(driver)
     }
 
     pub fn get(self) -> Result<Loaded<M, NamedRelations>> {

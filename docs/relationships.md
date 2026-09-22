@@ -131,6 +131,23 @@ let users = User::query()
     .get()?;
 ```
 
+Calling `.with(...)` does not end query composition. Named eager queries keep
+the normal parent-query filters, list/range/null predicates, ordering, limits,
+offsets, scopes, statement inspection, and pagination:
+
+```rust
+let users = User::query()
+    .with(["posts", "roles"])
+    .where_("active", true)
+    .order_by("name", Direction::Asc)
+    .limit(20)
+    .get()?;
+```
+
+The operations after `.with(...)` modify only the parent query. Relationship
+queries remain separately batch-loaded for the resulting parents, so adding a
+parent filter does not silently rewrite relationship filters.
+
 An empty list is valid and performs no relationship queries:
 
 ```rust
