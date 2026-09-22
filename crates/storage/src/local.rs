@@ -225,7 +225,12 @@ fn hex(bytes: &[u8]) -> String {
 fn temporary_path(parent: &Path) -> Result<PathBuf> {
     for _ in 0..8 {
         let mut random = [0_u8; 8];
-        OsRng.fill_bytes(&mut random);
+        OsRng.try_fill_bytes(&mut random).map_err(|_| {
+            StorageError::new(
+                ErrorKind::Io,
+                "operating system randomness unavailable for temporary storage path",
+            )
+        })?;
         let path = parent.join(format!(".framework-{}.tmp", hex(&random)));
         if !path.exists() {
             return Ok(path);
