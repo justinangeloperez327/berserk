@@ -19,6 +19,7 @@ Berserk has not yet been published publicly. The entries below `1.0.0` describe 
 - FormRequest scaffolding and optional model-bound Claw write mappings now use the same `berserk-codegen` boundary; the CLI request template is removed.
 - Migration source generation now lives in `berserk-codegen`; the CLI owns timestamps and filesystem placement while schema source generation has one reusable implementation.
 - Model scaffolding now uses a reusable `ModelSpec`/`FieldSpec` source representation in `berserk-codegen`; the CLI model template is removed while the existing `#[derive(Model)]` runtime contract remains unchanged.
+- Application route scaffolding now uses `RoutesSpec`/`RouteSpec` in `berserk-codegen`; generated projects no longer depend on a CLI-owned routes template and CRUD registrations compile to explicit `app.route().crud(...)` calls.
 
 ## 1.0.0 — first public release target
 

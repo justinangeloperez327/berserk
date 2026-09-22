@@ -199,3 +199,31 @@ berserk make:model User
 
 The generated model remains ordinary Rust using `#[derive(Model)]`; source
 codegen does not replace the derive macro or add runtime reflection.
+
+
+## Route generation
+
+Application route source now uses the same codegen boundary:
+
+```rust
+use berserk_codegen::{routes_source, RoutesSpec};
+
+let source = routes_source(
+    &RoutesSpec::application()
+        .crud("/users", "UserController"),
+)?;
+```
+
+`RoutesSpec::application()` emits the conventional welcome and health routes
+used by `berserk new`. CRUD entries generate explicit controller imports and
+ordinary `app.route().crud(...)` calls. Controller modules follow Berserk's
+snake_case module convention.
+
+`RoutesSpec::new()` starts empty for tools that want to construct their own
+route file. CRUD base paths are validated as static absolute paths because
+`Route::crud` itself owns the member `/{id}` routes.
+
+The CLI no longer owns a `routes.rs` template. New projects ask
+`berserk-codegen` for the route module and only handle filesystem placement.
+Manual route registration remains ordinary Rust and is not required to use
+codegen.

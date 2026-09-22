@@ -13,12 +13,14 @@ mod model_source;
 mod naming;
 mod relations;
 mod request;
+mod route;
 
 pub use controller::{controller_source, ControllerKind, ControllerSpec};
 pub use migration::{migration_source, MigrationSpec};
 pub use model_source::{model_source, FieldSpec, ModelSpec};
 use proc_macro2::TokenStream;
 pub use request::{request_source, RequestKind, RequestSpec};
+pub use route::{routes_source, RouteSpec, RoutesSpec};
 use syn::DeriveInput;
 
 /// Expand a Berserk `Model` declaration into its Rust implementation.
