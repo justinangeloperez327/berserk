@@ -145,7 +145,7 @@ These checks define the release target. The workflow results for the exact relea
 ## Operational features
 
 - Built-in request logs exclude query strings, headers, bodies, tokens, and cookies.
-- Request events include method, path, status, duration, and available request/trace correlation IDs.
+- Request events include method, matched route template (or a non-sensitive unmatched/fallback marker), status, duration, and available request/trace correlation IDs; concrete route-parameter and query values are not logged.
 - Metrics use fixed names without user-controlled labels or unbounded cardinality.
 - Active-request accounting returns to zero after success and error paths.
 - Liveness remains independent of external dependencies; readiness returns `503` for unhealthy checks.
