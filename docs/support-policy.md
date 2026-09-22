@@ -14,7 +14,7 @@ This policy defines the support boundary intended for the first public Berserk v
 
 - **Linux x86_64**, validated on **Ubuntu 24.04 LTS**.
 
-Tier 1 means the release-blocking quality, MSRV, live-database, security, fuzzing, load, and package workflows are expected to remain green for the release candidate. This is the strongest host-platform compatibility claim for the current baseline; it does not replace the separate independent security/API review gate or imply security certification.
+Tier 1 means the release-blocking quality, MSRV, live-database, security, fuzzing, load, and package workflows are expected to remain green for the release candidate. This is the strongest host-platform compatibility claim for the intended v1.0.0 baseline; it does not replace the separate independent API/security review gate or imply security certification.
 
 ### Tier 2: development compatibility
 
@@ -31,7 +31,7 @@ Other operating systems, Linux distributions, and architectures may work but are
 
 Database support means Berserk's driver contract and migration tests run against a real server in CI for the listed server line.
 
-| Database | Supported for the current baseline | CI evidence |
+| Database | Intended v1.0.0 support | CI evidence |
 | --- | --- | --- |
 | PostgreSQL | **15, 16, 17, 18** | Real server test for each major version using the current official major Docker image |
 | MySQL | **8.4 LTS** | Real MySQL 8.4 server test |
