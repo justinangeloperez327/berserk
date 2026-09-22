@@ -31,10 +31,12 @@ impl<T: Into<Context>> ViewData<Native> for T {
 mod models {
     use super::*;
     use crate::presentation::{
-        BorrowedNamedRecords, BorrowedRecord, NamedRecords, Record, Records,
+        BorrowedNamedPage, BorrowedNamedRecords, BorrowedRecord, NamedPage, NamedRecords, Record,
+        Records,
     };
     use claw_orm::{
-        Attributes, Collection, Loaded, Model, NamedRelation, NamedRelations, RelationCardinality,
+        Attributes, Collection, Loaded, LoadedPage, Model, NamedRelation, NamedRelations,
+        RelationCardinality,
     };
 
     pub struct BorrowedRecords;
@@ -80,6 +82,26 @@ mod models {
                 .map(|model| named_model_value(model, &loaded.relations))
                 .collect(),
         )
+    }
+
+    fn named_page_value<M: Model>(loaded: &LoadedPage<M, NamedRelations>) -> Value {
+        let data = Value::List(
+            loaded
+                .items()
+                .iter()
+                .map(|model| named_model_value(model, loaded.relations()))
+                .collect(),
+        );
+        let meta = Value::Object(
+            [
+                ("current_page".to_owned(), Value::from(loaded.current_page())),
+                ("per_page".to_owned(), Value::from(loaded.per_page())),
+                ("total".to_owned(), Value::from(loaded.total())),
+                ("last_page".to_owned(), Value::from(loaded.last_page())),
+            ]
+            .into(),
+        );
+        Value::Object([("data".to_owned(), data), ("meta".to_owned(), meta)].into())
     }
 
     fn scalar_value(value: claw_orm::Value) -> Value {
@@ -131,6 +153,18 @@ mod models {
         }
     }
 
+    impl<M: Model> ViewValue<NamedPage> for LoadedPage<M, NamedRelations> {
+        fn into_view_value(self) -> Value {
+            named_page_value(&self)
+        }
+    }
+
+    impl<M: Model> ViewValue<BorrowedNamedPage> for &LoadedPage<M, NamedRelations> {
+        fn into_view_value(self) -> Value {
+            named_page_value(self)
+        }
+    }
+
     macro_rules! model_data {
         ($kind:ty, $value:ty) => {
             impl<K: Into<String>, M: Model, const N: usize> ViewData<$kind> for [(K, $value); N] {
@@ -151,6 +185,8 @@ mod models {
     model_data!(BorrowedRecords, &Collection<M>);
     model_data!(NamedRecords, Loaded<M, NamedRelations>);
     model_data!(BorrowedNamedRecords, &Loaded<M, NamedRelations>);
+    model_data!(NamedPage, LoadedPage<M, NamedRelations>);
+    model_data!(BorrowedNamedPage, &LoadedPage<M, NamedRelations>);
 }
 
 /// Build explicit heterogeneous view data using Berserk's model conversion.
