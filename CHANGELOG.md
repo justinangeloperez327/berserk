@@ -25,6 +25,7 @@ Berserk has not yet been published publicly. The entries below `1.0.0` describe 
 - The first public release now has an explicit maturity gate covering coordinated CRUD generation, Claw eager-loading ergonomics, paginated presentation, bounded eager loading, Axe production validation, a reference application, independent review, and exact-commit release evidence.
 - `ModuleSpec` now coordinates model, request, controller, migration, and route conventions, and `berserk make:crud <Name>` generates and registers a coherent CRUD slice from that shared specification.
 - Generated migrations are registered through the application's migration module index so generator verification compiles migration source rather than leaving it as an unreferenced file.
+- Named Claw eager queries now preserve normal parent-query composition after `.with(...)`, including filters, list/range/null predicates, ordering, limits, offsets, scopes, statement inspection, and pagination.
 
 ## 1.0.0 — first public release target
 

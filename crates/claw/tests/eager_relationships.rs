@@ -1,8 +1,32 @@
 mod common;
 use claw_orm::{
-    with_scoped_connection, Connection, Direction, ErrorKind, Model, Relationship, Statement, Value,
+    with_scoped_connection, Connection, Direction, Driver, ErrorKind, Model, Relationship,
+    Statement, Value,
 };
 use common::{setup, Post, User};
+
+#[test]
+fn named_eager_loading_preserves_query_composition_after_with() {
+    let statement = User::query()
+        .with(["roles"])
+        .where_("name", "Ada")
+        .where_in("id", [1_u64, 2])
+        .where_not_null("name")
+        .order_by("id", Direction::Desc)
+        .limit(5)
+        .offset(1)
+        .to_statement(Driver::Sqlite)
+        .unwrap();
+
+    assert!(statement.sql().contains("WHERE"));
+    assert!(statement.sql().contains("ORDER BY"));
+    assert!(statement.sql().contains("LIMIT"));
+    assert!(statement.sql().contains("OFFSET"));
+    assert_eq!(
+        statement.bindings(),
+        [Value::from("Ada"), Value::U64(1), Value::U64(2)]
+    );
+}
 
 #[test]
 fn model_query_eager_loads_shared_roles_in_exactly_three_queries() {
