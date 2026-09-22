@@ -145,34 +145,28 @@ impl Generator {
         self.make_source_type(name, "app/validations", &source)
     }
     pub fn make_middleware(&self, name: &str) -> Result<Vec<GeneratedFile>> {
-        self.make_type(
-            name,
-            "app/middleware",
-            include_str!("../templates/middleware.rs.stub"),
-        )
-    }
-    pub fn make_resource(&self, name: &str) -> Result<Vec<GeneratedFile>> {
-        self.make_type(
-            name,
-            "app/resources",
-            include_str!("../templates/resource.rs.stub"),
-        )
-    }
-    pub fn make_policy(&self, name: &str) -> Result<Vec<GeneratedFile>> {
-        self.make_type(
-            name,
-            "app/policies",
-            include_str!("../templates/policy.rs.stub"),
-        )
-    }
-    fn make_type(&self, name: &str, folder: &str, template: &str) -> Result<Vec<GeneratedFile>> {
         self.ensure_application()?;
         validate_type_name(name)?;
-        let module = snake_case(name);
-        let source = template
-            .replace("{{name}}", name)
-            .replace("{{table}}", &format!("{module}s"));
-        self.make_source_type(name, folder, &source)
+        let source =
+            berserk_codegen::middleware_source(&berserk_codegen::MiddlewareSpec::new(name))
+                .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
+        self.make_source_type(name, "app/middleware", &source)
+    }
+
+    pub fn make_resource(&self, name: &str) -> Result<Vec<GeneratedFile>> {
+        self.ensure_application()?;
+        validate_type_name(name)?;
+        let source = berserk_codegen::resource_source(&berserk_codegen::ResourceSpec::new(name))
+            .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
+        self.make_source_type(name, "app/resources", &source)
+    }
+
+    pub fn make_policy(&self, name: &str) -> Result<Vec<GeneratedFile>> {
+        self.ensure_application()?;
+        validate_type_name(name)?;
+        let source = berserk_codegen::policy_source(&berserk_codegen::PolicySpec::new(name))
+            .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
+        self.make_source_type(name, "app/policies", &source)
     }
 
     fn make_source_type(

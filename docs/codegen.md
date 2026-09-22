@@ -262,3 +262,29 @@ Berserk release that created them.
 This removes `main.rs` and configuration templates from the CLI and makes the
 application skeleton another reusable codegen product instead of a separate
 template system.
+
+
+## Middleware, resource, and policy generation
+
+The final CLI-owned Rust templates have been removed. These scaffolds now use
+the same reusable codegen boundary:
+
+```rust
+use berserk_codegen::{
+    middleware_source, policy_source, resource_source,
+    MiddlewareSpec, PolicySpec, ResourceSpec,
+};
+
+let middleware = middleware_source(&MiddlewareSpec::new("Audit"))?;
+let resource = resource_source(&ResourceSpec::new("UserResource"))?;
+let policy = policy_source(&PolicySpec::new("UserPolicy"))?;
+```
+
+Resources default to an `i64` identifier and policies default to a `u64`
+resource type to preserve the existing CLI contract. Tooling can override those
+Rust types explicitly. Policies continue to deny by default.
+
+At this point `berserk-cli` owns command parsing, path safety, module
+registration, timestamps, and filesystem writes. It no longer owns Rust source
+templates. New source-generating features should be implemented in
+`berserk-codegen` first and consumed by the CLI second.

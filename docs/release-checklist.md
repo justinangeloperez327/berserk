@@ -4,6 +4,8 @@ For the first public release candidate, use [v1.0.0](v1.0.0.md) and the full PR 
 
 Use this checklist for each Berserk release candidate. Historical evidence from an earlier release does not automatically satisfy a later release gate; rerun release-specific validation against the exact candidate commit.
 
+Before treating a commit as a release candidate, complete every blocker in [the v1 maturity gate](v1-maturity-gate.md). Passing CI alone is not sufficient to authorize the first public stable release.
+
 Publishing is always a manual owner decision. This checklist intentionally contains no publish command.
 
 ## Identity and policy
