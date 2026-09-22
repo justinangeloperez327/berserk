@@ -211,29 +211,31 @@ impl RelationSpec {
         let name = self.name();
         match self {
             Self::HasMany {
-                related, method, ..
+                related: _, method, ..
             } => quote! {
                 #name => {
                     let related = Self::#method().load_on(connection, models)?;
-                    Ok(::berserk::claw::NamedRelation::many(
+                    ::berserk::claw::named_related(
                         #name,
-                        related.map(|model| {
-                            <#related as ::berserk::claw::Model>::visible_attributes(&model)
-                        }),
-                    ))
+                        ::berserk::claw::RelationCardinality::Many,
+                        connection,
+                        related,
+                        nested,
+                    )
                 }
             },
             Self::HasOne {
-                related, method, ..
+                related: _, method, ..
             } => quote! {
                 #name => {
                     let related = Self::#method().load_on(connection, models)?;
-                    Ok(::berserk::claw::NamedRelation::one(
+                    ::berserk::claw::named_related(
                         #name,
-                        related.map(|model| {
-                            <#related as ::berserk::claw::Model>::visible_attributes(&model)
-                        }),
-                    ))
+                        ::berserk::claw::RelationCardinality::One,
+                        connection,
+                        related,
+                        nested,
+                    )
                 }
             },
             Self::BelongsTo {
@@ -243,26 +245,28 @@ impl RelationSpec {
             } => quote! {
                 #name => {
                     let relation = Self::#method();
-                    let related = ::berserk::claw::named_belongs_to(
+                    ::berserk::claw::named_belongs_to_with(
+                        #name,
                         &relation,
                         #foreign_key,
                         connection,
                         models,
-                    )?;
-                    Ok(::berserk::claw::NamedRelation::one(#name, related))
+                        nested,
+                    )
                 }
             },
             Self::BelongsToMany {
-                related, method, ..
+                related: _, method, ..
             } => quote! {
                 #name => {
                     let related = Self::#method().load_on(connection, models)?;
-                    Ok(::berserk::claw::NamedRelation::many(
+                    ::berserk::claw::named_related(
                         #name,
-                        related.map(|model| {
-                            <#related as ::berserk::claw::Model>::visible_attributes(&model)
-                        }),
-                    ))
+                        ::berserk::claw::RelationCardinality::Many,
+                        connection,
+                        related,
+                        nested,
+                    )
                 }
             },
         }
@@ -298,6 +302,20 @@ pub(crate) fn expand(
 
         fn load_named_relation(
             name: &str,
+            connection: &mut dyn ::berserk::claw::Connection,
+            models: &[Self],
+        ) -> ::berserk::claw::Result<::berserk::claw::NamedRelation> {
+            <Self as ::berserk::claw::Model>::load_named_relation_with(
+                name,
+                &[],
+                connection,
+                models,
+            )
+        }
+
+        fn load_named_relation_with(
+            name: &str,
+            nested: &[String],
             connection: &mut dyn ::berserk::claw::Connection,
             models: &[Self],
         ) -> ::berserk::claw::Result<::berserk::claw::NamedRelation> {
