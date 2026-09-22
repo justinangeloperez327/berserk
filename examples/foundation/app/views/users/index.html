@@ -10,6 +10,20 @@
         <article>
             <h2>{{ user.name }}</h2>
             <p>{{ user.email }}</p>
+
+            <h3>Posts</h3>
+            <ul>
+                @foreach(post in user.posts)
+                    <li>{{ post.title }}</li>
+                @endforeach
+            </ul>
+
+            <h3>Roles</h3>
+            <ul>
+                @foreach(role in user.roles)
+                    <li>{{ role.name }}</li>
+                @endforeach
+            </ul>
         </article>
     @endforeach
 </body>
