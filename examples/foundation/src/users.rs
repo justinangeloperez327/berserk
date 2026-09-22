@@ -143,7 +143,12 @@ impl Policy<User> for UserPolicy {
         if action.as_str() != "users.view" {
             return Decision::Deny;
         }
-        if principal.has_role("admin") || principal.subject() == format!("user:{}", user.id) {
+        let owns_user = principal
+            .subject()
+            .strip_prefix("user:")
+            .and_then(|id| id.parse::<i64>().ok())
+            == Some(user.id);
+        if principal.has_role("admin") || owns_user {
             Decision::Allow
         } else {
             Decision::Deny
