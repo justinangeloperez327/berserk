@@ -16,7 +16,7 @@ pub use context::Context;
 pub use error::{Error, Result};
 pub use template::Template;
 pub use value::{SafeHtml, Value};
-pub use view::{render, render_from};
+pub use view::{render, render_from, validate_views, validate_views_from, CompiledViews};
 
 #[macro_export]
 macro_rules! view_data {
