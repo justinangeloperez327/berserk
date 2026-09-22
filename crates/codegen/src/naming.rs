@@ -130,9 +130,9 @@ pub(crate) fn validate_package_name(name: &str) -> syn::Result<()> {
 pub(crate) fn validate_version(value: &str, kind: &str) -> syn::Result<()> {
     let valid = !value.is_empty()
         && value.len() <= 64
-        && value.bytes().all(|byte| {
-            byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'+')
-        });
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'+'));
 
     if valid {
         Ok(())
