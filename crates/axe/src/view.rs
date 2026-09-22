@@ -174,7 +174,9 @@ fn collect_views(
             collect_views(root, &entry.path(), views)?;
             continue;
         }
-        if !file_type.is_file() || entry.path().extension().and_then(|value| value.to_str()) != Some("html") {
+        if !file_type.is_file()
+            || entry.path().extension().and_then(|value| value.to_str()) != Some("html")
+        {
             continue;
         }
 
@@ -373,9 +375,10 @@ fn line_column(source: &str, position: usize) -> (usize, usize) {
     let position = position.min(source.len());
     let prefix = &source[..position];
     let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
-    let column = prefix
-        .rsplit_once('\n')
-        .map_or_else(|| prefix.chars().count() + 1, |(_, tail)| tail.chars().count() + 1);
+    let column = prefix.rsplit_once('\n').map_or_else(
+        || prefix.chars().count() + 1,
+        |(_, tail)| tail.chars().count() + 1,
+    );
     (line, column)
 }
 
