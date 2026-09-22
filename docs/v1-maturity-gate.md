@@ -11,6 +11,17 @@ Do not publish v1.0.0 merely because the package version is already set to
 1.0.0. Publish only after every blocker below is complete on the exact release
 candidate.
 
+## Current status
+
+The implementation-side V1 core is mature enough for the first stable release
+candidate. Nine of the ten framework-maturity blockers below are complete. The
+only remaining framework-maturity blocker is the **independent API/security
+review**.
+
+Normal `main` CI passing is necessary but does not satisfy the final
+release-candidate gates, because those checks must be rerun against the exact
+source commit that would be published.
+
 ## Framework maturity blockers
 
 - [x] Centralize generated Rust source in `berserk-codegen`; the CLI must not
@@ -54,6 +65,14 @@ After the framework maturity blockers are complete:
 - [ ] Review the final public docs, limitations, changelog, upgrade notes, and
   examples against that same commit.
 - [ ] Obtain explicit owner approval for the exact commit and package set.
+
+## Core maturity versus ecosystem maturity
+
+Completing this gate means the Berserk **V1 framework core** is ready to enter
+stable release engineering. It does not mean Berserk has Laravel's production
+history, third-party package ecosystem, community size, support history, or
+years of backward-compatibility evidence. Those are post-release outcomes; see
+[ecosystem-maturity.md](ecosystem-maturity.md).
 
 ## What is not a v1 blocker
 
