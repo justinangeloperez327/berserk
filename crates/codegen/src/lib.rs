@@ -6,6 +6,7 @@
 //! build-time code generation later.
 #![forbid(unsafe_code)]
 
+mod application;
 mod controller;
 mod migration;
 mod model;
@@ -15,6 +16,7 @@ mod relations;
 mod request;
 mod route;
 
+pub use application::{application_files, ApplicationFile, ApplicationSpec};
 pub use controller::{controller_source, ControllerKind, ControllerSpec};
 pub use migration::{migration_source, MigrationSpec};
 pub use model_source::{model_source, FieldSpec, ModelSpec};

@@ -198,7 +198,7 @@ berserk migrate:rollback
 berserk migrate:reset
 ```
 
-The generated application remains explicit: controllers, models, requests, middleware, configuration, and routes are ordinary Rust modules.
+The generated application remains explicit: controllers, models, requests, middleware, configuration, and routes are ordinary Rust modules. The conventional project skeleton is emitted by `berserk-codegen`; the CLI is responsible for safe filesystem placement.
 
 ## Optional features
 

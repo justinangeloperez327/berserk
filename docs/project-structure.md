@@ -22,6 +22,12 @@ src/
 
 The folders are generator defaults. Berserk runtime behavior does not discover controllers, models, validations, routes, or services by filesystem location.
 
+The conventional skeleton is produced by `berserk-codegen::ApplicationSpec`.
+The CLI owns destination-path safety and filesystem writes; codegen owns the
+generated Cargo manifest, entry point, configuration module, route module, and
+module-index source. This keeps `berserk new` consistent with other Berserk
+generators without making the filesystem layout a runtime requirement.
+
 ## Custom structures
 
 Applications may reorganize their Rust modules. A feature-oriented application can use:
