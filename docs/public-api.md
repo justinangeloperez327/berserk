@@ -226,7 +226,7 @@ The `auth` feature provides password, bearer-session, principal, guard, and auth
 
 The built-in primitives do not automatically define browser-cookie or CSRF policy. Applications using cookies must define Secure, HttpOnly, SameSite, rotation/revocation, and CSRF behavior appropriate to their deployment.
 
-`MemorySessionStore` is process-local and unbounded; production systems exposed to untrusted session creation should use a bounded/persistent store implementation.
+`MemorySessionStore` is process-local and capacity-bounded (10,000 records by default, configurable with `MemorySessionStore::new`). Production systems that require persistence, distribution, or deployment-specific retention should provide an appropriate `SessionStore` implementation.
 
 ## Storage
 
