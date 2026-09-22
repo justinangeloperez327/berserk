@@ -64,7 +64,7 @@ mod tests {
     use super::*;
     use berserk::{
         auth::ApiToken,
-        database::{Connection, Query, Value},
+        database::{Query, Value},
         Json,
     };
     use berserk_testing::TestClient;
@@ -151,11 +151,11 @@ mod tests {
             .send()?
             .assert_created()
             .assert_header("x-api-version", "1.0");
-        let id = response
-            .json()
-            .get("id")
-            .and_then(Json::as_i64)
-            .expect("created user id");
+        let json = response.json();
+        let id = match json.get("id") {
+            Some(Json::Number(number)) => number.as_i64().expect("created user id"),
+            _ => panic!("created user id"),
+        };
         Ok(id)
     }
 
@@ -218,9 +218,11 @@ mod tests {
             .assert_validation_error("email");
 
         client
-            .get(format!("/users/{user_id}"))?
-            .into_response()
-            .status_code();
+            .request("GET", format!("/users/{user_id}"))?
+            .bearer(fixture.admin.expose())?
+            .send()?
+            .assert_ok()
+            .assert_json_path("name", "Ada");
 
         client
             .put(format!("/users/{user_id}"))?
