@@ -105,9 +105,17 @@ fn named_loaded_page_is_first_class_json_and_axe_data() -> Result<()> {
             panic!("has-many relationship should serialize as an array");
         };
         assert_eq!(posts.len(), 2);
-        let Json::Object(first_post) = &posts[0] else {
-            panic!("post should serialize as an object");
-        };
+        let first_post = posts
+            .iter()
+            .find_map(|post| match post {
+                Json::Object(post)
+                    if post.get("title").and_then(Json::as_str) == Some("First") =>
+                {
+                    Some(post)
+                }
+                _ => None,
+            })
+            .expect("First post");
         let Json::Array(comments) = first_post.get("comments").expect("comments") else {
             panic!("nested comments should serialize as an array");
         };
@@ -162,9 +170,17 @@ fn nested_named_eager_loading_renders_recursively() -> Result<()> {
         let Json::Array(posts) = ada.get("posts").expect("posts") else {
             panic!("posts should serialize as an array");
         };
-        let Json::Object(first_post) = &posts[0] else {
-            panic!("post should serialize as an object");
-        };
+        let first_post = posts
+            .iter()
+            .find_map(|post| match post {
+                Json::Object(post)
+                    if post.get("title").and_then(Json::as_str) == Some("First") =>
+                {
+                    Some(post)
+                }
+                _ => None,
+            })
+            .expect("First post");
         let Json::Array(comments) = first_post.get("comments").expect("comments") else {
             panic!("comments should serialize as an array");
         };
@@ -179,9 +195,20 @@ fn nested_named_eager_loading_renders_recursively() -> Result<()> {
         let AxeValue::List(view_posts) = view_ada.get("posts").expect("Axe posts") else {
             panic!("Axe posts should be a list");
         };
-        let AxeValue::Object(view_first_post) = &view_posts[0] else {
-            panic!("Axe post should be an object");
-        };
+        let view_first_post = view_posts
+            .iter()
+            .find_map(|post| match post {
+                AxeValue::Object(post)
+                    if matches!(
+                        post.get("title"),
+                        Some(AxeValue::Text(title)) if title == "First"
+                    ) =>
+                {
+                    Some(post)
+                }
+                _ => None,
+            })
+            .expect("Axe First post");
         let AxeValue::List(view_comments) =
             view_first_post.get("comments").expect("Axe comments")
         else {
