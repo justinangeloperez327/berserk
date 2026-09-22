@@ -11,6 +11,9 @@ Berserk has not yet been published publicly. The entries below `1.0.0` describe 
 - Consolidated migration, Claw relationship, and request-plumbing work into the first public v1.0.0 release target.
 - Documentation now distinguishes internal development milestones from public releases.
 - Development branches are named for their work; version numbers are reserved for actual release preparation.
+- Documentation now reflects the current V1 maturity state: the core implementation is complete except for the independent API/security review, while exact-commit release validation remains outstanding.
+- Release documentation now uses the current 18-crate publication graph and 20-subject release-evidence model instead of older 15/17-package-era evidence.
+- Post-1.0 ecosystem maturity is documented separately from framework-core feature completeness; production history, third-party packages, community adoption, and multi-release compatibility are explicitly not V1 feature-count requirements.
 
 ### Architecture
 
