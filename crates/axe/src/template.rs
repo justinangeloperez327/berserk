@@ -230,7 +230,7 @@ impl<'source> Parser<'source> {
         let (open, close) = if raw { ("{!!", "!!}") } else { ("{{", "}}") };
         self.position += open.len();
         let rest = self.remaining();
-        let end = rest.find(close).ok_or_else(|| ParseFailure {
+        let end = rest.find(close).ok_or(ParseFailure {
             error: Error::UnclosedExpression,
             position: start,
         })?;
@@ -249,7 +249,7 @@ impl<'source> Parser<'source> {
     fn parse_if(&mut self) -> ParseResult<Node> {
         let start = self.position;
         self.position += "@if(".len();
-        let end = self.remaining().find(')').ok_or_else(|| ParseFailure {
+        let end = self.remaining().find(')').ok_or(ParseFailure {
             error: Error::UnclosedDirective("@if"),
             position: start,
         })?;
@@ -296,7 +296,7 @@ impl<'source> Parser<'source> {
     fn parse_foreach(&mut self) -> ParseResult<Node> {
         let start = self.position;
         self.position += "@foreach(".len();
-        let end = self.remaining().find(')').ok_or_else(|| ParseFailure {
+        let end = self.remaining().find(')').ok_or(ParseFailure {
             error: Error::UnclosedDirective("@foreach"),
             position: start,
         })?;
