@@ -219,6 +219,17 @@ These checks define the release target. The workflow results for the exact relea
 - Temporary test directories use collision-resistant names and recursively clean only their exact directory.
 - The testing crate remains outside the production framework dependency graph.
 
+## Reference application
+
+- The foundation workspace member runs its schema through `MigrationRunner` rather than ad-hoc table creation.
+- Its user controller implements the same `CrudController` contract emitted by CRUD code generation and registers through atomic `route.crud`.
+- FormRequest sanitization, request-aware authorization, semantic validation, and database-aware uniqueness checks execute on real application routes.
+- Configured bearer authentication distinguishes missing credentials from authenticated-but-forbidden requests.
+- Route ability authorization and typed resource-policy authorization are both exercised.
+- The user model eager-loads `has_many`, `has_one`, and `belongs_to_many` relationships through the real SQLite schema.
+- Axe renders eager-loaded relationship data from the application's validated view tree.
+- `berserk-testing::TestClient` covers create/show/update/delete, validation, relationship presentation, authentication, authorization, named CRUD routes, and the Axe route without opening a TCP socket.
+
 ## Hardening and maintenance
 
 - Every crate forbids unsafe code and the workspace declares Rust 1.88 as its MSRV.
