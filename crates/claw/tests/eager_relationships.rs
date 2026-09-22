@@ -1,6 +1,7 @@
 mod common;
 use claw_orm::{
-    with_scoped_connection, Connection, Direction, ErrorKind, Model, Relationship, Statement, Value,
+    with_scoped_connection, Connection, Direction, Driver, ErrorKind, Model, Relationship,
+    Statement, Value,
 };
 use common::{setup, Post, User};
 
