@@ -45,10 +45,14 @@ fn main() -> Result<()> {
         ["users.manage", "users.read", "users.view"],
         0,
     )?;
-    eprintln!(
-        "Foundation development bearer token (restart invalidates it): {}",
-        operator.expose()
-    );
+    if std::env::var_os("BERSERK_SHOW_DEMO_TOKEN").is_some() {
+        eprintln!(
+            "Foundation development bearer token (restart invalidates it): {}",
+            operator.expose()
+        );
+    } else {
+        eprintln!("Set BERSERK_SHOW_DEMO_TOKEN=1 to print the local development token.");
+    }
 
     application(
         Database::new({
