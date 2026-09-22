@@ -210,9 +210,7 @@ impl RelationSpec {
     fn loader_arm_tokens(&self) -> TokenStream {
         let name = self.name();
         match self {
-            Self::HasMany {
-                related: _, method, ..
-            } => quote! {
+            Self::HasMany { method, .. } => quote! {
                 #name => {
                     let related = Self::#method().load_on(connection, models)?;
                     ::berserk::claw::named_related(
@@ -224,9 +222,7 @@ impl RelationSpec {
                     )
                 }
             },
-            Self::HasOne {
-                related: _, method, ..
-            } => quote! {
+            Self::HasOne { method, .. } => quote! {
                 #name => {
                     let related = Self::#method().load_on(connection, models)?;
                     ::berserk::claw::named_related(
@@ -255,9 +251,7 @@ impl RelationSpec {
                     )
                 }
             },
-            Self::BelongsToMany {
-                related: _, method, ..
-            } => quote! {
+            Self::BelongsToMany { method, .. } => quote! {
                 #name => {
                     let related = Self::#method().load_on(connection, models)?;
                     ::berserk::claw::named_related(
