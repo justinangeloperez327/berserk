@@ -198,7 +198,6 @@ fn view_name(root: &Path, path: &Path) -> Result<String> {
             .as_os_str()
             .to_str()
             .ok_or_else(|| Error::InvalidViewName(relative.display().to_string()))?;
-        validate_view_segment(segment)?;
         segments.push(segment);
     }
     let view = segments.join("/");
@@ -392,24 +391,23 @@ fn view_path(root: &Path, view: &str) -> Result<PathBuf> {
 }
 
 fn validate_view_name(view: &str) -> Result<()> {
-    if view.is_empty() || view.starts_with('/') || view.contains('\\') {
-        return Err(Error::InvalidViewName(view.to_owned()));
-    }
-    for segment in view.split('/') {
-        validate_view_segment(segment)?;
-    }
-    Ok(())
-}
+    let valid_segment = |segment: &str| {
+        !segment.is_empty()
+            && segment != "."
+            && segment != ".."
+            && segment
+                .chars()
+                .all(|character| {
+                    character.is_ascii_alphanumeric() || matches!(character, '_' | '-')
+                })
+    };
 
-fn validate_view_segment(segment: &str) -> Result<()> {
-    if segment.is_empty()
-        || segment == "."
-        || segment == ".."
-        || !segment
-            .chars()
-            .all(|character| character.is_ascii_alphanumeric() || matches!(character, '_' | '-'))
+    if view.is_empty()
+        || view.starts_with('/')
+        || view.contains('\\')
+        || !view.split('/').all(valid_segment)
     {
-        return Err(Error::InvalidViewName(segment.to_owned()));
+        return Err(Error::InvalidViewName(view.to_owned()));
     }
     Ok(())
 }
