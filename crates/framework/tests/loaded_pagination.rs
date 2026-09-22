@@ -159,7 +159,8 @@ fn nested_named_eager_loading_renders_recursively() -> Result<()> {
         assert!(posts.nested().get("comments").is_some());
 
         let response = response().json(&loaded)?;
-        let Json::Array(users) = Json::parse(response.body()).expect("valid nested eager JSON") else {
+        let Json::Array(users) = Json::parse(response.body()).expect("valid nested eager JSON")
+        else {
             panic!("loaded collection should serialize as an array");
         };
         let Json::Object(ada) = &users[0] else {
