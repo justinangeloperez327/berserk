@@ -239,7 +239,7 @@ These checks define the release target. The workflow results for the exact relea
 - Dependency advisory, license, duplicate-version, and source policies are automated and every exception requires review.
 - Security reporting, support, compatibility, contribution, changelog, and release ownership are documented.
 - Release preparation checks feature combinations, live databases, fuzzing, load/soak behavior, package contents, and clean-machine examples.
-- The project cannot be marked release-ready until the executable gates pass, a license and private reporting channel exist, and the owner approves the artifacts.
+- The project cannot be marked release-ready until the independent API/security review is complete, the intended 1.0 API is frozen, every exact-candidate executable gate passes, the current 18-package publication graph and 20-subject release evidence are verified, and the owner approves that exact candidate.
 
 ## Phase 1 review items resolved in this document set
 
