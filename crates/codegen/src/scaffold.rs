@@ -132,8 +132,7 @@ mod tests {
 
     #[test]
     fn resource_identifier_type_can_be_customized() {
-        let source =
-            resource_source(&ResourceSpec::new("UserResource").id_type("String")).unwrap();
+        let source = resource_source(&ResourceSpec::new("UserResource").id_type("String")).unwrap();
         assert!(source.contains("pub id: String"));
     }
 
@@ -149,8 +148,6 @@ mod tests {
     fn scaffold_names_and_types_are_validated() {
         assert!(middleware_source(&MiddlewareSpec::new("audit")).is_err());
         assert!(resource_source(&ResourceSpec::new("UserResource").id_type("not a type")).is_err());
-        assert!(
-            policy_source(&PolicySpec::new("UserPolicy").resource_type("not a type")).is_err()
-        );
+        assert!(policy_source(&PolicySpec::new("UserPolicy").resource_type("not a type")).is_err());
     }
 }
