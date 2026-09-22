@@ -6,7 +6,7 @@ This historical review checked an earlier Berserk candidate from the perspective
 
 ## Scope
 
-Reviewed against the current candidate:
+Reviewed against the then-current candidate:
 
 - `README.md` installation and quick-start instructions;
 - the standalone `examples/minimal-api` consumer workspace;
@@ -29,6 +29,6 @@ The normal CI quality job continues to run the richer `examples/minimal-api` HTT
 
 ## Release interpretation
 
-This is a clean consumer/build review, not an independent security audit and not a crates.io publication test. Before publication, package-name availability must still be rechecked and the separate independent security/API review gate remains open.
+This is historical clean consumer/build evidence, not an independent API/security review and not a crates.io publication test. Before publication, package-name availability must be rechecked for the current 18-package graph, the independent review gate must be closed, and the clean-consumer/package checks must be rerun against the exact final release candidate.
 
 The clean-machine release-checklist item should be considered satisfied only when the Package workflow's `clean-consumer` job passes for this change.
