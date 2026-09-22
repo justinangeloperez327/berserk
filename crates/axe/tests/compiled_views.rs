@@ -1,4 +1,4 @@
-use berserk_axe::{CompiledViews, Context, Error};
+use berserk_axe::{render_from, CompiledViews, Context, Error};
 use std::{
     path::PathBuf,
     sync::atomic::{AtomicU64, Ordering},
@@ -48,12 +48,31 @@ fn compiled_views_expand_includes_and_keep_deterministic_metadata() {
                 .with("body", "Ready"),
         )
         .unwrap();
-    assert_eq!(
-        rendered,
-        "<header>&lt;Axe&gt;</header>\n<main>Ready</main>"
-    );
+    let expected = "<header>&lt;Axe&gt;</header>\n<main>Ready</main>";
+    assert_eq!(rendered, expected);
 
-    let _ = std::fs::remove_dir_all(root);
+    let rendered_from_root = render_from(
+        &root,
+        "pages/index",
+        &Context::new()
+            .with("title", "<Axe>")
+            .with("body", "Ready"),
+    )
+    .unwrap();
+    assert_eq!(rendered_from_root, expected);
+
+    std::fs::remove_dir_all(&root).unwrap();
+    assert_eq!(
+        views
+            .render(
+                "pages/index",
+                &Context::new()
+                    .with("title", "<Axe>")
+                    .with("body", "Ready"),
+            )
+            .unwrap(),
+        expected
+    );
 }
 
 #[test]
