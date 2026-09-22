@@ -1,6 +1,6 @@
 # Berserk support policy
 
-This policy defines the support boundary for the current Berserk v1.0.0 stable baseline. It is deliberately narrower than the set of systems where Berserk may happen to compile.
+This policy defines the support boundary intended for the first public Berserk v1.0.0 release. It is deliberately narrower than the set of systems where Berserk may happen to compile.
 
 ## Rust toolchain
 
