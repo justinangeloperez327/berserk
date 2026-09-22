@@ -32,7 +32,7 @@ candidate.
 - [x] Complete Axe's production template path with deterministic precompilation
   or an equivalent build-time validation step, useful file/line diagnostics,
   and verified include/dependency behavior.
-- [ ] Maintain at least one realistic reference application that exercises
+- [x] Maintain at least one realistic reference application that exercises
   generated CRUD, validation, migrations, relationships, authentication,
   authorization, views, and application tests together.
 - [ ] Perform an independent API/security review and resolve or explicitly
