@@ -15,6 +15,7 @@ mod naming;
 mod relations;
 mod request;
 mod route;
+mod scaffold;
 
 pub use application::{application_files, ApplicationFile, ApplicationSpec};
 pub use controller::{controller_source, ControllerKind, ControllerSpec};
@@ -23,6 +24,9 @@ pub use model_source::{model_source, FieldSpec, ModelSpec};
 use proc_macro2::TokenStream;
 pub use request::{request_source, RequestKind, RequestSpec};
 pub use route::{routes_source, RouteSpec, RoutesSpec};
+pub use scaffold::{
+    middleware_source, policy_source, resource_source, MiddlewareSpec, PolicySpec, ResourceSpec,
+};
 use syn::DeriveInput;
 
 /// Expand a Berserk `Model` declaration into its Rust implementation.

@@ -21,6 +21,8 @@ Berserk has not yet been published publicly. The entries below `1.0.0` describe 
 - Model scaffolding now uses a reusable `ModelSpec`/`FieldSpec` source representation in `berserk-codegen`; the CLI model template is removed while the existing `#[derive(Model)]` runtime contract remains unchanged.
 - Application route scaffolding now uses `RoutesSpec`/`RouteSpec` in `berserk-codegen`; generated projects no longer depend on a CLI-owned routes template and CRUD registrations compile to explicit `app.route().crud(...)` calls.
 - The complete conventional `berserk new` skeleton now comes from `ApplicationSpec`/`ApplicationFile` in `berserk-codegen`; the CLI main/config templates and inline module-source assembly are removed while filesystem safety remains in the CLI.
+- Middleware, API-resource, and policy scaffolds now use `berserk-codegen`; the final CLI-owned Rust templates are removed, leaving source generation and CLI filesystem orchestration as separate boundaries.
+- The first public release now has an explicit maturity gate covering coordinated CRUD generation, Claw eager-loading ergonomics, paginated presentation, bounded eager loading, Axe production validation, a reference application, independent review, and exact-commit release evidence.
 
 ## 1.0.0 — first public release target
 

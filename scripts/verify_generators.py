@@ -61,7 +61,13 @@ def main():
             raise RuntimeError("generated application routes are not using route codegen")
         if "request.config::<AppConfig>()" not in generated_routes:
             raise RuntimeError("generated application routes lost the welcome route contract")
-        for kind, name in [("model", "User"), ("controller", "UserController"), ("resource", "UserResource"), ("policy", "UserPolicy")]:
+        for kind, name in [
+            ("model", "User"),
+            ("controller", "UserController"),
+            ("middleware", "Audit"),
+            ("resource", "UserResource"),
+            ("policy", "UserPolicy"),
+        ]:
             run(str(cli), f"make:{kind}", name, cwd=consumer)
         run(str(cli), "make:request", "SimpleInput", cwd=consumer)
         run(str(cli), "make:request", "CreateUser", "--model", "User", cwd=consumer)
@@ -93,6 +99,20 @@ pub mod database;
     }
 }
 ''')
+        generated_middleware = (consumer / "src/app/middleware/audit.rs").read_text()
+        if "impl Middleware for Audit" not in generated_middleware:
+            raise RuntimeError("middleware scaffold did not come from the codegen contract")
+
+        generated_resource = (consumer / "src/app/resources/user_resource.rs").read_text()
+        if "impl ApiResource for UserResource" not in generated_resource:
+            raise RuntimeError("resource scaffold did not come from the codegen contract")
+
+        generated_policy = (consumer / "src/app/policies/user_policy.rs").read_text()
+        if "impl Policy<u64> for UserPolicy" not in generated_policy:
+            raise RuntimeError("policy scaffold did not come from the codegen contract")
+        if "Decision::Deny" not in generated_policy:
+            raise RuntimeError("generated policy must deny by default")
+
         generated_model = (consumer / "src/app/models/user.rs").read_text()
         if '#[table("users")]' not in generated_model:
             raise RuntimeError("model codegen did not generate the conventional users table")

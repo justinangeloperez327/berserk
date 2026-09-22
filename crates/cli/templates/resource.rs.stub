@@ -1,6 +1,0 @@
-use berserk::{ApiResource, Json};
-
-pub struct {{name}} { pub id: i64 }
-impl ApiResource for {{name}} {
-    fn to_resource(&self) -> Json { Json::Object([("id".into(), self.id.into())].into()) }
-}

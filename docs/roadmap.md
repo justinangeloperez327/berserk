@@ -6,7 +6,9 @@ Berserk is preparing its first public v1.0.0 release. Repository milestones afte
 
 The first public release consolidates the framework work completed so far: application assembly, HTTP and routing, typed requests and responses, validation, authentication and authorization, database drivers, Claw ORM, migrations and relationships, application services, testing, observability, developer tooling, and production hardening.
 
-The remaining work before publication is driven by repository evidence rather than pre-assigned version buckets. Current priorities are:
+The remaining work before publication is driven by repository evidence rather than pre-assigned version buckets. The concrete release decision is defined by [the v1 maturity gate](v1-maturity-gate.md): v1 must not be published until every framework-maturity and release-candidate blocker there is complete.
+
+Current priorities are:
 
 - keep the public surface coherent and beginner-friendly;
 - improve framework plumbing where application code still performs framework work manually;
