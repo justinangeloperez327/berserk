@@ -171,6 +171,69 @@ pub struct LoadedPage<M, R> {
     pub relations: R,
 }
 
+impl<M, R> LoadedPage<M, R> {
+    pub fn page(&self) -> &Page<M> {
+        &self.page
+    }
+
+    pub fn relations(&self) -> &R {
+        &self.relations
+    }
+
+    pub fn items(&self) -> &[M] {
+        self.page.items()
+    }
+
+    pub fn collection(&self) -> &Collection<M> {
+        self.page.collection()
+    }
+
+    pub fn into_parts(self) -> (Page<M>, R) {
+        (self.page, self.relations)
+    }
+
+    pub const fn current_page(&self) -> u64 {
+        self.page.page()
+    }
+
+    pub const fn per_page(&self) -> u64 {
+        self.page.per_page()
+    }
+
+    pub const fn total(&self) -> u64 {
+        self.page.total()
+    }
+
+    pub const fn last_page(&self) -> u64 {
+        self.page.last_page()
+    }
+
+    pub const fn has_previous(&self) -> bool {
+        self.page.has_previous()
+    }
+
+    pub const fn has_next(&self) -> bool {
+        self.page.has_next()
+    }
+}
+
+impl<M, R> std::ops::Deref for LoadedPage<M, R> {
+    type Target = Page<M>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.page
+    }
+}
+
+impl<'a, M, R> IntoIterator for &'a LoadedPage<M, R> {
+    type Item = &'a M;
+    type IntoIter = std::slice::Iter<'a, M>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.page.items().iter()
+    }
+}
+
 /// Explicit typed eager-loading execution for a normal ModelQuery.
 pub struct EagerQuery<M, R> {
     pub(crate) query: ModelQuery<M>,
