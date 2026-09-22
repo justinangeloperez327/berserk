@@ -43,9 +43,7 @@ fn compiled_views_expand_includes_and_keep_deterministic_metadata() {
     let rendered = views
         .render(
             "pages/index",
-            &Context::new()
-                .with("title", "<Axe>")
-                .with("body", "Ready"),
+            &Context::new().with("title", "<Axe>").with("body", "Ready"),
         )
         .unwrap();
     let expected = "<header>&lt;Axe&gt;</header>\n<main>Ready</main>";
@@ -54,9 +52,7 @@ fn compiled_views_expand_includes_and_keep_deterministic_metadata() {
     let rendered_from_root = render_from(
         &root,
         "pages/index",
-        &Context::new()
-            .with("title", "<Axe>")
-            .with("body", "Ready"),
+        &Context::new().with("title", "<Axe>").with("body", "Ready"),
     )
     .unwrap();
     assert_eq!(rendered_from_root, expected);
@@ -66,9 +62,7 @@ fn compiled_views_expand_includes_and_keep_deterministic_metadata() {
         views
             .render(
                 "pages/index",
-                &Context::new()
-                    .with("title", "<Axe>")
-                    .with("body", "Ready"),
+                &Context::new().with("title", "<Axe>").with("body", "Ready"),
             )
             .unwrap(),
         expected
@@ -169,8 +163,8 @@ fn include_targets_cannot_escape_the_view_root() {
 
 #[test]
 fn foundation_view_tree_passes_the_production_compiler() {
-    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../examples/foundation/app/views");
+    let root =
+        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../examples/foundation/app/views");
     let views = CompiledViews::compile(root).unwrap();
     assert!(views.contains("users/index"));
 }
