@@ -90,7 +90,8 @@ fn named_loaded_page_is_first_class_json_and_axe_data() -> Result<()> {
         assert_eq!(loaded.items()[0].name, "Ada");
 
         let response = response().json(&loaded)?;
-        let Json::Object(body) = Json::parse(response.body()).expect("valid loaded-page JSON") else {
+        let Json::Object(body) = Json::parse(response.body()).expect("valid loaded-page JSON")
+        else {
             panic!("loaded page should serialize as an object");
         };
         let Json::Array(data) = body.get("data").expect("data") else {
@@ -205,8 +206,7 @@ fn nested_named_eager_loading_renders_recursively() -> Result<()> {
                 .then_some(post)
             })
             .expect("Axe First post");
-        let AxeValue::List(view_comments) =
-            view_first_post.get("comments").expect("Axe comments")
+        let AxeValue::List(view_comments) = view_first_post.get("comments").expect("Axe comments")
         else {
             panic!("Axe comments should be a list");
         };
@@ -263,20 +263,14 @@ fn nested_named_eager_loading_rejects_malformed_and_unbounded_paths() -> Result<
             Ok(_) => panic!("over-deep eager path should fail"),
             Err(error) => error,
         };
-        assert_eq!(
-            too_deep.kind(),
-            &berserk::database::ErrorKind::InvalidInput
-        );
+        assert_eq!(too_deep.kind(), &berserk::database::ErrorKind::InvalidInput);
 
         let too_many: Vec<String> = (0..33).map(|index| format!("relation{index}")).collect();
         let too_many = match User::query().with(too_many).get() {
             Ok(_) => panic!("too many eager paths should fail"),
             Err(error) => error,
         };
-        assert_eq!(
-            too_many.kind(),
-            &berserk::database::ErrorKind::InvalidInput
-        );
+        assert_eq!(too_many.kind(), &berserk::database::ErrorKind::InvalidInput);
 
         Ok(())
     })

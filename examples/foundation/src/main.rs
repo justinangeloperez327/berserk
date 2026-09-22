@@ -180,10 +180,7 @@ mod tests {
             ])
             .execute(&mut connection)?;
         Query::table("roles")
-            .insert([
-                ("id", Value::from(30_i64)),
-                ("name", Value::from("editor")),
-            ])
+            .insert([("id", Value::from(30_i64)), ("name", Value::from("editor"))])
             .execute(&mut connection)?;
         Query::table("role_user")
             .insert([
@@ -211,12 +208,7 @@ mod tests {
             .send()?
             .assert_forbidden();
 
-        let user_id = create_user(
-            &client,
-            &fixture.admin,
-            " Ada ",
-            " ADA@EXAMPLE.COM ",
-        )?;
+        let user_id = create_user(&client, &fixture.admin, " Ada ", " ADA@EXAMPLE.COM ")?;
         assert_eq!(user_id, 1);
 
         client

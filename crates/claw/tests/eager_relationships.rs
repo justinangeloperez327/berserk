@@ -152,14 +152,7 @@ fn eager_relationship_key_queries_are_chunked_before_driver_limits() {
         .join(",");
     let post_rows = users
         .iter()
-        .map(|user| {
-            format!(
-                "({}, {}, 'Post {}', 1)",
-                10_000 + user.id,
-                user.id,
-                user.id
-            )
-        })
+        .map(|user| format!("({}, {}, 'Post {}', 1)", 10_000 + user.id, user.id, user.id))
         .collect::<Vec<_>>()
         .join(",");
     let role_rows = users

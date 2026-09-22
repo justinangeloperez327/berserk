@@ -97,9 +97,7 @@ mod models {
             RelationCardinality::One => values
                 .first()
                 .zip(keys.first())
-                .map(|(attributes, key)| {
-                    named_attributes_value(attributes, key, relation.nested())
-                })
+                .map(|(attributes, key)| named_attributes_value(attributes, key, relation.nested()))
                 .unwrap_or(Value::Null),
         }
     }
@@ -128,7 +126,10 @@ mod models {
         );
         let meta = Value::Object(
             [
-                ("current_page".to_owned(), Value::from(loaded.current_page())),
+                (
+                    "current_page".to_owned(),
+                    Value::from(loaded.current_page()),
+                ),
                 ("per_page".to_owned(), Value::from(loaded.per_page())),
                 ("total".to_owned(), Value::from(loaded.total())),
                 ("last_page".to_owned(), Value::from(loaded.last_page())),

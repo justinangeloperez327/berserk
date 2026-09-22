@@ -587,10 +587,7 @@ fn load_named<M: Model>(
     let mut relations = NamedRelations::new();
     for (name, nested) in grouped {
         relations.push(M::load_named_relation_with(
-            &name,
-            &nested,
-            connection,
-            models,
+            &name, &nested, connection, models,
         )?);
     }
     Ok(relations)
