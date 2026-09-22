@@ -107,13 +107,11 @@ fn named_loaded_page_is_first_class_json_and_axe_data() -> Result<()> {
         assert_eq!(posts.len(), 2);
         let first_post = posts
             .iter()
-            .find_map(|post| match post {
-                Json::Object(post)
-                    if post.get("title").and_then(Json::as_str) == Some("First") =>
-                {
-                    Some(post)
-                }
-                _ => None,
+            .find_map(|post| {
+                let Json::Object(post) = post else {
+                    return None;
+                };
+                (post.get("title").and_then(Json::as_str) == Some("First")).then_some(post)
             })
             .expect("First post");
         let Json::Array(comments) = first_post.get("comments").expect("comments") else {
@@ -172,13 +170,11 @@ fn nested_named_eager_loading_renders_recursively() -> Result<()> {
         };
         let first_post = posts
             .iter()
-            .find_map(|post| match post {
-                Json::Object(post)
-                    if post.get("title").and_then(Json::as_str) == Some("First") =>
-                {
-                    Some(post)
-                }
-                _ => None,
+            .find_map(|post| {
+                let Json::Object(post) = post else {
+                    return None;
+                };
+                (post.get("title").and_then(Json::as_str) == Some("First")).then_some(post)
             })
             .expect("First post");
         let Json::Array(comments) = first_post.get("comments").expect("comments") else {
@@ -197,16 +193,15 @@ fn nested_named_eager_loading_renders_recursively() -> Result<()> {
         };
         let view_first_post = view_posts
             .iter()
-            .find_map(|post| match post {
-                AxeValue::Object(post)
-                    if matches!(
-                        post.get("title"),
-                        Some(AxeValue::Text(title)) if title == "First"
-                    ) =>
-                {
-                    Some(post)
-                }
-                _ => None,
+            .find_map(|post| {
+                let AxeValue::Object(post) = post else {
+                    return None;
+                };
+                matches!(
+                    post.get("title"),
+                    Some(AxeValue::Text(title)) if title == "First"
+                )
+                .then_some(post)
             })
             .expect("Axe First post");
         let AxeValue::List(view_comments) =
