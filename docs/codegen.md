@@ -288,3 +288,39 @@ At this point `berserk-cli` owns command parsing, path safety, module
 registration, timestamps, and filesystem writes. It no longer owns Rust source
 templates. New source-generating features should be implemented in
 `berserk-codegen` first and consumed by the CLI second.
+
+
+## Unified CRUD module specification
+
+`ModuleSpec` coordinates the conventions that previously had to be repeated
+across independent generators:
+
+```rust
+use berserk_codegen::{module_files, ModuleSpec};
+
+let module = ModuleSpec::crud("User", 1_789_994_000)?;
+let files = module_files(&module)?;
+let route = module.route();
+```
+
+A conventional CRUD module derives one model, request, controller, create-table
+migration, and resource route from the same entity name. The starter resource
+contains an `id` plus a fillable `name: String`; the request writes the same
+`name` column and the migration creates it. This is intentionally minimal but
+internally coherent.
+
+The CLI exposes this coordinated workflow:
+
+```text
+berserk make:crud User
+```
+
+It creates and module-registers the model, request, controller, and migration,
+then inserts the CRUD route at explicit generated-route markers. Existing
+application route source is not regenerated or overwritten. If those markers
+are removed, coordinated route insertion fails instead of guessing where to
+rewrite user code.
+
+Individual `make:model`, `make:request`, `make:controller`, and
+`make:migration` commands remain available for developers who want explicit
+control.

@@ -94,6 +94,147 @@ impl Generator {
         }
         result
     }
+    pub fn make_crud(&self, name: &str) -> Result<Vec<GeneratedFile>> {
+        self.ensure_application()?;
+        validate_type_name(name)?;
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|_| CliError::new(ErrorKind::Clock, "system clock is before Unix epoch"))?
+            .as_secs();
+        let spec = berserk_codegen::ModuleSpec::crud(name, timestamp)
+            .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
+        let sources = berserk_codegen::module_files(&spec)
+            .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
+
+        let routes_path = self.root.join("src/app/routes.rs");
+        self.validate_generated_file(&routes_path)?;
+        let original_routes = fs::read_to_string(&routes_path).map_err(CliError::from_io)?;
+        let updated_routes = berserk_codegen::register_route_source(&original_routes, spec.route())
+            .map_err(|error| CliError::new(ErrorKind::Process, error.to_string()))?;
+
+        let registrations = [
+            (
+                self.root.join("src/app/models/mod.rs"),
+                format!("pub mod {};", snake_case(spec.model().name())),
+            ),
+            (
+                self.root.join("src/app/validations/mod.rs"),
+                format!("pub mod {};", snake_case(spec.request().name())),
+            ),
+            (
+                self.root.join("src/app/controllers/mod.rs"),
+                format!("pub mod {};", snake_case(spec.controller().name())),
+            ),
+        ];
+
+        let mut index_updates = Vec::new();
+        for (path, declaration) in registrations {
+            self.validate_generated_file(&path)?;
+            let original = fs::read_to_string(&path).map_err(CliError::from_io)?;
+            if original.lines().any(|line| line.trim() == declaration) {
+                return Err(CliError::new(
+                    ErrorKind::AlreadyExists,
+                    format!("module is already registered: {declaration}"),
+                ));
+            }
+            let mut updated = original.clone();
+            if !updated.is_empty() && !updated.ends_with('\n') {
+                updated.push('\n');
+            }
+            updated.push_str(&declaration);
+            updated.push('\n');
+            index_updates.push((path, original, updated));
+        }
+
+        let migration_index = self.root.join("src/database/migrations/mod.rs");
+        self.validate_generated_file(&migration_index)?;
+        let migration_original = fs::read_to_string(&migration_index).map_err(CliError::from_io)?;
+        let migration_file = format!(
+            "{}_{}.rs",
+            spec.migration().timestamp(),
+            spec.migration().name()
+        );
+        let migration_module = format!(
+            "{}_{}",
+            spec.migration().name(),
+            spec.migration().timestamp()
+        );
+        let migration_declaration =
+            format!("#[path = \"{migration_file}\"]\npub mod {migration_module};");
+        if migration_original.contains(&migration_declaration) {
+            return Err(CliError::new(
+                ErrorKind::AlreadyExists,
+                "migration is already registered",
+            ));
+        }
+        let mut migration_updated = migration_original.clone();
+        if !migration_updated.is_empty() && !migration_updated.ends_with('\n') {
+            migration_updated.push('\n');
+        }
+        migration_updated.push_str(&migration_declaration);
+        migration_updated.push('\n');
+        index_updates.push((migration_index, migration_original, migration_updated));
+
+        let mut source_paths = Vec::with_capacity(sources.len());
+        for source in &sources {
+            let relative = Path::new(source.path());
+            validate_relative(relative)?;
+            let parent = relative.parent().ok_or_else(|| {
+                CliError::new(ErrorKind::UnsafePath, "generated module file has no parent")
+            })?;
+            let directory = self.safe_directory(parent.to_str().ok_or_else(|| {
+                CliError::new(ErrorKind::UnsafePath, "generated module path must be UTF-8")
+            })?)?;
+            let file_name = relative.file_name().ok_or_else(|| {
+                CliError::new(ErrorKind::UnsafePath, "generated module file has no name")
+            })?;
+            let path = directory.join(file_name);
+            if path.exists() {
+                return Err(CliError::new(
+                    ErrorKind::AlreadyExists,
+                    format!("file already exists: {}", path.display()),
+                ));
+            }
+            source_paths.push(path);
+        }
+
+        let mut created = Vec::new();
+        for (source, path) in sources.iter().zip(&source_paths) {
+            if let Err(error) = write_new(path, source.content().as_bytes()) {
+                for path in &created {
+                    let _ = fs::remove_file(path);
+                }
+                return Err(error);
+            }
+            created.push(path.clone());
+        }
+
+        let mut replaced = Vec::new();
+        for (path, original, updated) in &index_updates {
+            if let Err(error) = replace_contents(path, updated) {
+                rollback_crud(&created, &replaced);
+                return Err(error);
+            }
+            replaced.push((path.clone(), original.clone()));
+        }
+        if let Err(error) = replace_contents(&routes_path, &updated_routes) {
+            rollback_crud(&created, &replaced);
+            return Err(error);
+        }
+
+        let mut files = created
+            .into_iter()
+            .map(|path| GeneratedFile { path })
+            .collect::<Vec<_>>();
+        files.extend(
+            index_updates
+                .into_iter()
+                .map(|(path, _, _)| GeneratedFile { path }),
+        );
+        files.push(GeneratedFile { path: routes_path });
+        Ok(files)
+    }
+
     pub fn make_model(&self, name: &str) -> Result<Vec<GeneratedFile>> {
         self.ensure_application()?;
         validate_type_name(name)?;
@@ -200,9 +341,16 @@ impl Generator {
         ))
         .map_err(|error| CliError::new(ErrorKind::InvalidName, error.to_string()))?;
         let directory = self.safe_directory("src/database/migrations")?;
-        let path = directory.join(format!("{timestamp}_{name}.rs"));
+        let file_name = format!("{timestamp}_{name}.rs");
+        let path = directory.join(&file_name);
         write_new(&path, source.as_bytes())?;
-        Ok(vec![GeneratedFile { path }])
+        let index = directory.join("mod.rs");
+        let module = format!("{name}_{timestamp}");
+        if let Err(error) = append_migration_module(&index, &file_name, &module) {
+            let _ = fs::remove_file(&path);
+            return Err(error);
+        }
+        Ok(vec![GeneratedFile { path }, GeneratedFile { path: index }])
     }
     fn safe_directory(&self, relative: &str) -> Result<PathBuf> {
         let target = self.root.join(relative);
@@ -244,6 +392,34 @@ impl Generator {
         }
         Ok(canonical)
     }
+    fn validate_generated_file(&self, path: &Path) -> Result<()> {
+        let relative = path
+            .strip_prefix(&self.root)
+            .map_err(|_| CliError::new(ErrorKind::UnsafePath, "generated file escaped its root"))?;
+        let parent = relative.parent().ok_or_else(|| {
+            CliError::new(
+                ErrorKind::UnsafePath,
+                "generated file has no parent directory",
+            )
+        })?;
+        let parent = parent.to_str().ok_or_else(|| {
+            CliError::new(ErrorKind::UnsafePath, "generated file path must be UTF-8")
+        })?;
+        let directory = self.safe_directory(parent)?;
+        let expected =
+            directory.join(relative.file_name().ok_or_else(|| {
+                CliError::new(ErrorKind::UnsafePath, "generated file has no name")
+            })?);
+        let metadata = fs::symlink_metadata(&expected).map_err(CliError::from_io)?;
+        if metadata.file_type().is_symlink() || !metadata.is_file() {
+            return Err(CliError::new(
+                ErrorKind::UnsafePath,
+                "generated application file must be a regular file",
+            ));
+        }
+        Ok(())
+    }
+
     fn ensure_application(&self) -> Result<()> {
         if self.root.join("Cargo.toml").is_file() {
             Ok(())
@@ -339,6 +515,66 @@ fn append_module(path: &Path, module: &str) -> Result<()> {
     }
     Ok(())
 }
+
+fn append_migration_module(path: &Path, file: &str, module: &str) -> Result<()> {
+    if fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_symlink()) {
+        return Err(CliError::new(
+            ErrorKind::UnsafePath,
+            "symbolic links are not allowed for generated migration modules",
+        ));
+    }
+    let declaration = format!("#[path = \"{file}\"]\npub mod {module};");
+    let existing = match fs::read_to_string(path) {
+        Ok(value) => value,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
+        Err(error) => return Err(CliError::from_io(error)),
+    };
+    if existing.contains(&declaration) {
+        return Err(CliError::new(
+            ErrorKind::AlreadyExists,
+            "migration module is already registered",
+        ));
+    }
+    let mut updated = existing;
+    if !updated.is_empty() && !updated.ends_with('\n') {
+        updated.push('\n');
+    }
+    updated.push_str(&declaration);
+    updated.push('\n');
+    replace_contents(path, &updated)
+}
+
+fn replace_contents(path: &Path, contents: &str) -> Result<()> {
+    if fs::symlink_metadata(path).is_ok_and(|metadata| metadata.file_type().is_symlink()) {
+        return Err(CliError::new(
+            ErrorKind::UnsafePath,
+            "symbolic links are not allowed for generated files",
+        ));
+    }
+    let temporary = path.with_extension("rs.berserk-tmp");
+    if temporary.exists() {
+        return Err(CliError::new(
+            ErrorKind::AlreadyExists,
+            "generator temporary file already exists",
+        ));
+    }
+    write_new(&temporary, contents.as_bytes())?;
+    if let Err(error) = replace_file(&temporary, path) {
+        let _ = fs::remove_file(&temporary);
+        return Err(error);
+    }
+    Ok(())
+}
+
+fn rollback_crud(created: &[PathBuf], replaced: &[(PathBuf, String)]) {
+    for path in created {
+        let _ = fs::remove_file(path);
+    }
+    for (path, original) in replaced.iter().rev() {
+        let _ = replace_contents(path, original);
+    }
+}
+
 fn replace_file(source: &Path, target: &Path) -> Result<()> {
     if !target.exists() {
         return fs::rename(source, target).map_err(CliError::from_io);

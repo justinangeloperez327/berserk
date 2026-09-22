@@ -183,6 +183,7 @@ The CLI includes application and code-generation commands such as:
 berserk new my-api
 berserk serve
 berserk make:model User
+berserk make:crud User
 berserk make:controller UserController
 berserk make:controller UserController --resource --model User --request UserInput
 berserk make:request CreateUserRequest

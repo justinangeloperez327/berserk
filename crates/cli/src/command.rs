@@ -7,6 +7,9 @@ pub enum Command {
         path: PathBuf,
     },
     Serve,
+    MakeCrud {
+        name: String,
+    },
     MakeModel {
         name: String,
     },
@@ -62,6 +65,9 @@ impl Command {
                 path: one(&mut arguments, "new <path>")?.into(),
             },
             "serve" => Self::Serve,
+            "make:crud" => Self::MakeCrud {
+                name: one(&mut arguments, "make:crud <Name>")?,
+            },
             "make:controller" => controller(
                 &mut arguments,
                 "make:controller <Name> [--resource --model <Model> --request <Request>]",
@@ -90,6 +96,9 @@ impl Command {
                     Self::MakeMigration { name: name.into() }
                 } else {
                     match kind.as_str() {
+                        "crud" => Self::MakeCrud {
+                            name: one(&mut arguments, "make crud <Name>")?,
+                        },
                         "controller" => controller(
                             &mut arguments,
                             "make controller <Name> [--resource --model <Model> --request <Request>]",
@@ -115,7 +124,7 @@ impl Command {
                         _ => {
                             return Err(CliError::new(
                                 ErrorKind::Usage,
-                                "make accepts model, controller, request, middleware, resource, policy, or migration",
+                                "make accepts crud, model, controller, request, middleware, resource, policy, or migration",
                             ))
                         }
                     }
@@ -152,7 +161,7 @@ impl Command {
     }
 
     pub const fn help() -> &'static str {
-        "berserk commands:\n  new <path>\n  serve\n  make:controller <Name>\n  make:controller <Name> --resource --model <Model> --request <Request>\n  make:request <Name>\n  make:request <Name> --model <Model>\n  make:middleware <Name>\n  make:resource <Name>\n  make:policy <Name>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate --dry-run\n  migrate:rollback\n  migrate:reset\n  migrate:status"
+        "berserk commands:\n  new <path>\n  serve\n  make:crud <Name>\n  make:controller <Name>\n  make:controller <Name> --resource --model <Model> --request <Request>\n  make:request <Name>\n  make:request <Name> --model <Model>\n  make:middleware <Name>\n  make:resource <Name>\n  make:policy <Name>\n  make:model <Name>\n  make model <Name>\n  make model:<Name>\n  make:migration <name>\n  migrate\n  migrate --dry-run\n  migrate:rollback\n  migrate:reset\n  migrate:status"
     }
 }
 
@@ -264,6 +273,22 @@ impl MigrationExecutor for UnsupportedMigrations {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parses_crud_module() {
+        assert_eq!(
+            Command::parse(["make:crud", "User"]).unwrap(),
+            Command::MakeCrud {
+                name: "User".into(),
+            }
+        );
+        assert_eq!(
+            Command::parse(["make", "crud", "Post"]).unwrap(),
+            Command::MakeCrud {
+                name: "Post".into(),
+            }
+        );
+    }
 
     #[test]
     fn parses_basic_request() {
