@@ -157,6 +157,8 @@ Middleware composes through `Middleware` and `Next`. The framework also exposes 
 
 These components are explicit layers. Applications remain responsible for choosing which layers protect which routes and for selecting deployment-specific policies such as proxy trust, authentication requirements, and rate limits.
 
+`RequestLogger` records the matched route template in its `path` field (for example, `/users/{id}`), not the concrete request target. Unmatched and fallback requests use fixed non-sensitive markers. Query strings, route-parameter values, header values, cookies, tokens, and bodies are not included in built-in request events.
+
 Operational inspection includes:
 
 - `HealthRegistry::snapshot()` returning `HealthSnapshot` and `HealthCheckResult`;
