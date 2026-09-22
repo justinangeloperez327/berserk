@@ -15,16 +15,17 @@ fn application<G: Guard>(database: Database, guard: G) -> Result<App> {
     app.middleware(RequestId);
     app.middleware(HandleErrors);
 
-    let mut api = app
-        .route()
-        .middleware(|request: Request, next: Next<'_>| {
+    {
+        let mut routes = app.route();
+        let mut api = routes.middleware(|request: Request, next: Next<'_>| {
             next.run(request)?.header("x-api-version", "1.0")
         });
-    api.can("users.manage")?.crud("/users", users::Users)?;
-    api.can("users.read")?
-        .get("/users/browse", users::Users::browse)?;
-    api.auth()
-        .get("/users/{id}/policy", users::Users::policy_show)?;
+        api.can("users.manage")?.crud("/users", users::Users)?;
+        api.can("users.read")?
+            .get("/users/browse", users::Users::browse)?;
+        api.auth()
+            .get("/users/{id}/policy", users::Users::policy_show)?;
+    }
 
     app.route().get("/health", || response().text("OK"))?;
     Ok(app)
@@ -194,6 +195,10 @@ mod tests {
         let fixture = test_application()?;
         let client = TestClient::new(&fixture.app);
 
+        assert_eq!(
+            fixture.app.path_for("users.show", &[("id", "7")])?,
+            "/users/7"
+        );
         client.get("/users")?.assert_unauthorized();
         client
             .post("/users")?
