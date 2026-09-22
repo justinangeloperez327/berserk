@@ -28,6 +28,10 @@ impl<M> RelatedSet<M> {
         &self.groups
     }
 
+    pub(crate) fn into_groups(self) -> Vec<(Value, Vec<M>)> {
+        self.groups
+    }
+
     pub fn len(&self) -> usize {
         self.groups.len()
     }
