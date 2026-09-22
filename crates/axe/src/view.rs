@@ -347,10 +347,10 @@ fn expand_view(
 }
 
 fn skip_ascii_whitespace(bytes: &[u8], position: &mut usize) {
-    while matches!(
-        bytes.get(*position),
-        Some(b' ' | b'\t' | b'\r' | b'\n')
-    ) {
+    while bytes
+        .get(*position)
+        .is_some_and(|byte| byte.is_ascii_whitespace())
+    {
         *position += 1;
     }
 }
