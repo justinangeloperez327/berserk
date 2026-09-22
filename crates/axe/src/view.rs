@@ -48,7 +48,10 @@ impl CompiledViews {
             Template::compile_named(&view, &masked)?;
             dependencies.insert(
                 view.clone(),
-                includes.iter().map(|include| include.target.clone()).collect(),
+                includes
+                    .iter()
+                    .map(|include| include.target.clone())
+                    .collect(),
             );
             sources.insert(view, SourceView { source, includes });
         }
@@ -182,8 +185,7 @@ fn collect_views(
 
         let path = entry.path();
         let view = view_name(root, &path)?;
-        let source =
-            std::fs::read_to_string(&path).map_err(|_| Error::ReadView(view.clone()))?;
+        let source = std::fs::read_to_string(&path).map_err(|_| Error::ReadView(view.clone()))?;
         views.insert(view, source);
     }
     Ok(())
@@ -316,7 +318,10 @@ fn expand_view(
                 format!("view include depth exceeds {MAX_INCLUDE_DEPTH}"),
             ));
         }
-        if let Some(index) = stack.iter().position(|candidate| candidate == &include.target) {
+        if let Some(index) = stack
+            .iter()
+            .position(|candidate| candidate == &include.target)
+        {
             let mut cycle = stack[index..].to_vec();
             cycle.push(include.target.clone());
             stack.pop();
@@ -356,12 +361,7 @@ fn skip_ascii_whitespace(bytes: &[u8], position: &mut usize) {
     }
 }
 
-fn diagnostic(
-    view: &str,
-    source: &str,
-    position: usize,
-    message: impl Into<String>,
-) -> Error {
+fn diagnostic(view: &str, source: &str, position: usize, message: impl Into<String>) -> Error {
     let (line, column) = line_column(source, position);
     Error::ViewCompile {
         view: view.to_owned(),
@@ -398,11 +398,9 @@ fn validate_view_name(view: &str) -> Result<()> {
         !segment.is_empty()
             && segment != "."
             && segment != ".."
-            && segment
-                .chars()
-                .all(|character| {
-                    character.is_ascii_alphanumeric() || matches!(character, '_' | '-')
-                })
+            && segment.chars().all(|character| {
+                character.is_ascii_alphanumeric() || matches!(character, '_' | '-')
+            })
     };
 
     if view.is_empty()
