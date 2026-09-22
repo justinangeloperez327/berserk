@@ -1,6 +1,6 @@
 # Berserk v1 maturity gate
 
-Berserk v1.0.0 is the first public stable release, not a claim that the project
+Berserk v1.0.0 is intended to be the first public stable release, not a claim that the project
 has Laravel's age, package ecosystem, community size, or years of production
 history. The release target is a mature core: coherent APIs, predictable
 behavior, strong tooling, clear extension boundaries, and enough end-to-end
@@ -36,7 +36,9 @@ candidate.
   generated CRUD, validation, migrations, relationships, authentication,
   authorization, views, and application tests together.
 - [ ] Perform an independent API/security review and resolve or explicitly
-  document every release-blocking finding.
+  document every release-blocking finding. Record the exact reviewed commit,
+  findings, dispositions, verification, and reviewer conclusion in
+  `docs/independent-api-security-review.md`.
 
 ## Release-candidate blockers
 

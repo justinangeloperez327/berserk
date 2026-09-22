@@ -145,7 +145,7 @@ These checks define the release target. The workflow results for the exact relea
 ## Operational features
 
 - Built-in request logs exclude query strings, headers, bodies, tokens, and cookies.
-- Request events include method, path, status, duration, and available request/trace correlation IDs.
+- Request events include method, matched route template (or a non-sensitive unmatched/fallback marker), status, duration, and available request/trace correlation IDs; concrete route-parameter and query values are not logged.
 - Metrics use fixed names without user-controlled labels or unbounded cardinality.
 - Active-request accounting returns to zero after success and error paths.
 - Liveness remains independent of external dependencies; readiness returns `503` for unhealthy checks.
@@ -166,6 +166,7 @@ These checks define the release target. The workflow results for the exact relea
 - Storage paths are normalized relative paths and reject absolute paths, traversal, empty segments, backslashes, and control bytes.
 - Memory and local storage enforce object-size limits before replacing an existing object.
 - Local writes use same-directory temporary files and preserve the prior object if streaming or replacement fails.
+- Local temporary-name generation fails through `StorageError` if operating-system randomness is unavailable; storage operations do not panic for entropy failure.
 - Local reads and listings reject symbolic links and non-regular objects.
 - Listing is bounded and deterministic; a prefix matches a complete object or path subtree, not a textual sibling prefix.
 - Remote cache/storage adapters remain optional and can construct the public component errors.

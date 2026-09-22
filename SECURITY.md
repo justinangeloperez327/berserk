@@ -1,6 +1,6 @@
 # Security policy
 
-Berserk v1.0.0 is the first stable framework release. The repository has completed a dedicated internal release security/API review pass, but it has not yet completed the independent external security/API review required by the release checklist, nor has it received a third-party penetration test or security certification. Do not describe it as production-certified.
+Berserk v1.0.0 is the intended first public stable framework release and has not yet been published. The repository has completed dedicated internal security/API review passes, but it has not yet completed the independent security/API review required by the V1 maturity gate, nor has it received a third-party penetration test or security certification. Do not describe it as independently audited or production-certified.
 
 ## Security maintainer
 
@@ -30,7 +30,7 @@ Berserk v1.0.0 is the current stable baseline. Public API compatibility follows 
 - The built-in server does not terminate TLS. Internet-facing deployments require HTTPS termination through a trusted reverse proxy or a vetted TLS adapter.
 - The built-in outbound TCP client intentionally does not implement an SSRF allowlist. Applications that accept user-controlled URLs must enforce allowed schemes, hosts, ports, and network ranges before sending requests.
 - Berserk auth currently provides bearer-style session primitives. Applications that place credentials in cookies must define Secure, HttpOnly, SameSite, rotation, revocation, and CSRF policy at the application or adapter layer.
-- `MemorySessionStore` is process-local and unbounded; production deployments with untrusted session creation should use a bounded/persistent store with operational limits.
+- `MemorySessionStore` is process-local and capacity-bounded (10,000 records by default, configurable with `MemorySessionStore::new`). It is still development-oriented and non-persistent; production deployments should use a persistent store with deployment-appropriate operational limits.
 - `LocalStorage` validates normalized paths and rejects observed symlinks, but its standard-library implementation assumes the storage root is not concurrently mutated by an untrusted local actor. Use an isolated root with appropriate OS permissions.
 - Synchronous application handlers must return. Network deadlines bound I/O, but the framework cannot safely force-stop arbitrary user code that blocks forever.
 - Retries, jobs, events, notifications, and webhooks can duplicate side effects; applications must define idempotency where needed.

@@ -82,12 +82,17 @@ impl<S: LogSink> Middleware for RequestLogger<S> {
     fn handle(&self, request: Request, next: Next<'_>) -> Result<Response> {
         let start = Instant::now();
         let method = request.method().as_str().to_owned();
-        let path = request.path().to_owned();
+        let route_pattern = request.route_pattern_context();
         let request_id = request.request_id().map(str::to_owned);
         let trace_id = request
             .trace_context()
             .map(|context| context.trace_id().to_owned());
         let result = next.run(request);
+        let path = route_pattern
+            .get()
+            .map(String::as_str)
+            .unwrap_or("<unmatched>")
+            .to_owned();
         let mut fields = BTreeMap::from([
             ("method".into(), method),
             ("path".into(), path),
@@ -134,6 +139,50 @@ mod tests {
 
     fn request(path: &str) -> Request {
         Request::new(Method::new("GET").unwrap(), path, Headers::new(), vec![]).unwrap()
+    }
+
+    #[test]
+    fn request_logger_uses_route_template_without_parameter_or_query_values() {
+        let sink = Arc::new(MemoryLogSink::default());
+        let mut app = App::new();
+        app.middleware(RequestLogger::new(sink.clone()));
+        app.route()
+            .get("/users/{id}", |_id: String| Response::text("ok"))
+            .unwrap();
+
+        app.handle(request("/users/secret-account?token=private-value"))
+            .unwrap();
+
+        let events = sink.events();
+        assert_eq!(events.len(), 1);
+        assert_eq!(
+            events[0].fields.get("path").map(String::as_str),
+            Some("/users/{id}")
+        );
+        let encoded = format!("{:?}", events[0].fields);
+        assert!(!encoded.contains("secret-account"));
+        assert!(!encoded.contains("private-value"));
+    }
+
+    #[test]
+    fn request_logger_does_not_log_unmatched_request_targets() {
+        let sink = Arc::new(MemoryLogSink::default());
+        let mut app = App::new();
+        app.middleware(RequestLogger::new(sink.clone()));
+
+        let response = app
+            .handle(request("/missing/secret-value?token=private-value"))
+            .unwrap();
+        assert_eq!(response.status_code(), 404);
+
+        let events = sink.events();
+        assert_eq!(
+            events[0].fields.get("path").map(String::as_str),
+            Some("<unmatched>")
+        );
+        let encoded = format!("{:?}", events[0].fields);
+        assert!(!encoded.contains("secret-value"));
+        assert!(!encoded.contains("private-value"));
     }
 
     #[test]

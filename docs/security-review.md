@@ -49,6 +49,26 @@ The review covered the security-sensitive and developer-facing boundaries of the
 | SR-10 | Medium | Framework `Request` `Debug` output included the complete request path, which could expose route-parameter values in logs despite the intended redaction boundary. | Fixed in this review: request diagnostics now report only target byte length plus metadata, with regression coverage that rejects path/query value disclosure. |
 | SR-11 | Release process | The repository checklist requires an independent security/API review, but this pass was performed internally while developing the framework. | Kept open: an independent external reviewer must complete that gate before release readiness is claimed. |
 
+## V1 pre-review refresh — 2026-09-22
+
+This refresh was performed after the Claw eager-loading, Axe production-view,
+and foundation reference-application maturity work was merged. It is an
+**internal remediation pass only**. It does not satisfy the independent review
+gate.
+
+| ID | Severity | Finding | Resolution |
+| --- | --- | --- | --- |
+| SR-12 | Medium | `RequestLogger` recorded the concrete request path. Although query strings were excluded, route-parameter values such as account identifiers, opaque IDs, or secrets embedded in path segments could enter logs. | Fixed on `api-security-review-prep`: routing records the matched route template in request-local shared state; `RequestLogger` emits that template (for example `/users/{id}`) or a fixed unmatched/fallback marker. Regression tests assert that route-parameter and query values are absent. |
+| SR-13 | Low / availability | `LocalStorage` temporary-name generation used `OsRng.fill_bytes`, whose infallible wrapper can panic if operating-system entropy is unavailable. Storage operations should fail through the storage error boundary instead of terminating request work. | Fixed on `api-security-review-prep`: temporary-name generation uses `try_fill_bytes` and returns a controlled `StorageError`. |
+| SR-14 | Documentation | Security and limitation docs still called `MemorySessionStore` unbounded even though the current implementation has a configurable positive capacity and a 10,000-record default. | Fixed: documentation now describes the actual bounded, process-local, non-persistent behavior. |
+| SR-15 | Release process | The V1 independent API/security review is still outstanding. Internal review, CI, fuzzing, and this remediation pass cannot self-satisfy that requirement. | Kept open. The required evidence and reviewer sign-off format are defined in `docs/independent-api-security-review.md`. |
+
+The earlier SR-08 statement that the memory session store was unbounded is
+historical. The current implementation is capacity-bounded; its remaining
+production limitation is process-local, non-persistent storage. SR-09 is also
+historical: GitHub Private Vulnerability Reporting and maintainer ownership are
+now documented in `SECURITY.md` and `docs/vulnerability-response.md`.
+
 ## Public API review
 
 The primary API remains coherent around instance registration and explicit execution:
@@ -64,8 +84,14 @@ The internal review found no additional release-blocking API inconsistency after
 
 ## Residual release gates
 
-This internal review closes the repository's internal hardening pass, but it does not close the independent security/API review requirement. The release checklist also still requires package-name availability, a private vulnerability-reporting channel, supported OS/database-version policy, clean-machine documentation/example review, final changelog/support review, provenance/checksum policy, rollback/yank planning and explicit owner publication approval.
+Internal review and remediation do not close the independent API/security review requirement. The current source of truth is `docs/v1-maturity-gate.md`: the independent review remains a framework-maturity blocker, followed by the exact-commit release-candidate validation, publication-graph, provenance, final documentation, and owner-approval gates. Private vulnerability reporting, maintainer ownership, support policy, and release-recovery procedures are already documented and should be re-verified by the independent reviewer rather than treated as missing.
 
 ## Conclusion
 
-The reviewed `0.1.0` candidate has a materially stronger and more accurately documented security baseline. Two concrete diagnostic/protocol-boundary issues found by the internal pass were fixed and regression-tested. Remaining findings are explicit deployment or release-process boundaries rather than hidden framework guarantees. An independent external security/API review is still required before that release gate can be marked complete.
+The historical 2026-09-17 review and the 2026-09-22 V1 pre-review refresh have
+produced concrete hardening changes and corrected documentation drift. The
+current internal pass found and remediated route-parameter disclosure in
+built-in request logs and a panic-capable LocalStorage entropy path. These
+internal results are preparation evidence only. The independent API/security
+review remains open and must verify the exact candidate plus any remediation
+before the framework-maturity gate can be marked complete.

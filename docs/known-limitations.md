@@ -26,7 +26,7 @@ The current auth component provides authentication and authorization primitives,
 
 ## Memory session store
 
-`MemorySessionStore` is process-local and unbounded. It is appropriate for development and controlled workloads, not as a general persistent production session store.
+`MemorySessionStore` is process-local and capacity-bounded. The default limit is 10,000 records and `MemorySessionStore::new` accepts an explicit positive capacity. It is appropriate for development and controlled workloads, not as a persistent or distributed production session store.
 
 ## Local storage trust boundary
 

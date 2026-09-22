@@ -157,6 +157,8 @@ Middleware composes through `Middleware` and `Next`. The framework also exposes 
 
 These components are explicit layers. Applications remain responsible for choosing which layers protect which routes and for selecting deployment-specific policies such as proxy trust, authentication requirements, and rate limits.
 
+`RequestLogger` records the matched route template in its `path` field (for example, `/users/{id}`), not the concrete request target. Unmatched and fallback requests use fixed non-sensitive markers. Query strings, route-parameter values, header values, cookies, tokens, and bodies are not included in built-in request events.
+
 Operational inspection includes:
 
 - `HealthRegistry::snapshot()` returning `HealthSnapshot` and `HealthCheckResult`;
@@ -224,7 +226,7 @@ The `auth` feature provides password, bearer-session, principal, guard, and auth
 
 The built-in primitives do not automatically define browser-cookie or CSRF policy. Applications using cookies must define Secure, HttpOnly, SameSite, rotation/revocation, and CSRF behavior appropriate to their deployment.
 
-`MemorySessionStore` is process-local and unbounded; production systems exposed to untrusted session creation should use a bounded/persistent store implementation.
+`MemorySessionStore` is process-local and capacity-bounded (10,000 records by default, configurable with `MemorySessionStore::new`). Production systems that require persistence, distribution, or deployment-specific retention should provide an appropriate `SessionStore` implementation.
 
 ## Storage
 

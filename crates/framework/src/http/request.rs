@@ -10,6 +10,7 @@ pub struct Request {
     state: crate::state::StateMap,
     request_id: Option<String>,
     trace_context: Option<crate::operational::TraceContext>,
+    route_pattern: std::sync::Arc<std::sync::OnceLock<String>>,
     target: String,
     headers: Headers,
     body: Vec<u8>,
@@ -81,6 +82,7 @@ impl Request {
             state: Default::default(),
             request_id: None,
             trace_context: None,
+            route_pattern: std::sync::Arc::new(std::sync::OnceLock::new()),
             #[cfg(feature = "database")]
             database_scope: std::sync::Arc::new(berserk_database::scope::DatabaseScope::optional(
                 None,
@@ -225,6 +227,14 @@ impl Request {
 
     pub(crate) fn set_trace_context(&mut self, context: crate::operational::TraceContext) {
         self.trace_context = Some(context);
+    }
+
+    pub(crate) fn route_pattern_context(&self) -> std::sync::Arc<std::sync::OnceLock<String>> {
+        self.route_pattern.clone()
+    }
+
+    pub(crate) fn set_route_pattern(&self, pattern: &str) {
+        let _ = self.route_pattern.set(pattern.to_owned());
     }
 
     #[cfg(feature = "auth")]

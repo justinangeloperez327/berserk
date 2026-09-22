@@ -132,6 +132,7 @@ impl Router {
             .filter(|route| route.pattern.captures(request.path()).is_some())
             .max_by_key(|route| route.pattern.specificity());
         let response = if let Some(best) = best {
+            request.set_route_pattern(best.pattern.source());
             let candidates: Vec<_> = self
                 .routes
                 .iter()
@@ -171,6 +172,7 @@ impl Router {
                     .header("allow", &allow.into_iter().collect::<Vec<_>>().join(", "))?
             }
         } else if let Some(fallback) = &self.fallback {
+            request.set_route_pattern("<fallback>");
             fallback(request)?
         } else {
             crate::Error::not_found().response()
