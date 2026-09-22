@@ -250,7 +250,17 @@ Scoped `paginate(20)` uses the active page context, defaulting to page 1 outside
 | Users + posts.comments | 3: users, posts, comments |
 | Paginated users + posts.comments | 4: count, users page, posts, comments |
 
-Empty parent results skip relationship queries. Empty pivot results skip the related-model query. Query counts do not grow per parent, avoiding N+1 behavior. Calling `query_for(...).get()` separately inside a parent loop still performs one query per iteration; request eager loading instead. Loading is batched, not unbounded streaming: paginate parent queries to respect driver parameter limits and memory budgets. Eager loading does not itself start a transaction or promise a consistent snapshot across concurrent writes; use the existing transaction scope if required.
+The fixed counts above apply while each relationship stage has at most 500
+unique lookup keys. Larger eager loads are split into additional bounded
+`WHERE IN (...)` queries. For example, 501 unique parent keys require two
+relationship queries instead of one. Many-to-many loading applies the same
+bound independently to the pivot lookup and the related-model lookup.
+
+The 500-key batch size is an internal safety threshold, not a public API
+contract. It is intentionally conservative across supported drivers and may be
+adjusted without changing application code.
+
+Empty parent results skip relationship queries. Empty pivot results skip the related-model query. Query counts grow by bounded key batches rather than per parent, avoiding N+1 behavior while preventing one eager-load statement from accumulating an unbounded parameter list. Calling `query_for(...).get()` separately inside a parent loop still performs one query per iteration; request eager loading instead. Parent pagination is still recommended for memory budgets and response size. Eager loading does not itself start a transaction or promise a consistent snapshot across concurrent writes; use the existing transaction scope if required.
 
 ## Attach, detach, and sync
 
