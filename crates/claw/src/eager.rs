@@ -4,6 +4,11 @@ use crate::{
 };
 use berserk_database::Query;
 
+/// Maximum number of relationship segments accepted by one named eager-load path.
+pub const MAX_NAMED_EAGER_DEPTH: usize = 4;
+/// Maximum number of unique named eager-load paths accepted by one query level.
+pub const MAX_NAMED_EAGER_PATHS: usize = 32;
+
 /// A batch loader used by typed eager loading.
 pub trait Relationship<M: Model> {
     type Output;
@@ -60,6 +65,8 @@ pub struct NamedRelation {
     name: String,
     cardinality: RelationCardinality,
     groups: RelatedSet<Attributes>,
+    keys: RelatedSet<Value>,
+    nested: NamedRelations,
 }
 
 impl NamedRelation {
@@ -68,6 +75,8 @@ impl NamedRelation {
             name: name.into(),
             cardinality: RelationCardinality::One,
             groups,
+            keys: RelatedSet::default(),
+            nested: NamedRelations::new(),
         }
     }
 
@@ -76,6 +85,24 @@ impl NamedRelation {
             name: name.into(),
             cardinality: RelationCardinality::Many,
             groups,
+            keys: RelatedSet::default(),
+            nested: NamedRelations::new(),
+        }
+    }
+
+    fn loaded(
+        name: impl Into<String>,
+        cardinality: RelationCardinality,
+        groups: RelatedSet<Attributes>,
+        keys: RelatedSet<Value>,
+        nested: NamedRelations,
+    ) -> Self {
+        Self {
+            name: name.into(),
+            cardinality,
+            groups,
+            keys,
+            nested,
         }
     }
 
@@ -89,6 +116,18 @@ impl NamedRelation {
 
     pub fn get(&self, parent_key: &Value) -> Option<&[Attributes]> {
         self.groups.get(parent_key)
+    }
+
+    /// Related model keys aligned with the values returned by `get`.
+    ///
+    /// Flat relations created through `one`/`many` do not retain keys because
+    /// they have no nested relationship data to address.
+    pub fn keys(&self, parent_key: &Value) -> Option<&[Value]> {
+        self.keys.get(parent_key)
+    }
+
+    pub fn nested(&self) -> &NamedRelations {
+        &self.nested
     }
 }
 
@@ -512,11 +551,160 @@ fn load_named<M: Model>(
     models: &[M],
     names: &[String],
 ) -> Result<NamedRelations> {
+    if names.len() > MAX_NAMED_EAGER_PATHS {
+        return Err(eager_error(format!(
+            "named eager loading accepts at most {MAX_NAMED_EAGER_PATHS} paths"
+        )));
+    }
+
+    let mut grouped: Vec<(String, Vec<String>)> = Vec::new();
+    for path in names {
+        let segments: Vec<_> = path.split('.').collect();
+        if segments.is_empty() || segments.iter().any(|segment| segment.is_empty()) {
+            return Err(eager_error(format!(
+                "invalid eager-load path '{path}'; relationship segments cannot be empty"
+            )));
+        }
+        if segments.len() > MAX_NAMED_EAGER_DEPTH {
+            return Err(eager_error(format!(
+                "eager-load path '{path}' exceeds the maximum depth of {MAX_NAMED_EAGER_DEPTH}"
+            )));
+        }
+
+        let root = segments[0].to_owned();
+        let nested = (segments.len() > 1).then(|| segments[1..].join("."));
+        if let Some((_, children)) = grouped.iter_mut().find(|(name, _)| name == &root) {
+            if let Some(nested) = nested {
+                if !children.iter().any(|existing| existing == &nested) {
+                    children.push(nested);
+                }
+            }
+        } else {
+            grouped.push((root, nested.into_iter().collect()));
+        }
+    }
+
     let mut relations = NamedRelations::new();
-    for name in names {
-        relations.push(M::load_named_relation(name, connection, models)?);
+    for (name, nested) in grouped {
+        relations.push(M::load_named_relation_with(
+            &name,
+            &nested,
+            connection,
+            models,
+        )?);
     }
     Ok(relations)
+}
+
+fn eager_error(message: impl Into<String>) -> berserk_database::DatabaseError {
+    berserk_database::DatabaseError::new(berserk_database::ErrorKind::InvalidInput, message)
+}
+
+/// Convert a typed related set into presentation-safe named data while
+/// retaining related keys for recursively loaded child relationships.
+#[doc(hidden)]
+pub fn named_related<R: Model>(
+    name: &str,
+    cardinality: RelationCardinality,
+    connection: &mut dyn Connection,
+    related: RelatedSet<R>,
+    nested: &[String],
+) -> Result<NamedRelation> {
+    let mut parent_keys = Vec::new();
+    let mut models = Vec::new();
+    for (parent_key, group) in related.into_groups() {
+        for model in group {
+            parent_keys.push(parent_key.clone());
+            models.push(model);
+        }
+    }
+
+    let nested_relations = load_named::<R>(connection, &models, nested)?;
+    let mut groups = RelatedSet::default();
+    let mut keys = RelatedSet::default();
+    for (parent_key, model) in parent_keys.into_iter().zip(models) {
+        let key = model.key();
+        groups.insert(parent_key.clone(), model.visible_attributes());
+        keys.insert(parent_key, key);
+    }
+
+    Ok(NamedRelation::loaded(
+        name,
+        cardinality,
+        groups,
+        keys,
+        nested_relations,
+    ))
+}
+
+#[doc(hidden)]
+pub fn named_belongs_to_with<C, R>(
+    name: &str,
+    relation: &BelongsTo<C, R>,
+    foreign_key: &str,
+    connection: &mut dyn Connection,
+    models: &[C],
+    nested: &[String],
+) -> Result<NamedRelation>
+where
+    C: Model,
+    R: Model,
+{
+    let related = relation.load_on(connection, models)?;
+    let mut lookup_keys = Vec::new();
+    let mut related_models = Vec::new();
+    for (lookup_key, group) in related.into_groups() {
+        for model in group {
+            lookup_keys.push(lookup_key.clone());
+            related_models.push(model);
+        }
+    }
+
+    let nested_relations = load_named::<R>(connection, &related_models, nested)?;
+    let prepared: Vec<_> = lookup_keys
+        .into_iter()
+        .zip(related_models)
+        .map(|(lookup_key, model)| (lookup_key, model.key(), model.visible_attributes()))
+        .collect();
+
+    let mut groups = RelatedSet::default();
+    let mut keys = RelatedSet::default();
+    for model in models {
+        let foreign = model
+            .attributes()
+            .get(foreign_key)
+            .cloned()
+            .ok_or_else(|| {
+                berserk_database::DatabaseError::new(
+                    berserk_database::ErrorKind::Decode,
+                    format!(
+                        "belongs_to relationship requires mapped column '{foreign_key}' on model '{}'",
+                        C::TABLE
+                    ),
+                )
+            })?;
+
+        if foreign == Value::Null {
+            continue;
+        }
+
+        if let Some((_, related_key, attributes)) = prepared
+            .iter()
+            .find(|(lookup_key, _, _)| crate::relationship::keys_equal(lookup_key, &foreign))
+        {
+            let parent_key = model.key();
+            groups.insert(parent_key.clone(), attributes.clone());
+            keys.insert(parent_key, related_key.clone());
+        }
+    }
+
+    Ok(NamedRelation::loaded(
+        name,
+        RelationCardinality::One,
+        groups,
+        keys,
+        nested_relations,
+    ))
 }
 
 #[doc(hidden)]
