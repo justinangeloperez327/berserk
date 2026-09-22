@@ -2,6 +2,8 @@ use crate::{Model, ModelQuery};
 use berserk_database::{Connection, DatabaseError, ErrorKind, Result, Value};
 use std::marker::PhantomData;
 
+pub(crate) const EAGER_KEY_CHUNK_SIZE: usize = 500;
+
 /// Eager-loaded related records grouped by their linking key.
 /// `len` counts populated groups, not models; absent keys return `None`.
 /// Signed and unsigned representations of the same nonnegative integer match.
@@ -146,12 +148,15 @@ impl<P, R: Model> HasMany<P, R> {
         if keys.is_empty() {
             return Ok(RelatedSet::default());
         }
-        let related = R::query()
-            .where_in(self.foreign_key, keys)
-            .get_on(connection)?;
+
         let mut result = RelatedSet::default();
-        for model in related {
-            result.insert(self.related_key.get(&model)?, model);
+        for chunk in key_chunks(&keys) {
+            let related = R::query()
+                .where_in(self.foreign_key, chunk.iter().cloned())
+                .get_on(connection)?;
+            for model in related {
+                result.insert(self.related_key.get(&model)?, model);
+            }
         }
         Ok(result)
     }
@@ -279,15 +284,22 @@ impl<C, R: Model> BelongsTo<C, R> {
         if keys.is_empty() {
             return Ok(RelatedSet::default());
         }
-        let related = R::query()
-            .where_in(self.owner_key, keys)
-            .get_on(connection)?;
+
         let mut result = RelatedSet::default();
-        for model in related {
-            result.insert((self.related_key)(&model), model);
+        for chunk in key_chunks(&keys) {
+            let related = R::query()
+                .where_in(self.owner_key, chunk.iter().cloned())
+                .get_on(connection)?;
+            for model in related {
+                result.insert((self.related_key)(&model), model);
+            }
         }
         Ok(result)
     }
+}
+
+pub(crate) fn key_chunks(keys: &[Value]) -> std::slice::Chunks<'_, Value> {
+    keys.chunks(EAGER_KEY_CHUNK_SIZE)
 }
 
 pub(crate) fn unique_non_null(values: impl IntoIterator<Item = Value>) -> Vec<Value> {
