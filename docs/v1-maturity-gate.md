@@ -36,7 +36,9 @@ candidate.
   generated CRUD, validation, migrations, relationships, authentication,
   authorization, views, and application tests together.
 - [ ] Perform an independent API/security review and resolve or explicitly
-  document every release-blocking finding.
+  document every release-blocking finding. Record the exact reviewed commit,
+  findings, dispositions, verification, and reviewer conclusion in
+  `docs/independent-api-security-review.md`.
 
 ## Release-candidate blockers
 
