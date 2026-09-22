@@ -54,24 +54,58 @@ mod models {
         attributes_value(&model.visible_attributes())
     }
 
+    fn named_attributes_value(
+        attributes: &Attributes,
+        key: &claw_orm::Value,
+        relations: &NamedRelations,
+    ) -> Value {
+        let mut values = match attributes_value(attributes) {
+            Value::Object(values) => values,
+            _ => unreachable!("model view conversion always produces an object"),
+        };
+        for relation in relations.iter() {
+            values.insert(relation.name().to_owned(), relation_value(relation, key));
+        }
+        Value::Object(values)
+    }
+
     fn relation_value(relation: &NamedRelation, parent_key: &claw_orm::Value) -> Value {
         let values = relation.get(parent_key).unwrap_or(&[]);
+        if relation.nested().is_empty() {
+            return match relation.cardinality() {
+                RelationCardinality::Many => {
+                    Value::List(values.iter().map(attributes_value).collect())
+                }
+                RelationCardinality::One => {
+                    values.first().map(attributes_value).unwrap_or(Value::Null)
+                }
+            };
+        }
+
+        let keys = relation.keys(parent_key).unwrap_or(&[]);
+        debug_assert_eq!(keys.len(), values.len());
         match relation.cardinality() {
-            RelationCardinality::Many => Value::List(values.iter().map(attributes_value).collect()),
-            RelationCardinality::One => values.first().map(attributes_value).unwrap_or(Value::Null),
+            RelationCardinality::Many => Value::List(
+                values
+                    .iter()
+                    .zip(keys)
+                    .map(|(attributes, key)| {
+                        named_attributes_value(attributes, key, relation.nested())
+                    })
+                    .collect(),
+            ),
+            RelationCardinality::One => values
+                .first()
+                .zip(keys.first())
+                .map(|(attributes, key)| {
+                    named_attributes_value(attributes, key, relation.nested())
+                })
+                .unwrap_or(Value::Null),
         }
     }
 
     fn named_model_value<M: Model>(model: &M, relations: &NamedRelations) -> Value {
-        let mut values = match model_value(model) {
-            Value::Object(values) => values,
-            _ => unreachable!("model view conversion always produces an object"),
-        };
-        let key = model.key();
-        for relation in relations.iter() {
-            values.insert(relation.name().to_owned(), relation_value(relation, &key));
-        }
-        Value::Object(values)
+        named_attributes_value(&model.visible_attributes(), &model.key(), relations)
     }
 
     fn named_loaded_value<M: Model>(loaded: &Loaded<M, NamedRelations>) -> Value {
