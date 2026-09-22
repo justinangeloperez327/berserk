@@ -16,7 +16,7 @@ The planner is deliberately read-only. It never publishes, yanks, tags, or chang
 
 Before the first `cargo publish` command:
 
-1. The independent external security/API review is complete and every finding has a recorded disposition.
+1. The independent API/security review is complete and every finding has a recorded disposition.
 2. The release checklist has no unresolved pre-publication gate.
 3. The owner has approved the exact version and exact source commit.
 4. The worktree is clean and checked out at that approved commit.

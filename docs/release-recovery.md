@@ -27,7 +27,7 @@ Confirm all of the following before publishing any crate:
 2. All release checklist gates that are required before publication are complete.
 3. The manual `Release artifacts` run for that exact commit is successful.
 4. `SHA256SUMS` verifies successfully and the provenance attestation matches the expected repository, workflow, ref, and commit.
-5. `RELEASE-MANIFEST.json` contains the intended 15 packages and a dependency-valid publication order.
+5. `RELEASE-MANIFEST.json` contains the intended 18 publishable packages and a dependency-valid publication order.
 6. The package names are re-checked on crates.io immediately before first publication.
 7. The release owner records a publication ledger before starting. At minimum record package name, version, publication status, and verification status.
 

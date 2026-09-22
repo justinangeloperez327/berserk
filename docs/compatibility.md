@@ -4,7 +4,7 @@
 
 Berserk v1.0.0 is the first public release target. Berserk has not yet been published publicly; completed repository work is being consolidated into this 1.0 baseline. Rust 1.88 is the minimum supported Rust version (MSRV). CI and release workflows define the tested feature, platform, and database combinations; the support matrix is documented in [support-policy.md](support-policy.md).
 
-The 1.0 public API is being frozen for semantic-versioned publication. Breaking public API changes require a new major release. New aliases and convenience surfaces should still be avoided unless they solve a concrete gap. Compatibility-affecting changes must be documented rather than introduced silently.
+The intended 1.0 public API has been stabilized, but the **formal release freeze is not complete yet**. The independent API/security review is still open; after it closes, the exact 1.0 candidate is frozen and release validation is rerun against that commit. Once v1.0.0 is published, breaking public API changes require a new major release. New aliases and convenience surfaces should still be avoided unless they solve a concrete gap. Compatibility-affecting changes must be documented rather than introduced silently.
 
 ## Versioning policy
 
@@ -24,6 +24,8 @@ Minor releases may contain breaking changes while Berserk is below 1.0. Such cha
 For v0.9.x, the default direction is stabilization: prefer additive fixes, documentation corrections, and removal of ambiguity over new public concepts. Security, correctness, or unsoundness fixes may still require faster changes than the normal deprecation path.
 
 ## 1.0 candidate surface
+
+The current coordinated publication graph contains 18 publishable crates. Package count is a release-engineering fact, not a reason to expose additional framework concepts.
 
 The APIs intended to define the 1.0 application surface are:
 

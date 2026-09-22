@@ -1,43 +1,151 @@
 # Release checklist
 
-For the first public release candidate, use [v1.0.0](v1.0.0.md) and the full PR checks. Earlier validation evidence does not establish final 1.0 readiness; rerun release-specific checks against the exact publication commit.
+Berserk v1.0.0 is the intended first public stable release. It has not yet been
+published.
 
-Use this checklist for each Berserk release candidate. Historical evidence from an earlier release does not automatically satisfy a later release gate; rerun release-specific validation against the exact candidate commit.
+This checklist distinguishes **repository baseline evidence** from
+**exact-release-candidate evidence**. A historical green workflow proves that a
+capability exists; it does not authorize publishing a later commit.
 
-Before treating a commit as a release candidate, complete every blocker in [the v1 maturity gate](v1-maturity-gate.md). Passing CI alone is not sufficient to authorize the first public stable release.
+Publishing is always a manual owner decision. This checklist intentionally
+contains no automatic publish step.
 
-Publishing is always a manual owner decision. This checklist intentionally contains no publish command.
+## Current state
 
-## Identity and policy
+- The V1 framework core is implemented.
+- Normal repository CI is green on current `main`.
+- The independent API/security review remains open.
+- The formal 1.0 public API freeze has not yet been completed.
+- The current publication graph contains **18 publishable crates**.
+- The release-artifact workflow expects **20 checksum subjects**: one source
+  archive, 18 package-file lists, and one release manifest.
+- Historical package-name evidence from 2026-09-17 covered only 15 names and is
+  not sufficient for the current 18-crate graph.
 
-- [x] Confirm crates.io availability for the final `berserk`, `berserk-*`, and `claw-orm` package names. The 2026-09-17 check found no existing index entry for any of the 15 intended package names; see `docs/package-name-availability.md`. Re-check immediately before first publication because names are allocated first-come, first-served and this verification does not reserve them.
-- [x] Select and add the MIT license; update publishable package license/repository metadata.
-- [x] Configure a private vulnerability-reporting channel and maintainer ownership. Maintainer ownership is formalized in `.github/CODEOWNERS`; `SECURITY.md` and `docs/vulnerability-response.md` define intake, severity, triage, response targets, remediation, and disclosure. The repository owner confirmed on 2026-09-17 that GitHub Private Vulnerability Reporting is enabled.
-- [x] Choose supported operating systems and database server versions. `docs/support-policy.md` defines Linux/Ubuntu 24.04 as the Tier-1 host, Windows/macOS development compatibility coverage, PostgreSQL 15-18, MySQL 8.4 LTS, and bundled SQLite. CI enforces the stated platform and database matrix.
-- [x] Confirm all publishable crates use the intended coordinated release version and that examples/benchmarks remain non-publishable where required. The v1.0.0 release branch aligns workspace packages and internal dependency requirements to 1.0.0; the release planner/package workflow remains the executable verification gate.
+The source of truth for release blocking is
+[v1-maturity-gate.md](v1-maturity-gate.md).
 
-## Verification
+## Repository baseline already established
 
-- [x] Pass formatting, compile, Clippy, tests, docs, and independent consumer checks on stable Rust.
-- [x] Pass the compile matrix on MSRV Rust 1.88.
-- [x] Test no-default-features, every optional feature alone, expected combinations, and all-features.
-- [x] Pass PostgreSQL, MySQL, and SQLite contract and migration tests against real databases.
-- [x] Run dependency advisory, license, duplicate-version, and source-policy checks.
-- [x] Fuzz the current JSON, HTTP-value, route-registration, and multipart input boundaries.
-- [x] Run concurrent server load, overload, shutdown-under-load, and prolonged soak tests. `Concurrent load` run 5 on `main` completed a 900-second soak with 16,676,335 attempted/completed requests, zero client errors, zero rejections, and zero server failures.
-- [x] Record reproducible sequential latency, throughput, process RSS, and environment data; retain raw evidence.
-- [ ] Complete any independent security/API review required by the release policy and resolve or document every finding. Internal review does not count as independent review.
+These items describe capabilities/policies that exist in the repository. They
+still need to be exercised again where the exact-candidate sections below say
+so.
 
-## Release artifacts
+- [x] MIT license and publishable package license/repository metadata are
+      defined.
+- [x] GitHub Private Vulnerability Reporting and maintainer ownership are
+      documented.
+- [x] The support policy defines the intended operating-system, Rust, and
+      database matrix.
+- [x] Rust 1.88 MSRV validation exists.
+- [x] Stable-Rust formatting, compilation, Clippy, tests, documentation,
+      feature-matrix, and clean-consumer validation exist in CI.
+- [x] Live PostgreSQL/MySQL/SQLite validation exists.
+- [x] Dependency advisory/license/source-policy checks exist.
+- [x] Fuzz, concurrent-load, overload, shutdown, soak, package, and
+      release-artifact workflows exist.
+- [x] The foundation reference application exercises migrations, generated-style
+      CRUD, validation, relationships, authentication, authorization, Axe, and
+      application tests together.
+- [x] The release planner validates a synchronized **18-package** publication
+      graph and derives dependency-safe publication order.
+- [x] Release recovery, yank/security response, publication, and provenance
+      procedures are documented.
 
-- [x] Review public API documentation and examples from a clean machine. `docs/clean-machine-review.md` records the review; Package run 26 passed both fresh external-consumer compilation checks on 2026-09-17.
-- [x] Review changelog, upgrade notes, known limitations, MSRV, support policy, public API, and examples for the exact release candidate. The v1.0.0 documentation pass aligns the stable routing/authentication surface, operational fixes, Rust 1.88 MSRV, and support boundaries with the release branch.
-- [x] Inspect packaged file lists and verify no credentials, local paths, fixtures, or build output are included.
-- [x] Generate checksums and provenance/signing material according to the chosen release platform. Manual `Release artifacts` run 4 on `main` commit `0e882ce2c852c07a6b23a3dfcd68e05aad28cec8` successfully verified all 17 checksum subjects, generated GitHub/Sigstore build provenance for all 17 subjects, uploaded the attestation to the repository and Rekor transparency log, retained the provenance bundle, and uploaded the 90-day release-evidence artifact. See `docs/release-provenance.md`. A new manual run is required for the exact final release commit if that commit differs from the recorded evidence commit.
-- [x] Prepare a rollback/yank and security-response plan. `docs/release-recovery.md` defines partial-publication recovery, yank/unyank decision rules, immutable-version handling, coordinated patch-release recovery, secret-exposure response, tag/release handling, and recovery verification; `docs/vulnerability-response.md` defines the linked private security-response process.
-- [x] Prepare publication operator tooling. `scripts/release_plan.py` validates the synchronized publishable set and derives dependency-safe publication order; `docs/publication-runbook.md` defines the sequential crates.io procedure and stop conditions. Maintain a release ledger containing the exact commit, version, package order, timestamps, and publication results. The planner is read-only and does not publish anything.
+## Framework maturity gate
+
+- [ ] Complete the independent API/security review against a specific candidate
+      commit and record the reviewer, findings, dispositions, verification, and
+      conclusion in `docs/independent-api-security-review.md`.
+- [ ] Resolve or explicitly document every release-blocking finding from that
+      review.
+
+Internal review, CI, fuzzing, and owner approval do not self-satisfy the
+independence requirement.
+
+## Exact release-candidate identity
+
+Complete these only after the independent review is closed and the intended
+1.0 API is frozen.
+
+- [ ] Record the exact release-candidate commit.
+- [ ] Confirm all 18 publishable crates are version-synchronized at `1.0.0`.
+- [ ] Confirm all internal publishable dependencies use the intended exact
+      version.
+- [ ] Confirm examples and benchmarks remain non-publishable.
+- [ ] Re-check crates.io name and normalization-equivalent availability for all
+      18 intended package names immediately before publication.
+- [ ] Verify `scripts/release_plan.py --version 1.0.0` reports exactly 18
+      publishable packages and a dependency-safe order.
+
+Do not use the historical 2026-09-17 package-name check as final evidence; it
+predates `berserk-codegen`, `berserk-macros`, and `berserk-axe` in the
+current publishable graph.
+
+## Exact release-candidate verification
+
+Run all checks against the exact commit intended for publication.
+
+- [ ] `cargo fmt --all -- --check`.
+- [ ] Stable Rust compile/check across workspace/all targets/all features.
+- [ ] `cargo clippy --workspace --all-targets --all-features -- -D warnings`.
+- [ ] Workspace tests with the intended locked dependency graph.
+- [ ] Documentation build.
+- [ ] Rust 1.88 MSRV check.
+- [ ] No-default-features and every supported independent/combined feature
+      matrix.
+- [ ] Windows and macOS platform checks.
+- [ ] Live PostgreSQL, MySQL, and SQLite contract/migration checks.
+- [ ] Dependency advisory, license, duplicate-version, and source-policy checks.
+- [ ] Current fuzz targets.
+- [ ] Concurrent load, overload, shutdown-under-load, and soak checks.
+- [ ] Generator verification.
+- [ ] Package-file inspection.
+- [ ] Clean external consumer compile using the documented public surface.
+- [ ] Verify `Cargo.lock` remains unchanged by release validation.
+
+Historical successful runs may be cited as engineering history, but they do not
+replace this exact-commit rerun.
+
+## Exact release documentation review
+
+- [ ] Review `README.md`, public API documentation, architecture/design
+      documentation, support policy, security policy, known limitations, and
+      examples against the exact candidate.
+- [ ] Review `CHANGELOG.md`, `docs/v1.0.0.md`, and upgrade notes for
+      publication wording.
+- [ ] Confirm no document claims that Berserk is already independently audited,
+      production-certified, or ecosystem-mature.
+- [ ] Confirm the current 18-crate package graph is used consistently in release
+      documentation.
+- [ ] Confirm the final installation examples use the intended crates.io
+      version/features.
+
+## Exact release artifacts
+
+- [ ] Run `Release artifacts` manually against the exact final commit.
+- [ ] Verify the evidence contains exactly **20** checksum subjects:
+      one source archive, 18 package-file lists, and one release manifest.
+- [ ] Run `sha256sum -c SHA256SUMS` successfully.
+- [ ] Verify GitHub/Sigstore provenance for the exact source/repository/workflow.
+- [ ] Review all 18 package file lists for unexpected source, credentials,
+      generated/local-only files, or build output.
+- [ ] Review `RELEASE-MANIFEST.json` for exact commit, toolchain, package
+      versions, dependencies, publish layers, and publication order.
+- [ ] Retain the evidence bundle with the release record.
+
+Any older provenance/checksum run is historical evidence only. If the final
+source commit differs, regenerate evidence.
 
 ## Owner authorization
 
-- [ ] The owner explicitly approves the exact versions, final source commit, and final release evidence after the independent review gate is complete.
-- [ ] The owner performs publication according to `docs/publication-runbook.md` and retains a completed publication record.
+- [ ] The owner explicitly approves the exact source commit, 1.0.0 package set,
+      independent-review disposition, and final release evidence.
+- [ ] Publication is performed sequentially according to
+      `docs/publication-runbook.md`.
+- [ ] Every published package/version is verified remotely from outside the
+      workspace.
+- [ ] A fresh crates.io-only consumer is compiled.
+- [ ] The immutable `v1.0.0` tag and GitHub Release are created only after the
+      coordinated crates.io publication is verified.
+- [ ] The completed publication ledger and release evidence are retained.

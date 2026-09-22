@@ -2,7 +2,7 @@
 
 Date: 2026-09-17
 
-Status: historical internal review completed on 2026-09-17 against the then-current candidate surface. This record is evidence of that review only; it is not validation of v0.3.0 or a later release, and it is not an independent third-party security audit, penetration test, external certification, or guarantee of vulnerability absence.
+Status: this file contains the historical internal review from 2026-09-17 plus the V1 internal pre-review refresh from 2026-09-22. It is development evidence only. It does not satisfy the independent API/security review required for v1.0.0, and it is not a penetration test, security certification, or guarantee of vulnerability absence.
 
 ## Scope
 
@@ -44,10 +44,10 @@ The review covered the security-sensitive and developer-facing boundaries of the
 | SR-05 | Deployment boundary | The outbound client does not decide which destinations are trusted, so user-controlled URLs can create SSRF exposure in an application. | Documented: applications must enforce scheme/host/port/network allowlists before sending untrusted URLs. |
 | SR-06 | Deployment boundary | `LocalStorage` performs normalized-path and symlink checks using standard filesystem operations, which cannot eliminate every local TOCTOU race if an untrusted actor can mutate the storage tree concurrently. | Documented: the storage root must be isolated and writable only by the application/trusted operators. |
 | SR-07 | Deployment boundary | Bearer session primitives do not automatically define cookie attributes or CSRF policy. | Documented: cookie-based applications must define Secure/HttpOnly/SameSite, rotation/revocation and CSRF behavior. |
-| SR-08 | Operational boundary | `MemorySessionStore` is process-local and unbounded; arbitrary synchronous handler code can also block indefinitely. | Documented: production systems should use bounded/persistent session storage and must not run unbounded blocking handler work on request paths. |
-| SR-09 | Release process | A private vulnerability-reporting channel and named maintainer response ownership are not yet configured. | Remains a release checklist item; this cannot be satisfied by source changes alone. |
+| SR-08 | Operational boundary | Historical finding: `MemorySessionStore` was described as process-local and unbounded; arbitrary synchronous handler code can also block indefinitely. | **Superseded in part by SR-14.** The current store is capacity-bounded (10,000 records by default) but remains process-local and non-persistent. Arbitrary blocking handler work remains an application/runtime boundary. |
+| SR-09 | Release process | Historical finding: a private vulnerability-reporting channel and named maintainer response ownership were not yet configured. | **Resolved later.** GitHub Private Vulnerability Reporting and maintainer ownership are now documented in `SECURITY.md`, `.github/CODEOWNERS`, and `docs/vulnerability-response.md`. |
 | SR-10 | Medium | Framework `Request` `Debug` output included the complete request path, which could expose route-parameter values in logs despite the intended redaction boundary. | Fixed in this review: request diagnostics now report only target byte length plus metadata, with regression coverage that rejects path/query value disclosure. |
-| SR-11 | Release process | The repository checklist requires an independent security/API review, but this pass was performed internally while developing the framework. | Kept open: an independent external reviewer must complete that gate before release readiness is claimed. |
+| SR-11 | Release process | The repository checklist requires an independent API/security review, but this pass was performed internally while developing the framework. | Kept open: a reviewer/process independent from the implementation work must complete that gate before release readiness is claimed. |
 
 ## V1 pre-review refresh — 2026-09-22
 

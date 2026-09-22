@@ -1,39 +1,61 @@
 # crates.io package-name availability check
 
-Date checked: 2026-09-17
+Historical check date: **2026-09-17**
 
-This historical record covers the intended Berserk package identities. Package-name availability is time-sensitive and must be rechecked immediately before first publication.
+This file records historical evidence only. crates.io package availability is
+time-sensitive and package names are not reserved by a repository check.
 
-## Method
+## Current publication graph
 
-The publishable package set was taken from the repository package workflow and workspace metadata expectations. Each intended package name was checked against the official crates.io package index (`rust-lang/crates.io-index`) using its canonical index path.
+The current repository release planner
+(`scripts/release_plan.py`) defines **18 publishable crates**:
 
-Because crates.io performs case-insensitive collision detection and treats `-` and `_` as equivalent for package-name collisions, the check also covered every underscore-equivalent form (for example `berserk-core` / `berserk_core` and `claw-orm` / `claw_orm`). A repository search for the `berserk` family and the Claw normalized form was also used as a secondary check.
-
-At the time of this review, no checked canonical or normalization-equivalent name had an index entry.
-
-## Results
-
-| Package | Result on 2026-09-17 |
+| Package | 2026-09-17 historical evidence |
 | --- | --- |
-| `berserk` | No crates.io index collision found |
-| `berserk-core` | No crates.io index collision found |
-| `berserk-validation` | No crates.io index collision found |
-| `berserk-database` | No crates.io index collision found |
-| `claw-orm` | No crates.io index collision found |
-| `berserk-auth` | No crates.io index collision found |
-| `berserk-openapi` | No crates.io index collision found |
-| `berserk-cache` | No crates.io index collision found |
-| `berserk-storage` | No crates.io index collision found |
-| `berserk-events` | No crates.io index collision found |
-| `berserk-jobs` | No crates.io index collision found |
-| `berserk-client` | No crates.io index collision found |
-| `berserk-notifications` | No crates.io index collision found |
-| `berserk-cli` | No crates.io index collision found |
-| `berserk-testing` | No crates.io index collision found |
+| `berserk` | No collision found in the historical check |
+| `berserk-core` | No collision found in the historical check |
+| `berserk-codegen` | **Not covered by the historical check** |
+| `berserk-macros` | **Not covered by the historical check** |
+| `berserk-validation` | No collision found in the historical check |
+| `berserk-database` | No collision found in the historical check |
+| `claw-orm` | No collision found in the historical check |
+| `berserk-auth` | No collision found in the historical check |
+| `berserk-axe` | **Not covered by the historical check** |
+| `berserk-openapi` | No collision found in the historical check |
+| `berserk-cache` | No collision found in the historical check |
+| `berserk-storage` | No collision found in the historical check |
+| `berserk-events` | No collision found in the historical check |
+| `berserk-jobs` | No collision found in the historical check |
+| `berserk-client` | No collision found in the historical check |
+| `berserk-notifications` | No collision found in the historical check |
+| `berserk-cli` | No collision found in the historical check |
+| `berserk-testing` | No collision found in the historical check |
 
-## Release note
+The earlier evidence therefore covered **15 of the current 18 names**. It is
+not sufficient to satisfy the final V1 release gate.
 
-crates.io package names are allocated on a first-come, first-served basis. This check confirms that no collision was present when the release gate was reviewed; it does not reserve the names. Re-run the name and normalization-equivalent checks immediately before the first publication, and stop publication if any intended name has been claimed in the meantime.
+## Historical method
 
-No crate was published, reserved, tagged, or otherwise released by this check.
+The 2026-09-17 check used the official crates.io index and checked canonical
+names plus normalization-equivalent underscore forms where relevant. At that
+time, no checked name had an index collision.
+
+That result must not be extrapolated to names added to the publication graph
+later.
+
+## Final release requirement
+
+Immediately before the first publication:
+
+1. derive the exact publishable package set from
+   `scripts/release_plan.py --version 1.0.0`;
+2. confirm it contains exactly 18 intended packages;
+3. check every canonical package name against crates.io;
+4. check case/normalization-equivalent collisions, including `-` versus `_`;
+5. record the check date and result for all 18 names;
+6. stop publication if any intended name is no longer available.
+
+Only that fresh 18-package check can close the package-name release gate.
+
+No crate was published, reserved, tagged, or otherwise released by the
+2026-09-17 historical check.

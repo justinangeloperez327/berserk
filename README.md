@@ -2,7 +2,7 @@
 
 Berserk is a Rust web framework focused on a clear developer experience, explicit behavior, type safety, and predictable performance.
 
-> **Release target:** v1.0.0. Berserk has not yet been published publicly; current repository work is being consolidated into the first public 1.0 release. Rust 1.88 is the minimum supported Rust version (MSRV).
+> **Release target:** v1.0.0. Berserk has not yet been published publicly. The intended V1 framework core is implemented; the independent API/security review is the remaining framework-maturity blocker before formal API freeze and exact-commit release-candidate validation. Rust 1.88 is the minimum supported Rust version (MSRV).
 
 ## Why Berserk?
 
@@ -13,11 +13,17 @@ Berserk is a Rust web framework focused on a clear developer experience, explici
 - **Feature-gated components** — enable only the subsystems an application needs.
 - **Sync-first design** — synchronous application code remains the default; server and async capabilities are opt-in through Cargo features where applicable.
 
-## 1.0 stable baseline
+## 1.0 release target
 
-v1.0.0 is the intended first public stable API baseline. New application code uses instance- and request-scoped APIs such as `app.route()`, `Request::user()`, explicit application-service registration, and Claw's bound query builders.
+v1.0.0 is the intended first public stable API baseline **when published**. New application code uses instance- and request-scoped APIs such as `app.route()`, `Request::user()`, explicit application-service registration, and Claw's bound query builders.
 
-The pre-1.0 direct application verb shortcuts and `Request::principal()` compatibility alias were removed before the stable release. `Arr` and `Str` remain explicit root utilities and are intentionally excluded from the default prelude.
+The pre-1.0 direct application verb shortcuts and `Request::principal()` compatibility alias were removed during stabilization. `Arr` and `Str` remain explicit root utilities and are intentionally excluded from the default prelude.
+
+### Current maturity
+
+The framework core is no longer being treated as a prototype. The V1 maturity gate has one remaining framework-level blocker: an independent API/security review against a specific commit. After that, the intended 1.0 public API is frozen and the complete release matrix is rerun against the exact publication candidate.
+
+That does **not** mean Berserk already has Laravel-level ecosystem maturity. Production history, third-party packages, independent maintainers, deployment experience, long-term compatibility, and community adoption are post-1.0 evidence. See [ecosystem maturity](docs/ecosystem-maturity.md).
 
 ## Requirements
 
@@ -258,6 +264,9 @@ Additional security, dependency, database, fuzz, load, package, and release chec
 - [Known limitations](docs/known-limitations.md)
 - [Upgrade notes](docs/upgrade-notes.md)
 - [Roadmap](docs/roadmap.md)
+- [Ecosystem maturity](docs/ecosystem-maturity.md)
+- [V1 maturity gate](docs/v1-maturity-gate.md)
+- [Release checklist](docs/release-checklist.md)
 - [Support policy](docs/support-policy.md)
 - [Security policy](SECURITY.md)
 

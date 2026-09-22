@@ -20,7 +20,7 @@ The maintainer targets acknowledgement within 3 business days and initial triage
 
 ## Supported versions
 
-Berserk v1.0.0 is the current stable baseline. Public API compatibility follows semantic versioning; breaking public API changes require a new major release. Security support and remediation follow the current repository support policy and release documentation.
+Berserk has no published stable version yet. v1.0.0 is the intended first stable baseline and remains under pre-publication review. Security issues affecting the candidate are handled against the current repository state. After v1.0.0 is published, public API compatibility follows semantic versioning and security remediation follows the published support policy.
 
 ## Security boundaries
 
