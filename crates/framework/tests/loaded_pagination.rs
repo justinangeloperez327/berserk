@@ -21,6 +21,7 @@ struct User {
 #[derive(Model)]
 #[table("posts")]
 #[has_many(Comment, "comments", foreign_key = "post_id")]
+#[belongs_to(User, "user", foreign_key = "user_id")]
 struct Post {
     #[primary_key]
     id: i64,
@@ -34,6 +35,7 @@ struct Post {
 
 #[derive(Model)]
 #[table("comments")]
+#[belongs_to(Post, "post", foreign_key = "post_id")]
 struct Comment {
     #[primary_key]
     id: i64,
@@ -74,7 +76,7 @@ fn database() -> Database {
 fn named_loaded_page_is_first_class_json_and_axe_data() -> Result<()> {
     DatabaseScope::new(database()).run(|| {
         let loaded = User::query()
-            .with(["posts"])
+            .with(["posts.comments"])
             .order_by("id", Direction::Asc)
             .paginate(1)?;
 
@@ -103,6 +105,13 @@ fn named_loaded_page_is_first_class_json_and_axe_data() -> Result<()> {
             panic!("has-many relationship should serialize as an array");
         };
         assert_eq!(posts.len(), 2);
+        let Json::Object(first_post) = &posts[0] else {
+            panic!("post should serialize as an object");
+        };
+        let Json::Array(comments) = first_post.get("comments").expect("comments") else {
+            panic!("nested comments should serialize as an array");
+        };
+        assert_eq!(comments.len(), 2);
         let Json::Object(meta) = body.get("meta").expect("meta") else {
             panic!("loaded page metadata should be an object");
         };
@@ -179,6 +188,34 @@ fn nested_named_eager_loading_renders_recursively() -> Result<()> {
             panic!("Axe comments should be a list");
         };
         assert_eq!(view_comments.len(), 2);
+
+        Ok(())
+    })
+}
+
+#[test]
+fn nested_belongs_to_paths_preserve_to_one_shape() -> Result<()> {
+    DatabaseScope::new(database()).run(|| {
+        let loaded = Comment::query()
+            .with(["post.user"])
+            .order_by("id", Direction::Asc)
+            .get()?;
+
+        let response = response().json(&loaded)?;
+        let Json::Array(comments) = Json::parse(response.body()).expect("valid belongs-to JSON")
+        else {
+            panic!("comments should serialize as an array");
+        };
+        let Json::Object(comment) = &comments[0] else {
+            panic!("comment should serialize as an object");
+        };
+        let Json::Object(post) = comment.get("post").expect("post") else {
+            panic!("belongs-to post should serialize as an object");
+        };
+        let Json::Object(user) = post.get("user").expect("user") else {
+            panic!("nested belongs-to user should serialize as an object");
+        };
+        assert_eq!(user.get("name").and_then(Json::as_str), Some("Ada"));
 
         Ok(())
     })
