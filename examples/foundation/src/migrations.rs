@@ -45,11 +45,9 @@ impl Migration for CreateFoundationSchema {
                 Table::create("profiles")
                     .columns([Column::id(), Column::big_integer("user_id")])
                     .uniques([Unique::new(["user_id"])])
-                    .foreign_keys([
-                        ForeignKey::new(["user_id"])
-                            .references("users", ["id"])
-                            .on_delete(ForeignAction::Cascade),
-                    ]),
+                    .foreign_keys([ForeignKey::new(["user_id"])
+                        .references("users", ["id"])
+                        .on_delete(ForeignAction::Cascade)]),
             )
             .create(
                 Table::create("role_user")
