@@ -227,3 +227,38 @@ The CLI no longer owns a `routes.rs` template. New projects ask
 `berserk-codegen` for the route module and only handle filesystem placement.
 Manual route registration remains ordinary Rust and is not required to use
 codegen.
+
+
+## Application skeleton generation
+
+The complete conventional `berserk new` source skeleton is now represented by
+`ApplicationSpec` rather than CLI-owned templates and inline source strings:
+
+```rust
+use berserk_codegen::{application_files, ApplicationSpec};
+
+let files = application_files(
+    &ApplicationSpec::new("my-api", "1.0.0", "1.88"),
+)?;
+```
+
+The returned `ApplicationFile` values contain normalized relative paths and
+their source text. The set includes `Cargo.toml`, `main.rs`, configuration,
+routes, application module indexes, and database migration module indexes.
+`berserk-codegen` performs no filesystem I/O.
+
+Tools can replace the default route specification before generation:
+
+```rust
+let spec = ApplicationSpec::new("my-api", "1.0.0", "1.88")
+    .routes(RoutesSpec::new().crud("/users", "UserController"));
+```
+
+The CLI now only validates the requested destination, creates directories, and
+writes these generated files. Framework version and MSRV values still come from
+the CLI package metadata, so generated applications stay synchronized with the
+Berserk release that created them.
+
+This removes `main.rs` and configuration templates from the CLI and makes the
+application skeleton another reusable codegen product instead of a separate
+template system.

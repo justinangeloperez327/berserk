@@ -44,6 +44,18 @@ def main():
         if replacements != 1:
             raise RuntimeError("expected exactly one generated Berserk dependency")
         manifest.write_text(manifest_text)
+        generated_main = (consumer / "src/main.rs").read_text()
+        if "app::routes::register(&mut app)?" not in generated_main:
+            raise RuntimeError("application codegen lost route registration")
+        if "app.middleware(RequestId)" not in generated_main:
+            raise RuntimeError("application codegen lost request-id middleware")
+
+        generated_config = (consumer / "src/config/mod.rs").read_text()
+        if 'value("BERSERK_ADDRESS", "127.0.0.1:3000")?' not in generated_config:
+            raise RuntimeError("application codegen lost the default listen address")
+        if 'value("APP_NAME", "Berserk API")?' not in generated_config:
+            raise RuntimeError("application codegen lost the default application name")
+
         generated_routes = (consumer / "src/app/routes.rs").read_text()
         if 'app.route().get("/health"' not in generated_routes:
             raise RuntimeError("generated application routes are not using route codegen")

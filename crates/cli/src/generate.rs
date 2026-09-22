@@ -64,68 +64,29 @@ impl Generator {
         }
         fs::create_dir(&target).map_err(CliError::from_io)?;
         let result = (|| {
-            for directory in [
-                "src",
-                "src/app",
-                "src/app/controllers",
-                "src/app/models",
-                "src/app/validations",
-                "src/app/middleware",
-                "src/app/resources",
-                "src/app/policies",
-                "src/database",
-                "src/database/migrations",
-                "src/config",
-            ] {
-                fs::create_dir(target.join(directory)).map_err(CliError::from_io)?;
-            }
-            let version = env!("CARGO_PKG_VERSION");
-            let rust_version = env!("CARGO_PKG_RUST_VERSION");
-            let cargo = format!("[package]\nname = \"{package}\"\nversion = \"0.1.0\"\nedition = \"2021\"\nrust-version = \"{rust_version}\"\n\n[dependencies]\nberserk = {{ version = \"{version}\", features = [\"claw\"] }}\n");
-            write_new(&target.join("Cargo.toml"), cargo.as_bytes())?;
-            let mut files = vec![GeneratedFile {
-                path: target.join("Cargo.toml"),
-            }];
-            let routes =
-                berserk_codegen::routes_source(&berserk_codegen::RoutesSpec::application())
-                    .map_err(|error| {
-                        CliError::new(
-                            ErrorKind::Process,
-                            format!("could not generate application routes: {error}"),
-                        )
-                    })?;
-            for (path, source) in [
-                ("src/main.rs", include_str!("../templates/main.rs.stub")),
-                (
-                    "src/config/mod.rs",
-                    include_str!("../templates/config.rs.stub"),
-                ),
-            ] {
-                let path = target.join(path);
-                write_new(&path, source.as_bytes())?;
+            let spec = berserk_codegen::ApplicationSpec::new(
+                package,
+                env!("CARGO_PKG_VERSION"),
+                env!("CARGO_PKG_RUST_VERSION"),
+            );
+            let sources = berserk_codegen::application_files(&spec).map_err(|error| {
+                CliError::new(
+                    ErrorKind::Process,
+                    format!("could not generate application skeleton: {error}"),
+                )
+            })?;
+            let mut files = Vec::with_capacity(sources.len());
+
+            for source in sources {
+                let path = target.join(source.path());
+                let parent = path.parent().ok_or_else(|| {
+                    CliError::new(ErrorKind::UnsafePath, "generated file has no parent")
+                })?;
+                fs::create_dir_all(parent).map_err(CliError::from_io)?;
+                write_new(&path, source.content().as_bytes())?;
                 files.push(GeneratedFile { path });
             }
-            let routes_path = target.join("src/app/routes.rs");
-            write_new(&routes_path, routes.as_bytes())?;
-            files.push(GeneratedFile { path: routes_path });
-            for (path, source) in [
-                (
-                    "src/app/mod.rs",
-                    b"pub mod controllers;\npub mod middleware;\npub mod models;\npub mod policies;\npub mod resources;\npub mod routes;\npub mod validations;\n".as_slice(),
-                ),
-                ("src/app/controllers/mod.rs", b"".as_slice()),
-                ("src/app/models/mod.rs", b"".as_slice()),
-                ("src/app/validations/mod.rs", b"".as_slice()),
-                ("src/app/middleware/mod.rs", b"".as_slice()),
-                ("src/app/resources/mod.rs", b"".as_slice()),
-                ("src/app/policies/mod.rs", b"".as_slice()),
-                ("src/database/mod.rs", b"pub mod migrations;\n".as_slice()),
-                ("src/database/migrations/mod.rs", b"".as_slice()),
-            ] {
-                let path = target.join(path);
-                write_new(&path, source)?;
-                files.push(GeneratedFile { path });
-            }
+
             Ok(files)
         })();
         if result.is_err() {

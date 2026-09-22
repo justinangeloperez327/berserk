@@ -105,3 +105,58 @@ pub(crate) fn validate_database_name(name: &str, kind: &str) -> syn::Result<()> 
         ))
     }
 }
+
+pub(crate) fn validate_package_name(name: &str) -> syn::Result<()> {
+    let valid = !name.is_empty()
+        && name.len() <= 64
+        && !name.ends_with('-')
+        && !name.contains("--")
+        && name.bytes().enumerate().all(|(index, byte)| {
+            byte.is_ascii_lowercase()
+                || byte.is_ascii_digit() && index > 0
+                || byte == b'-' && index > 0
+        });
+
+    if valid {
+        Ok(())
+    } else {
+        Err(syn::Error::new(
+            Span::call_site(),
+            "package name must use lowercase ASCII letters, digits, or interior hyphens",
+        ))
+    }
+}
+
+pub(crate) fn validate_version(value: &str, kind: &str) -> syn::Result<()> {
+    let valid = !value.is_empty()
+        && value.len() <= 64
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'-' | b'+'));
+
+    if valid {
+        Ok(())
+    } else {
+        Err(syn::Error::new(
+            Span::call_site(),
+            format!("{kind} contains unsupported characters"),
+        ))
+    }
+}
+
+pub(crate) fn validate_rust_version(value: &str) -> syn::Result<()> {
+    let parts: Vec<_> = value.split('.').collect();
+    let valid = (2..=3).contains(&parts.len())
+        && parts
+            .iter()
+            .all(|part| !part.is_empty() && part.bytes().all(|byte| byte.is_ascii_digit()));
+
+    if valid {
+        Ok(())
+    } else {
+        Err(syn::Error::new(
+            Span::call_site(),
+            "Rust version must use numeric major.minor or major.minor.patch syntax",
+        ))
+    }
+}
