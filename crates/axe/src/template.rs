@@ -249,13 +249,10 @@ impl<'source> Parser<'source> {
     fn parse_if(&mut self) -> ParseResult<Node> {
         let start = self.position;
         self.position += "@if(".len();
-        let end = self
-            .remaining()
-            .find(')')
-            .ok_or_else(|| ParseFailure {
-                error: Error::UnclosedDirective("@if"),
-                position: start,
-            })?;
+        let end = self.remaining().find(')').ok_or_else(|| ParseFailure {
+            error: Error::UnclosedDirective("@if"),
+            position: start,
+        })?;
         let expression = self.remaining()[..end].trim();
         let condition = parse_condition(expression).map_err(|error| ParseFailure {
             error,
@@ -299,13 +296,10 @@ impl<'source> Parser<'source> {
     fn parse_foreach(&mut self) -> ParseResult<Node> {
         let start = self.position;
         self.position += "@foreach(".len();
-        let end = self
-            .remaining()
-            .find(')')
-            .ok_or_else(|| ParseFailure {
-                error: Error::UnclosedDirective("@foreach"),
-                position: start,
-            })?;
+        let end = self.remaining().find(')').ok_or_else(|| ParseFailure {
+            error: Error::UnclosedDirective("@foreach"),
+            position: start,
+        })?;
         let expression = self.remaining()[..end].trim();
         let Some((binding, collection)) = expression.split_once(" in ") else {
             return Err(ParseFailure {
