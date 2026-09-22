@@ -23,7 +23,7 @@ candidate.
 - [x] Preserve normal Claw query composition after named eager loading so
   filtering, ordering, limits, and pagination do not become a separate query
   experience after `.with(...)`.
-- [ ] Support nested named eager loading with explicit, bounded semantics such
+- [x] Support nested named eager loading with explicit, bounded semantics such
   as `posts.comments` and `roles.permissions`.
 - [x] Give `LoadedPage<M, NamedRelations>` first-class JSON and Axe
   presentation, including pagination metadata.
