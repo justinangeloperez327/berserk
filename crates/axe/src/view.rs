@@ -110,15 +110,15 @@ pub fn render(view: &str, context: &Context) -> Result<String> {
 
 pub fn render_from(root: impl AsRef<Path>, view: &str, context: &Context) -> Result<String> {
     let root = root.as_ref();
-    let path = view_path(root, view)?;
-    if !path.is_file() {
-        return Err(Error::ViewNotFound(view.to_owned()));
-    }
-
     if cfg!(debug_assertions) {
+        let path = view_path(root, view)?;
+        if !path.is_file() {
+            return Err(Error::ViewNotFound(view.to_owned()));
+        }
         return CompiledViews::compile(root)?.render(view, context);
     }
 
+    validate_view_name(view)?;
     production_views(root)?.render(view, context)
 }
 
