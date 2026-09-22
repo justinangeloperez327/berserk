@@ -166,6 +166,7 @@ These checks define the release target. The workflow results for the exact relea
 - Storage paths are normalized relative paths and reject absolute paths, traversal, empty segments, backslashes, and control bytes.
 - Memory and local storage enforce object-size limits before replacing an existing object.
 - Local writes use same-directory temporary files and preserve the prior object if streaming or replacement fails.
+- Local temporary-name generation fails through `StorageError` if operating-system randomness is unavailable; storage operations do not panic for entropy failure.
 - Local reads and listings reject symbolic links and non-regular objects.
 - Listing is bounded and deterministic; a prefix matches a complete object or path subtree, not a textual sibling prefix.
 - Remote cache/storage adapters remain optional and can construct the public component errors.
