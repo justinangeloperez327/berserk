@@ -32,6 +32,15 @@ The current auth component provides authentication and authorization primitives,
 
 `LocalStorage` validates normalized relative paths, rejects traversal and observed symlinks, bounds operations, and uses safe write behavior where documented. Its standard-library implementation assumes the storage tree is not concurrently rewritten by an untrusted local actor.
 
+## Axe view deployment
+
+Release builds cache the compiled Axe view tree after its first use. Editing
+template files underneath a running release process does not invalidate that
+cache; deploy validated templates together with the application and restart the
+process when view files change. Debug builds recompile the view tree so local
+template edits are visible. Include targets are static root-relative view names;
+dynamic runtime include paths are intentionally unsupported.
+
 ## Request transactions
 
 Request-scoped transactions reuse the request connection. Nested request transactions are not currently supported. Backend capabilities still apply.
