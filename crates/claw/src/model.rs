@@ -60,6 +60,25 @@ pub trait Model: Sized {
         ))
     }
 
+    #[doc(hidden)]
+    fn load_named_relation_with(
+        name: &str,
+        nested: &[String],
+        connection: &mut dyn Connection,
+        models: &[Self],
+    ) -> Result<crate::NamedRelation> {
+        if nested.is_empty() {
+            return Self::load_named_relation(name, connection, models);
+        }
+        Err(DatabaseError::new(
+            ErrorKind::InvalidInput,
+            format!(
+                "nested eager loading for relationship '{name}' on model '{}' requires generated relationship metadata",
+                Self::TABLE
+            ),
+        ))
+    }
+
     /// Convert a raw route parameter into this model's lookup key.
     ///
     /// Numeric `u64` keys are the default. Models using strings, UUIDs, or
