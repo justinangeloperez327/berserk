@@ -170,7 +170,9 @@ mod tests {
         let mut app = App::new();
         app.middleware(RequestLogger::new(sink.clone()));
 
-        let response = app.handle(request("/missing/secret-value?token=private-value")).unwrap();
+        let response = app
+            .handle(request("/missing/secret-value?token=private-value"))
+            .unwrap();
         assert_eq!(response.status_code(), 404);
 
         let events = sink.events();
