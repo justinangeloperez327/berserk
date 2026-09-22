@@ -77,6 +77,17 @@ These checks define the release target. The workflow results for the exact relea
 - Unfiltered update/delete requires the visible `allow_all()` opt-in.
 - Generated SQL tests and SQLite execution tests cover the portable behavior.
 
+## Axe views
+
+- Named view compilation walks `.html` files deterministically and rejects invalid view names.
+- Build-time validation uses the same compiler and dependency rules as runtime rendering.
+- Template syntax failures identify the originating view with one-based line and column information.
+- Root-relative `@include("...")` dependencies render through the compiled view tree.
+- Missing include targets, cycles, root traversal, and excessive include depth fail before rendering.
+- Release rendering caches one compiled view set for the selected root instead of reparsing templates per request.
+- Debug rendering continues to observe template edits without requiring a process restart.
+- Symlinked view entries are not followed outside the configured root.
+
 ## Models and relationships
 
 - Model queries decode every returned row through an explicit `Model::from_row` implementation.
