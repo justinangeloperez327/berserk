@@ -1,6 +1,12 @@
 #![cfg(feature = "view")]
 
 use berserk::{response, view, view_data, Response};
+use std::sync::{Mutex, MutexGuard, OnceLock};
+
+fn view_test_lock() -> MutexGuard<'static, ()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(())).lock().unwrap()
+}
 
 fn write_view(name: &str, source: &str) -> std::path::PathBuf {
     let path = std::path::PathBuf::from("app")
@@ -13,6 +19,7 @@ fn write_view(name: &str, source: &str) -> std::path::PathBuf {
 
 #[test]
 fn response_view_resolves_named_template_and_only_receives_explicit_data() {
+    let _guard = view_test_lock();
     let path = write_view(
         "__axe_tests/response",
         "<h1>{{ title }}</h1>@if(show)<p>Visible</p>@endif",
@@ -34,6 +41,7 @@ fn response_view_resolves_named_template_and_only_receives_explicit_data() {
 
 #[test]
 fn view_helper_uses_named_template() {
+    let _guard = view_test_lock();
     let path = write_view("__axe_tests/helper", "<p>{{ message }}</p>");
 
     let response = view("__axe_tests/helper")
@@ -46,6 +54,7 @@ fn view_helper_uses_named_template() {
 
 #[test]
 fn view_helper_can_render_without_data() {
+    let _guard = view_test_lock();
     let path = write_view("__axe_tests/empty", "<p>Static</p>");
 
     let response = view("__axe_tests/empty").render().unwrap();
@@ -56,6 +65,7 @@ fn view_helper_can_render_without_data() {
 
 #[test]
 fn response_factory_can_render_named_view() {
+    let _guard = view_test_lock();
     let path = write_view("__axe_tests/factory", "<main>{{ title }}</main>");
 
     let response = response()
@@ -70,6 +80,7 @@ fn response_factory_can_render_named_view() {
 
 #[test]
 fn homogeneous_array_data_is_supported_without_macro() {
+    let _guard = view_test_lock();
     let path = write_view("__axe_tests/array", "<strong>{{ title }}</strong>");
 
     let response = Response::view("__axe_tests/array", [("title", "Users")]).unwrap();
@@ -80,7 +91,7 @@ fn homogeneous_array_data_is_supported_without_macro() {
 
 #[cfg(feature = "claw")]
 mod claw_collection {
-    use super::write_view;
+    use super::{view_test_lock, write_view};
     use berserk::{
         claw::{Collection, Model, Row, Value},
         view_data, Response,
@@ -117,6 +128,7 @@ mod claw_collection {
 
     #[test]
     fn claw_collection_maps_automatically_into_view_data() {
+        let _guard = view_test_lock();
         let path = write_view(
             "__axe_tests/claw_collection",
             "@foreach(user in users)<p>{{ user.name }}</p>@endforeach",
@@ -143,6 +155,7 @@ mod claw_collection {
 
     #[test]
     fn hidden_model_attributes_are_not_exposed_to_axe() {
+        let _guard = view_test_lock();
         let path = write_view(
             "__axe_tests/claw_hidden",
             "@foreach(user in users){{ user.password_hash }}@endforeach",
