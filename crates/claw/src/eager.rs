@@ -239,7 +239,6 @@ impl<M: Model> NamedEagerQuery<M> {
         self
     }
 
-
     pub fn select<I, S>(mut self, columns: I) -> Self
     where
         I: IntoIterator<Item = S>,
