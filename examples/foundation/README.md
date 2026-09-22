@@ -1,39 +1,136 @@
-# Foundation users API and Axe view
+# Foundation reference application
 
-Run from the example directory so named Axe views resolve under `app/views`:
+This is Berserk's end-to-end reference application for the v1.0 maturity gate.
+It intentionally combines the framework pieces that are easy to validate only
+in isolation: generated-style CRUD contracts, FormRequest validation,
+migrations, Claw relationships, bearer authentication, authorization, Axe
+views, and in-memory application tests.
+
+## Run
+
+From the repository root:
 
 ```sh
-cd examples/foundation
+BERSERK_SHOW_DEMO_TOKEN=1 cargo run -p foundation-example
+```
+
+On PowerShell:
+
+```powershell
+$env:BERSERK_SHOW_DEMO_TOKEN="1"
 cargo run -p foundation-example
 ```
 
-The application listens on 127.0.0.1:3000 and stores users in foundation.sqlite (override with BERSERK_DATABASE). Its synchronous actions ask only for what they need: `index()`, `show(User)`, `store(UserInput)`, `update(User, UserInput)`, and `destroy(User)`.
+The application listens on `127.0.0.1:3000`. The SQLite path defaults to
+`foundation.sqlite` and can be overridden with `BERSERK_DATABASE`.
 
-Store and update receive `UserInput` through direct `FormRequest` extraction. Input is decoded, sanitized, authorized, semantically validated, and then checked with request context before the action runs. Show, update, and destroy receive `User` through Claw route-model binding. Claw uses the existing request database scope, guarded writes, a transaction for creation, and a database UNIQUE constraint. The model uses `model_fields! { id, name, email }` once for hydration and presentation. Controllers return its visible attributes automatically, including `response().status(201).json(user)` on creation. Show/update return a plain user object; list keeps the existing paginated `data`/`meta` envelope; delete returns 204. Invalid or missing route-model keys resolve through the model-binding boundary; missing users return 404.
+The optional `BERSERK_SHOW_DEMO_TOKEN` flag prints the process-local
+development API token. The token is generated with Berserk's
+`TokenManager<MemoryTokenStore>`, is stored by digest, and becomes invalid
+when the example process restarts. The token is not printed by default.
 
-The routes use individual verbs while the handlers demonstrate the same typed plumbing used by Berserk's CRUD contracts: route-model binding for `User` and direct `FormRequest` extraction for `UserInput`. The existing `route.crud(...)`/`CrudController` contract remains the canonical shortcut when an application wants conventional CRUD registration.
+## Application assembly
 
-`Users::browse` is the HTML counterpart to the paginated API:
+Startup runs the registered migration before the application begins serving:
 
 ```rust
-pub fn browse() -> Result<Response> {
-    let users = User::all()?;
-    view("users/index").with([("users", users)])
-}
+let mut connection = SqliteConnection::open(&path)?;
+migrations::migrate(&mut connection)?;
 ```
 
-The template loops over `users` and displays each name and email. Only explicitly passed data enters the view. If the model gains sensitive attributes, list their mapped names in `Model::HIDDEN` to exclude them from both default JSON and Axe; `FILLABLE` controls writes separately. A separate `ApiResource` remains available for an intentional API representation.
+The migration creates:
 
-Global RequestId and HandleErrors layers wrap the existing route-group middleware, which adds `x-api-version: 0.3` to successful CRUD responses. `/health` is a synchronous text action; the example no longer requires the optional `async` or `auth` features.
+- `users`
+- `posts`
+- `profiles`
+- `roles`
+- `role_user`
+- Berserk's migration tracking table
 
-```sh
-curl -H 'content-type: application/json' -d '{"name":" Ada ","email":"ADA@example.com"}' http://127.0.0.1:3000/users
-curl 'http://127.0.0.1:3000/users?page=1'
-curl http://127.0.0.1:3000/users/1
-curl -X PUT -H 'content-type: application/json' -d '{"name":"Ada Lovelace","email":"ada@example.com"}' http://127.0.0.1:3000/users/1
-curl -X DELETE http://127.0.0.1:3000/users/1
+The schema uses the migration DSL, unique constraints, indexes, foreign keys,
+and a composite pivot key. The example no longer creates application tables
+with ad-hoc startup SQL.
+
+Authentication is registered once on the application:
+
+```rust
+app.auth(tokens)?;
 ```
 
-This local teaching example allows unauthenticated CRUD. Add a Guard and authorization policies before exposing private data. The schema setup is intentionally small; production applications should use migrations. PUT and PATCH both use the same complete name/email input contract; partial updates are not implemented. The `/users/browse` page demonstrates an Axe view with the same models.
+The CRUD surface uses the same `CrudController` contract emitted by Berserk's
+CRUD code generator and is registered atomically:
 
-Repository CI compiles and tests the foundation example as part of the workspace. Manual HTTP smoke testing can additionally exercise duplicate email rejection, sanitization, update/delete behavior, pagination, and middleware headers.
+```rust
+api.can("users.manage")?.crud("/users", Users)?;
+```
+
+That creates the named `users.index`, `users.store`, `users.show`,
+`users.update`, and `users.destroy` routes. The write request also checks
+`users.manage` through `FormRequest::authorize_request`, so authorization is
+part of the request lifecycle rather than only a controller convention.
+
+## Relationships and views
+
+The user model declares:
+
+- `has_many posts`
+- `has_one profile`
+- `belongs_to_many roles`
+
+The API index eager-loads all three relationships and paginates the loaded
+models. The HTML route eager-loads posts and roles and renders them through Axe.
+
+```rust
+let users = User::query()
+    .with(["posts", "roles"])
+    .order_by("id", Direction::Asc)
+    .get()?;
+```
+
+`/users/browse` requires `users.read`. The template displays the user,
+their posts, and their roles. The build script validates the complete
+`app/views` tree through Axe before the example compiles.
+
+## Resource authorization
+
+`GET /users/{id}/policy` uses `Request::authorize` with a typed
+`Policy<User>`.
+
+- an `admin` principal can view any user;
+- a `user:<id>` principal can view its own matching user;
+- the principal must also carry the `users.view` ability.
+
+This demonstrates both route-level ability checks and resource-specific policy
+authorization.
+
+## Routes
+
+| Route | Requirement | Purpose |
+| --- | --- | --- |
+| `GET /health` | public | health smoke route |
+| `GET /users` | `users.manage` | paginated users with eager relationships |
+| `POST /users` | `users.manage` | validated create |
+| `GET /users/{id}` | `users.manage` | route-model-bound show |
+| `PUT/PATCH /users/{id}` | `users.manage` | validated update |
+| `DELETE /users/{id}` | `users.manage` | delete |
+| `GET /users/browse` | `users.read` | Axe relationship view |
+| `GET /users/{id}/policy` | authenticated + policy | resource authorization |
+
+## Application tests
+
+The example uses `berserk-testing::TestClient` against the real in-memory
+router and middleware stack. Tests verify:
+
+- unauthenticated CRUD returns 401;
+- a read-only token cannot write;
+- generated CRUD route naming works;
+- sanitization normalizes names and email addresses;
+- duplicate email validation returns 422;
+- create/show/update/delete work through `route.crud`;
+- eager `has_many`, `has_one`, and `belongs_to_many` data appears in JSON;
+- the Axe route renders related posts and roles;
+- resource policy ownership allows and denies the expected identities;
+- the actual migration runner creates the test schema.
+
+Repository CI builds and tests this package as a workspace member, and the
+foundation build script validates the real Axe view tree.
