@@ -88,4 +88,10 @@ Internal review and remediation do not close the independent API/security review
 
 ## Conclusion
 
-The reviewed `0.1.0` candidate has a materially stronger and more accurately documented security baseline. Two concrete diagnostic/protocol-boundary issues found by the internal pass were fixed and regression-tested. Remaining findings are explicit deployment or release-process boundaries rather than hidden framework guarantees. An independent external security/API review is still required before that release gate can be marked complete.
+The historical 2026-09-17 review and the 2026-09-22 V1 pre-review refresh have
+produced concrete hardening changes and corrected documentation drift. The
+current internal pass found and remediated route-parameter disclosure in
+built-in request logs and a panic-capable LocalStorage entropy path. These
+internal results are preparation evidence only. The independent API/security
+review remains open and must verify the exact candidate plus any remediation
+before the framework-maturity gate can be marked complete.
