@@ -493,6 +493,7 @@ name = "foundation-example"
 version = "1.0.0"
 dependencies = [
  "berserk",
+ "berserk-axe",
 ]
 
 [[package]]

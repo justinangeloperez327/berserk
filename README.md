@@ -205,7 +205,7 @@ The generated application remains explicit: controllers, models, requests, middl
 
 Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `view`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
 
-See [docs/public-api.md](docs/public-api.md) for the current API contract, [docs/migrations.md](docs/migrations.md) for the migration DSL, [docs/relationships.md](docs/relationships.md) for Claw relationships, and [docs/v1.0.0.md](docs/v1.0.0.md) for the first public release target.
+See [docs/public-api.md](docs/public-api.md) for the current API contract, [docs/migrations.md](docs/migrations.md) for the migration DSL, [docs/relationships.md](docs/relationships.md) for Claw relationships, [docs/views.md](docs/views.md) for Axe templates and production validation, and [docs/v1.0.0.md](docs/v1.0.0.md) for the first public release target.
 
 ## Workspace
 

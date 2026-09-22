@@ -16,6 +16,12 @@ pub enum Error {
     InvalidViewName(String),
     ViewNotFound(String),
     ReadView(String),
+    ViewCompile {
+        view: String,
+        line: usize,
+        column: usize,
+        message: String,
+    },
     ViewCache,
     Write,
 }
@@ -51,6 +57,12 @@ impl fmt::Display for Error {
             Self::InvalidViewName(view) => write!(f, "invalid view name `{view}`"),
             Self::ViewNotFound(view) => write!(f, "view `{view}` was not found"),
             Self::ReadView(view) => write!(f, "failed to read view `{view}`"),
+            Self::ViewCompile {
+                view,
+                line,
+                column,
+                message,
+            } => write!(f, "{view}:{line}:{column}: {message}"),
             Self::ViewCache => f.write_str("view cache lock failed"),
             Self::Write => f.write_str("failed to write rendered view output"),
         }

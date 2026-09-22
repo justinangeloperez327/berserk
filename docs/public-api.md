@@ -142,6 +142,15 @@ resources remain supported. With `view`, the free helper uses
 See [model presentation](model-presentation.md) for the field mapping helper,
 visibility contract, pagination, custom resources, and compatibility decisions.
 
+Axe named views are compiled as a deterministic root-relative view tree.
+`CompiledViews::compile`, `validate_views`, and `validate_views_from`
+provide explicit production/build validation. Root-relative
+`@include("shared/header")` dependencies are resolved before rendering;
+missing targets, cycles, invalid paths, and template syntax errors fail with
+view/line/column diagnostics. Release rendering caches the complete compiled
+view set rather than compiling one template per first request. See
+[Axe views](views.md).
+
 ## Middleware and operational APIs
 
 Middleware composes through `Middleware` and `Next`. The framework also exposes optional/common operational helpers for request IDs, authentication extraction, request logging, tracing, metrics, health checks, and rate limiting.

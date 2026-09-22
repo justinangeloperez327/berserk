@@ -29,6 +29,7 @@ Berserk has not yet been published publicly. The entries below `1.0.0` describe 
 - Named eager-loaded pages now have first-class JSON and Axe presentation with `data` plus pagination `meta`, while retaining direct page and relation access in Claw.
 - Named Claw eager loading now supports dotted nested paths with shared-prefix batching, recursive JSON/Axe presentation, a four-segment depth limit, and a 32-path per-level bound.
 - Claw eager relationship loaders now split large key sets into conservative 500-key batches, including both pivot and related-model stages for many-to-many relationships.
+- Axe now compiles deterministic view trees with build-time validation, root-relative includes, dependency-cycle checks, file/line/column diagnostics, and release-mode whole-root caching.
 
 ## 1.0.0 — first public release target
 

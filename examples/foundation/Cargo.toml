@@ -8,3 +8,6 @@ publish = false
 
 [dependencies]
 berserk = { workspace = true, features = ["claw", "sqlite", "view"] }
+
+[build-dependencies]
+berserk-axe = { workspace = true }

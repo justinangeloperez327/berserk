@@ -29,7 +29,7 @@ candidate.
   presentation, including pagination metadata.
 - [x] Bound or chunk eager-load key queries so large parent collections do not
   fail solely because a database driver has a parameter limit.
-- [ ] Complete Axe's production template path with deterministic precompilation
+- [x] Complete Axe's production template path with deterministic precompilation
   or an equivalent build-time validation step, useful file/line diagnostics,
   and verified include/dependency behavior.
 - [ ] Maintain at least one realistic reference application that exercises
