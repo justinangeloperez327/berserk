@@ -38,7 +38,7 @@ Request-scoped transactions reuse the request connection. Nested request transac
 
 ## Database and ORM boundaries
 
-Supported database versions are defined in [support-policy.md](support-policy.md). Synchronous SQL drivers remain blocking. Very large eager-load collections can encounter driver parameter limits. Offset pagination requires explicit ordering and a transaction when count/items must share a snapshot. Some model behaviors, such as timestamps and soft deletes, remain application responsibilities.
+Supported database versions are defined in [support-policy.md](support-policy.md). Synchronous SQL drivers remain blocking. Claw splits eager-load key lookups into bounded batches, but very large eager-loaded result sets can still consume substantial memory; paginate parent queries for response-size and memory control. Offset pagination requires explicit ordering and a transaction when count/items must share a snapshot. Some model behaviors, such as timestamps and soft deletes, remain application responsibilities.
 
 ## Platform support
 
@@ -54,4 +54,4 @@ v1.0.0 will establish the stable public API baseline when published. Breaking pu
 
 ## Relationship boundaries
 
-`sync` and `attach_many` use one transaction and reject nesting; they do not serialize competing writers. Eager loads use bounded query counts but do not chunk arbitrarily large key lists. Paginate parents for driver parameter and memory limits. Many-to-many queries preserve pivot rows and require qualified ambiguous columns. Joined mutations are unsupported. HasOne retains RelatedSet for compatibility. Foreign/owner key accessors remain explicit. See [relationships](relationships.md).
+`sync` and `attach_many` use one transaction and reject nesting; they do not serialize competing writers. Eager loads chunk large key lists into conservative bounded batches, but they still materialize the requested related models in memory. Paginate parents for memory and response-size control. Many-to-many queries preserve pivot rows and require qualified ambiguous columns. Joined mutations are unsupported. HasOne retains RelatedSet for compatibility. Foreign/owner key accessors remain explicit. See [relationships](relationships.md).
