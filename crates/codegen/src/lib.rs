@@ -11,6 +11,7 @@ mod controller;
 mod migration;
 mod model;
 mod model_source;
+mod module;
 mod naming;
 mod relations;
 mod request;
@@ -19,11 +20,12 @@ mod scaffold;
 
 pub use application::{application_files, ApplicationFile, ApplicationSpec};
 pub use controller::{controller_source, ControllerKind, ControllerSpec};
-pub use migration::{migration_source, MigrationSpec};
+pub use migration::{migration_source, MigrationColumnKind, MigrationColumnSpec, MigrationSpec};
 pub use model_source::{model_source, FieldSpec, ModelSpec};
+pub use module::{module_files, ModuleFile, ModuleSpec};
 use proc_macro2::TokenStream;
 pub use request::{request_source, RequestKind, RequestSpec};
-pub use route::{routes_source, RouteSpec, RoutesSpec};
+pub use route::{register_route_source, routes_source, RouteSpec, RoutesSpec};
 pub use scaffold::{
     middleware_source, policy_source, resource_source, MiddlewareSpec, PolicySpec, ResourceSpec,
 };

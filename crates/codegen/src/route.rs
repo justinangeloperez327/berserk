@@ -1,5 +1,8 @@
 use crate::naming::{snake_case, validate_type_name};
 
+const CONTROLLER_IMPORT_MARKER: &str = "// berserk:generated-controller-imports";
+const ROUTE_MARKER: &str = "    // berserk:generated-routes";
+
 /// One generated route registration.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RouteSpec {
@@ -100,6 +103,8 @@ pub fn routes_source(spec: &RoutesSpec) -> syn::Result<String> {
             controller
         ));
     }
+    source.push_str(CONTROLLER_IMPORT_MARKER);
+    source.push('\n');
     if spec.includes_welcome() {
         source.push_str("use crate::config::AppConfig;\n");
     }
@@ -137,9 +142,54 @@ pub fn routes_source(spec: &RoutesSpec) -> syn::Result<String> {
             }
         }
     }
+    source.push_str(ROUTE_MARKER);
+    source.push('\n');
 
     source.push_str("    Ok(())\n}\n");
     Ok(source)
+}
+
+pub fn register_route_source(source: &str, route: &RouteSpec) -> syn::Result<String> {
+    syn::parse_file(source)?;
+    if source.matches(CONTROLLER_IMPORT_MARKER).count() != 1
+        || source.matches(ROUTE_MARKER).count() != 1
+    {
+        return Err(syn::Error::new(
+            proc_macro2::Span::call_site(),
+            "route file is missing the Berserk generated-route markers",
+        ));
+    }
+
+    match route {
+        RouteSpec::Crud { path, controller } => {
+            validate_crud_path(path)?;
+            validate_type_name(controller, "controller")?;
+            let import = format!(
+                "use crate::app::controllers::{}::{};",
+                snake_case(controller),
+                controller
+            );
+            let registration = format!("    app.route().crud(\"{path}\", {controller})?;");
+
+            if source.lines().any(|line| line.trim() == import)
+                || source
+                    .lines()
+                    .any(|line| line.trim() == registration.trim())
+            {
+                return Err(syn::Error::new(
+                    proc_macro2::Span::call_site(),
+                    "route or controller import is already registered",
+                ));
+            }
+
+            let source = source.replacen(
+                CONTROLLER_IMPORT_MARKER,
+                &format!("{import}\n{CONTROLLER_IMPORT_MARKER}"),
+                1,
+            );
+            Ok(source.replacen(ROUTE_MARKER, &format!("{registration}\n{ROUTE_MARKER}"), 1))
+        }
+    }
 }
 
 fn validate_crud_path(path: &str) -> syn::Result<()> {
@@ -199,6 +249,20 @@ mod tests {
                 .matches("use crate::app::controllers::user_controller::UserController;")
                 .count(),
             1
+        );
+    }
+
+    #[test]
+    fn generated_route_can_be_registered_without_replacing_the_file() {
+        let source = routes_source(&RoutesSpec::application()).unwrap();
+        let updated =
+            register_route_source(&source, &RouteSpec::crud("/users", "UserController")).unwrap();
+
+        syn::parse_file(&updated).unwrap();
+        assert!(updated.contains("use crate::app::controllers::user_controller::UserController;"));
+        assert!(updated.contains("app.route().crud(\"/users\", UserController)?;"));
+        assert!(
+            register_route_source(&updated, &RouteSpec::crud("/users", "UserController")).is_err()
         );
     }
 

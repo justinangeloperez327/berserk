@@ -15,10 +15,10 @@ candidate.
 
 - [x] Centralize generated Rust source in `berserk-codegen`; the CLI must not
   maintain an independent Rust template system.
-- [ ] Introduce a shared module/application specification that can coordinate
+- [x] Introduce a shared module/application specification that can coordinate
   model, request, controller, migration, and route generation without
   duplicating names or conventions.
-- [ ] Provide one coherent CRUD generation workflow and compile its complete
+- [x] Provide one coherent CRUD generation workflow and compile its complete
   output as an independent consumer application.
 - [ ] Preserve normal Claw query composition after named eager loading so
   filtering, ordering, limits, and pagination do not become a separate query

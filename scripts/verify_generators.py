@@ -72,6 +72,7 @@ def main():
         run(str(cli), "make:request", "SimpleInput", cwd=consumer)
         run(str(cli), "make:request", "CreateUser", "--model", "User", cwd=consumer)
         run(str(cli), "make:migration", "create_users_table", cwd=consumer)
+        run(str(cli), "make:crud", "Post", cwd=consumer)
         run(
             str(cli),
             "make:controller",
@@ -99,6 +100,36 @@ pub mod database;
     }
 }
 ''')
+        generated_post_model = (consumer / "src/app/models/post.rs").read_text()
+        if "#[fillable]" not in generated_post_model or "pub name: String" not in generated_post_model:
+            raise RuntimeError("CRUD module model is not aligned with its generated request")
+
+        generated_post_request = (consumer / "src/app/validations/post_input.rs").read_text()
+        if "impl IntoInsert<Post> for PostInput" not in generated_post_request:
+            raise RuntimeError("CRUD module request is not model-bound")
+
+        generated_post_controller = (
+            consumer / "src/app/controllers/post_controller.rs"
+        ).read_text()
+        if "impl CrudController for PostController" not in generated_post_controller:
+            raise RuntimeError("CRUD module controller is not using the CRUD contract")
+
+        generated_routes = (consumer / "src/app/routes.rs").read_text()
+        if 'app.route().crud("/posts", PostController)?;' not in generated_routes:
+            raise RuntimeError("CRUD module route was not registered")
+
+        post_migrations = list(
+            (consumer / "src/database/migrations").glob("*_create_posts_table.rs")
+        )
+        if len(post_migrations) != 1:
+            raise RuntimeError("expected exactly one CRUD module migration")
+        if 'Column::string("name")' not in post_migrations[0].read_text():
+            raise RuntimeError("CRUD module migration is not aligned with its model")
+
+        migration_index = (consumer / "src/database/migrations/mod.rs").read_text()
+        if "create_posts_table_" not in migration_index:
+            raise RuntimeError("CRUD module migration is not compiled through its module index")
+
         generated_middleware = (consumer / "src/app/middleware/audit.rs").read_text()
         if "impl Middleware for Audit" not in generated_middleware:
             raise RuntimeError("middleware scaffold did not come from the codegen contract")

@@ -19,6 +19,9 @@ pub fn execute(
             .new_project(&path)
             .map(|files| summary("project", &files)),
         Command::Serve => serve(generator),
+        Command::MakeCrud { name } => generator
+            .make_crud(&name)
+            .map(|files| summary("crud", &files)),
         Command::MakeController {
             name,
             resource,
