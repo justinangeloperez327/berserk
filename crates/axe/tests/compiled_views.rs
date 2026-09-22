@@ -147,3 +147,11 @@ fn include_targets_cannot_escape_the_view_root() {
 
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn foundation_view_tree_passes_the_production_compiler() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../examples/foundation/app/views");
+    let views = CompiledViews::compile(root).unwrap();
+    assert!(views.contains("users/index"));
+}
