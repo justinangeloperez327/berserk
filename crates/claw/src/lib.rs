@@ -46,8 +46,9 @@ mod fields;
 mod writes;
 pub use berserk_database::scope::{with_scoped_connection, DatabaseScope};
 pub use eager::{
-    named_belongs_to, EagerQuery, IntoEager, Loaded, LoadedPage, NamedEagerQuery, NamedRelation,
-    NamedRelations, RelationCardinality, Relationship,
+    named_belongs_to, named_belongs_to_with, named_related, EagerQuery, IntoEager, Loaded,
+    LoadedPage, NamedEagerQuery, NamedRelation, NamedRelations, RelationCardinality, Relationship,
+    MAX_NAMED_EAGER_DEPTH, MAX_NAMED_EAGER_PATHS,
 };
 #[doc(hidden)]
 pub use eager::{NamedEager, TypedEager};
