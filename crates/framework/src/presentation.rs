@@ -15,6 +15,10 @@ pub struct OptionalRecord;
 pub struct NamedRecords;
 #[cfg(feature = "claw")]
 pub struct BorrowedNamedRecords;
+#[cfg(feature = "claw")]
+pub struct NamedPage;
+#[cfg(feature = "claw")]
+pub struct BorrowedNamedPage;
 
 pub trait ResponseData<Kind> {
     fn response_data(&self) -> Result<Json>;
@@ -78,6 +82,29 @@ fn named_model_json<M: claw_orm::Model>(
         );
     }
     Ok(Json::Object(object))
+}
+
+#[cfg(feature = "claw")]
+fn named_page_json<M: claw_orm::Model>(
+    loaded: &claw_orm::LoadedPage<M, claw_orm::NamedRelations>,
+) -> Result<Json> {
+    let data = loaded
+        .items()
+        .iter()
+        .map(|model| named_model_json(model, loaded.relations()))
+        .collect::<Result<Vec<_>>>()?;
+
+    let meta = std::collections::BTreeMap::from([
+        ("current_page".to_owned(), Json::from(loaded.current_page())),
+        ("per_page".to_owned(), Json::from(loaded.per_page())),
+        ("total".to_owned(), Json::from(loaded.total())),
+        ("last_page".to_owned(), Json::from(loaded.last_page())),
+    ]);
+
+    Ok(Json::Object(std::collections::BTreeMap::from([
+        ("data".to_owned(), Json::Array(data)),
+        ("meta".to_owned(), Json::Object(meta)),
+    ])))
 }
 
 #[cfg(feature = "claw")]
@@ -177,5 +204,23 @@ impl<M: claw_orm::Model> ResponseData<BorrowedNamedRecords>
         <claw_orm::Loaded<M, claw_orm::NamedRelations> as ResponseData<NamedRecords>>::response_data(
             *self,
         )
+    }
+}
+
+#[cfg(feature = "claw")]
+impl<M: claw_orm::Model> ResponseData<NamedPage>
+    for claw_orm::LoadedPage<M, claw_orm::NamedRelations>
+{
+    fn response_data(&self) -> Result<Json> {
+        named_page_json(self)
+    }
+}
+
+#[cfg(feature = "claw")]
+impl<M: claw_orm::Model> ResponseData<BorrowedNamedPage>
+    for &claw_orm::LoadedPage<M, claw_orm::NamedRelations>
+{
+    fn response_data(&self) -> Result<Json> {
+        named_page_json(*self)
     }
 }
