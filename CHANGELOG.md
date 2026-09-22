@@ -31,6 +31,7 @@ Berserk has not yet been published publicly. The entries below `1.0.0` describe 
 - Claw eager relationship loaders now split large key sets into conservative 500-key batches, including both pivot and related-model stages for many-to-many relationships.
 - Axe now compiles deterministic view trees with build-time validation, root-relative includes, dependency-cycle checks, file/line/column diagnostics, and release-mode whole-root caching.
 - The foundation example is now the v1 reference application, combining migration-driven schema setup, generated-style `CrudController` routing, FormRequest validation, Claw eager relationships, bearer authentication, ability/policy authorization, Axe views, and `berserk-testing` application tests.
+- V1 security pre-review hardening now logs matched route templates instead of concrete route-parameter values, makes LocalStorage temporary-path entropy failure fallible, corrects session-store capacity documentation, and adds an explicit independent-review evidence record.
 
 ## 1.0.0 — first public release target
 
