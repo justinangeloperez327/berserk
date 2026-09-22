@@ -83,7 +83,8 @@ These checks define the release target. The workflow results for the exact relea
 - Missing columns, NULL mismatches, incompatible types, and lossy integer casts return decode errors.
 - Named and inline scopes compose query builders without executing database I/O.
 - `all`, `find`, `get`, and `first` are visible model-query execution boundaries.
-- `has_many`, `has_one`, and `belongs_to` eager loading uses one query per nonempty relationship load.
+- `has_many`, `has_one`, and `belongs_to` eager loading batches nonempty relationship loads into bounded key queries rather than one query per parent.
+- Eager key batches never exceed the Claw internal safety threshold; many-to-many loading applies the same bound independently to pivot and related-model lookups.
 - Empty parent collections do not execute a query; duplicate and NULL relationship keys are handled deterministically.
 - Eager-loaded records are grouped by linking key without mutating models or requiring model cloning.
 - `has_one` reports cardinality violations rather than silently discarding rows.
