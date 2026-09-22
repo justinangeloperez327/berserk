@@ -85,7 +85,7 @@ impl Migration for CreateFoundationSchema {
 }
 
 pub fn migrate(connection: &mut dyn Connection) -> Result<()> {
-    MigrationRunner::new([&CreateFoundationSchema as &dyn Migration])?
-        .migrate(connection)
-        .map(|_| ())
+    let runner = MigrationRunner::new([&CreateFoundationSchema as &dyn Migration])?;
+    runner.migrate(connection)?;
+    Ok(())
 }
