@@ -34,11 +34,26 @@ struct Condition {
 
 impl Template {
     pub fn compile(source: impl AsRef<str>) -> Result<Self> {
-        let source = source.as_ref();
+        Self::compile_inner(source.as_ref()).map_err(|failure| failure.error)
+    }
+
+    pub(crate) fn compile_named(view: &str, source: &str) -> Result<Self> {
+        Self::compile_inner(source).map_err(|failure| {
+            let (line, column) = line_column(source, failure.position);
+            Error::ViewCompile {
+                view: view.to_owned(),
+                line,
+                column,
+                message: failure.error.to_string(),
+            }
+        })
+    }
+
+    fn compile_inner(source: &str) -> ParseResult<Self> {
         let mut parser = Parser::new(source);
         let (nodes, stop) = parser.parse_nodes(&[])?;
         if let Some(stop) = stop {
-            return Err(Error::UnexpectedDirective(stop.to_owned()));
+            return Err(parser.failure(Error::UnexpectedDirective(stop.to_owned())));
         }
         Ok(Self {
             nodes,
@@ -148,6 +163,14 @@ fn write_value(output: &mut impl Write, path: &str, value: &Value, raw: bool) ->
     }
 }
 
+#[derive(Debug)]
+struct ParseFailure {
+    error: Error,
+    position: usize,
+}
+
+type ParseResult<T> = std::result::Result<T, ParseFailure>;
+
 struct Parser<'source> {
     source: &'source str,
     position: usize,
@@ -161,7 +184,10 @@ impl<'source> Parser<'source> {
         }
     }
 
-    fn parse_nodes(&mut self, stops: &[&'static str]) -> Result<(Vec<Node>, Option<&'static str>)> {
+    fn parse_nodes(
+        &mut self,
+        stops: &[&'static str],
+    ) -> ParseResult<(Vec<Node>, Option<&'static str>)> {
         let mut nodes = Vec::new();
         while self.position < self.source.len() {
             if let Some(stop) = stops
@@ -191,7 +217,7 @@ impl<'source> Parser<'source> {
                 "@if(" => nodes.push(self.parse_if()?),
                 "@foreach(" => nodes.push(self.parse_foreach()?),
                 "@else" | "@endif" | "@endforeach" => {
-                    return Err(Error::UnexpectedDirective(marker.to_owned()));
+                    return Err(self.failure(Error::UnexpectedDirective(marker.to_owned())));
                 }
                 _ => unreachable!("known marker"),
             }
@@ -199,13 +225,20 @@ impl<'source> Parser<'source> {
         Ok((nodes, None))
     }
 
-    fn parse_echo(&mut self, raw: bool) -> Result<Node> {
+    fn parse_echo(&mut self, raw: bool) -> ParseResult<Node> {
+        let start = self.position;
         let (open, close) = if raw { ("{!!", "!!}") } else { ("{{", "}}") };
         self.position += open.len();
         let rest = self.remaining();
-        let end = rest.find(close).ok_or(Error::UnclosedExpression)?;
+        let end = rest.find(close).ok_or_else(|| ParseFailure {
+            error: Error::UnclosedExpression,
+            position: start,
+        })?;
         let expression = rest[..end].trim();
-        validate_path(expression)?;
+        validate_path(expression).map_err(|error| ParseFailure {
+            error,
+            position: start,
+        })?;
         self.position += end + close.len();
         Ok(Node::Echo {
             path: expression.to_owned(),
@@ -213,14 +246,21 @@ impl<'source> Parser<'source> {
         })
     }
 
-    fn parse_if(&mut self) -> Result<Node> {
+    fn parse_if(&mut self) -> ParseResult<Node> {
+        let start = self.position;
         self.position += "@if(".len();
         let end = self
             .remaining()
             .find(')')
-            .ok_or(Error::UnclosedDirective("@if"))?;
+            .ok_or_else(|| ParseFailure {
+                error: Error::UnclosedDirective("@if"),
+                position: start,
+            })?;
         let expression = self.remaining()[..end].trim();
-        let condition = parse_condition(expression)?;
+        let condition = parse_condition(expression).map_err(|error| ParseFailure {
+            error,
+            position: start,
+        })?;
         self.position += end + 1;
 
         let (then_nodes, stop) = self.parse_nodes(&["@else", "@endif"])?;
@@ -237,7 +277,10 @@ impl<'source> Parser<'source> {
                 self.position += "@else".len();
                 let (else_nodes, stop) = self.parse_nodes(&["@endif"])?;
                 if stop != Some("@endif") {
-                    return Err(Error::UnclosedDirective("@if"));
+                    return Err(ParseFailure {
+                        error: Error::UnclosedDirective("@if"),
+                        position: start,
+                    });
                 }
                 self.position += "@endif".len();
                 Ok(Node::If {
@@ -246,29 +289,48 @@ impl<'source> Parser<'source> {
                     else_nodes,
                 })
             }
-            _ => Err(Error::UnclosedDirective("@if")),
+            _ => Err(ParseFailure {
+                error: Error::UnclosedDirective("@if"),
+                position: start,
+            }),
         }
     }
 
-    fn parse_foreach(&mut self) -> Result<Node> {
+    fn parse_foreach(&mut self) -> ParseResult<Node> {
+        let start = self.position;
         self.position += "@foreach(".len();
         let end = self
             .remaining()
             .find(')')
-            .ok_or(Error::UnclosedDirective("@foreach"))?;
+            .ok_or_else(|| ParseFailure {
+                error: Error::UnclosedDirective("@foreach"),
+                position: start,
+            })?;
         let expression = self.remaining()[..end].trim();
         let Some((binding, collection)) = expression.split_once(" in ") else {
-            return Err(Error::InvalidDirective(format!("@foreach({expression})")));
+            return Err(ParseFailure {
+                error: Error::InvalidDirective(format!("@foreach({expression})")),
+                position: start,
+            });
         };
         let binding = binding.trim();
         let collection = collection.trim();
-        validate_identifier(binding)?;
-        validate_path(collection)?;
+        validate_identifier(binding).map_err(|error| ParseFailure {
+            error,
+            position: start,
+        })?;
+        validate_path(collection).map_err(|error| ParseFailure {
+            error,
+            position: start,
+        })?;
         self.position += end + 1;
 
         let (nodes, stop) = self.parse_nodes(&["@endforeach"])?;
         if stop != Some("@endforeach") {
-            return Err(Error::UnclosedDirective("@foreach"));
+            return Err(ParseFailure {
+                error: Error::UnclosedDirective("@foreach"),
+                position: start,
+            });
         }
         self.position += "@endforeach".len();
         Ok(Node::ForEach {
@@ -297,6 +359,23 @@ impl<'source> Parser<'source> {
     fn remaining(&self) -> &'source str {
         &self.source[self.position..]
     }
+
+    fn failure(&self, error: Error) -> ParseFailure {
+        ParseFailure {
+            error,
+            position: self.position,
+        }
+    }
+}
+
+fn line_column(source: &str, position: usize) -> (usize, usize) {
+    let position = position.min(source.len());
+    let prefix = &source[..position];
+    let line = prefix.bytes().filter(|byte| *byte == b'\n').count() + 1;
+    let column = prefix
+        .rsplit_once('\n')
+        .map_or_else(|| prefix.chars().count() + 1, |(_, tail)| tail.chars().count() + 1);
+    (line, column)
 }
 
 fn parse_condition(expression: &str) -> Result<Condition> {
