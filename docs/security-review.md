@@ -65,7 +65,9 @@ gate.
 
 The earlier SR-08 statement that the memory session store was unbounded is
 historical. The current implementation is capacity-bounded; its remaining
-production limitation is process-local, non-persistent storage.
+production limitation is process-local, non-persistent storage. SR-09 is also
+historical: GitHub Private Vulnerability Reporting and maintainer ownership are
+now documented in `SECURITY.md` and `docs/vulnerability-response.md`.
 
 ## Public API review
 
@@ -82,7 +84,7 @@ The internal review found no additional release-blocking API inconsistency after
 
 ## Residual release gates
 
-This internal review closes the repository's internal hardening pass, but it does not close the independent security/API review requirement. The release checklist also still requires package-name availability, a private vulnerability-reporting channel, supported OS/database-version policy, clean-machine documentation/example review, final changelog/support review, provenance/checksum policy, rollback/yank planning and explicit owner publication approval.
+Internal review and remediation do not close the independent API/security review requirement. The current source of truth is `docs/v1-maturity-gate.md`: the independent review remains a framework-maturity blocker, followed by the exact-commit release-candidate validation, publication-graph, provenance, final documentation, and owner-approval gates. Private vulnerability reporting, maintainer ownership, support policy, and release-recovery procedures are already documented and should be re-verified by the independent reviewer rather than treated as missing.
 
 ## Conclusion
 
