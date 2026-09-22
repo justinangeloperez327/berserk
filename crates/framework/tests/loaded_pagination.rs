@@ -20,6 +20,8 @@ struct User {
 
 #[derive(Model)]
 #[table("posts")]
+#[has_many(Comment, "comments", foreign_key = "post_id")]
+#[belongs_to(User, "user", foreign_key = "user_id")]
 struct Post {
     #[primary_key]
     id: i64,
@@ -29,6 +31,20 @@ struct Post {
 
     #[fillable]
     title: String,
+}
+
+#[derive(Model)]
+#[table("comments")]
+#[belongs_to(Post, "post", foreign_key = "post_id")]
+struct Comment {
+    #[primary_key]
+    id: i64,
+
+    #[fillable]
+    post_id: i64,
+
+    #[fillable]
+    body: String,
 }
 
 fn database() -> Database {
@@ -41,10 +57,16 @@ fn database() -> Database {
             "CREATE TABLE posts (id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL, title TEXT NOT NULL)",
         ))?;
         connection.execute(&Statement::new(
+            "CREATE TABLE comments (id INTEGER PRIMARY KEY, post_id INTEGER NOT NULL, body TEXT NOT NULL)",
+        ))?;
+        connection.execute(&Statement::new(
             "INSERT INTO users (id, name) VALUES (1, 'Ada'), (2, 'Grace')",
         ))?;
         connection.execute(&Statement::new(
             "INSERT INTO posts (id, user_id, title) VALUES (10, 1, 'First'), (11, 1, 'Second'), (12, 2, 'Third')",
+        ))?;
+        connection.execute(&Statement::new(
+            "INSERT INTO comments (id, post_id, body) VALUES (100, 10, 'A'), (101, 10, 'B'), (102, 11, 'C'), (103, 12, 'D')",
         ))?;
         Ok(connection)
     })
@@ -54,7 +76,7 @@ fn database() -> Database {
 fn named_loaded_page_is_first_class_json_and_axe_data() -> Result<()> {
     DatabaseScope::new(database()).run(|| {
         let loaded = User::query()
-            .with(["posts"])
+            .with(["posts.comments"])
             .order_by("id", Direction::Asc)
             .paginate(1)?;
 
@@ -83,6 +105,19 @@ fn named_loaded_page_is_first_class_json_and_axe_data() -> Result<()> {
             panic!("has-many relationship should serialize as an array");
         };
         assert_eq!(posts.len(), 2);
+        let first_post = posts
+            .iter()
+            .find_map(|post| {
+                let Json::Object(post) = post else {
+                    return None;
+                };
+                (post.get("title").and_then(Json::as_str) == Some("First")).then_some(post)
+            })
+            .expect("First post");
+        let Json::Array(comments) = first_post.get("comments").expect("comments") else {
+            panic!("nested comments should serialize as an array");
+        };
+        assert_eq!(comments.len(), 2);
         let Json::Object(meta) = body.get("meta").expect("meta") else {
             panic!("loaded page metadata should be an object");
         };
@@ -104,6 +139,143 @@ fn named_loaded_page_is_first_class_json_and_axe_data() -> Result<()> {
         assert_eq!(
             view_meta.get("total"),
             Some(&AxeValue::Number("2".to_owned()))
+        );
+
+        Ok(())
+    })
+}
+
+#[test]
+fn nested_named_eager_loading_renders_recursively() -> Result<()> {
+    DatabaseScope::new(database()).run(|| {
+        let loaded = User::query()
+            .with(["posts.comments"])
+            .order_by("id", Direction::Asc)
+            .get()?;
+
+        assert_eq!(loaded.relations().len(), 1);
+        let posts = loaded.relations().get("posts").expect("posts relation");
+        assert_eq!(posts.nested().len(), 1);
+        assert!(posts.nested().get("comments").is_some());
+
+        let response = response().json(&loaded)?;
+        let Json::Array(users) = Json::parse(response.body()).expect("valid nested eager JSON")
+        else {
+            panic!("loaded collection should serialize as an array");
+        };
+        let Json::Object(ada) = &users[0] else {
+            panic!("user should serialize as an object");
+        };
+        let Json::Array(posts) = ada.get("posts").expect("posts") else {
+            panic!("posts should serialize as an array");
+        };
+        let first_post = posts
+            .iter()
+            .find_map(|post| {
+                let Json::Object(post) = post else {
+                    return None;
+                };
+                (post.get("title").and_then(Json::as_str) == Some("First")).then_some(post)
+            })
+            .expect("First post");
+        let Json::Array(comments) = first_post.get("comments").expect("comments") else {
+            panic!("comments should serialize as an array");
+        };
+        assert_eq!(comments.len(), 2);
+
+        let AxeValue::List(view_users) = berserk::views::value(&loaded) else {
+            panic!("loaded collection should become an Axe list");
+        };
+        let AxeValue::Object(view_ada) = &view_users[0] else {
+            panic!("Axe user should be an object");
+        };
+        let AxeValue::List(view_posts) = view_ada.get("posts").expect("Axe posts") else {
+            panic!("Axe posts should be a list");
+        };
+        let view_first_post = view_posts
+            .iter()
+            .find_map(|post| {
+                let AxeValue::Object(post) = post else {
+                    return None;
+                };
+                matches!(
+                    post.get("title"),
+                    Some(AxeValue::Text(title)) if title == "First"
+                )
+                .then_some(post)
+            })
+            .expect("Axe First post");
+        let AxeValue::List(view_comments) =
+            view_first_post.get("comments").expect("Axe comments")
+        else {
+            panic!("Axe comments should be a list");
+        };
+        assert_eq!(view_comments.len(), 2);
+
+        Ok(())
+    })
+}
+
+#[test]
+fn nested_belongs_to_paths_preserve_to_one_shape() -> Result<()> {
+    DatabaseScope::new(database()).run(|| {
+        let loaded = Comment::query()
+            .with(["post.user"])
+            .order_by("id", Direction::Asc)
+            .get()?;
+
+        let response = response().json(&loaded)?;
+        let Json::Array(comments) = Json::parse(response.body()).expect("valid belongs-to JSON")
+        else {
+            panic!("comments should serialize as an array");
+        };
+        let Json::Object(comment) = &comments[0] else {
+            panic!("comment should serialize as an object");
+        };
+        let Json::Object(post) = comment.get("post").expect("post") else {
+            panic!("belongs-to post should serialize as an object");
+        };
+        let Json::Object(user) = post.get("user").expect("user") else {
+            panic!("nested belongs-to user should serialize as an object");
+        };
+        assert_eq!(user.get("name").and_then(Json::as_str), Some("Ada"));
+
+        Ok(())
+    })
+}
+
+#[test]
+fn nested_named_eager_loading_rejects_malformed_and_unbounded_paths() -> Result<()> {
+    DatabaseScope::new(database()).run(|| {
+        let malformed = match User::query().with(["posts..comments"]).get() {
+            Ok(_) => panic!("malformed eager path should fail"),
+            Err(error) => error,
+        };
+        assert_eq!(
+            malformed.kind(),
+            &berserk::database::ErrorKind::InvalidInput
+        );
+
+        let too_deep = match User::query()
+            .with(["posts.comments.author.team.owner"])
+            .get()
+        {
+            Ok(_) => panic!("over-deep eager path should fail"),
+            Err(error) => error,
+        };
+        assert_eq!(
+            too_deep.kind(),
+            &berserk::database::ErrorKind::InvalidInput
+        );
+
+        let too_many: Vec<String> = (0..33).map(|index| format!("relation{index}")).collect();
+        let too_many = match User::query().with(too_many).get() {
+            Ok(_) => panic!("too many eager paths should fail"),
+            Err(error) => error,
+        };
+        assert_eq!(
+            too_many.kind(),
+            &berserk::database::ErrorKind::InvalidInput
         );
 
         Ok(())

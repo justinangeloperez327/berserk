@@ -203,9 +203,27 @@ for user in &loaded.models {
 | `LoadedPage<M, R>` | Parent page plus eager relationship output |
 
 Named loading is explicit eager loading, not lazy loading. Accessing a relationship
-that was not requested does not execute another query. Flat declared relationship
-names are supported by this API; dotted nested relationship paths are not resolved
-implicitly.
+that was not requested does not execute another query. Declared relationships can
+be traversed with dotted paths:
+
+```rust
+let users = User::query()
+    .with(["posts.comments", "roles.permissions"])
+    .get()?;
+```
+
+Each path segment must be a relationship declared on the model reached by the
+previous segment. Berserk batches each relationship level across the complete
+set of models from the previous level; it does not execute one child query per
+parent. Shared prefixes are loaded once, so requesting both `posts` and
+`posts.comments` does not load `posts` twice.
+
+Named eager paths are deliberately bounded: a path may contain at most four
+relationship segments, and one query level accepts at most 32 unique paths.
+Empty segments such as `posts..comments`, paths beyond the depth bound, and
+unknown relationships return `InvalidInput`. These bounds keep recursive eager
+loading explicit and prevent an unbounded relationship graph from being expanded
+by one request.
 
 ### Query counts and pagination
 
@@ -229,6 +247,8 @@ Scoped `paginate(20)` uses the active page context, defaulting to page 1 outside
 | Users + roles | 3: users, pivot, roles |
 | Users + posts + roles | 4 |
 | Paginated users + roles | 4: count, users page, pivot, roles |
+| Users + posts.comments | 3: users, posts, comments |
+| Paginated users + posts.comments | 4: count, users page, posts, comments |
 
 Empty parent results skip relationship queries. Empty pivot results skip the related-model query. Query counts do not grow per parent, avoiding N+1 behavior. Calling `query_for(...).get()` separately inside a parent loop still performs one query per iteration; request eager loading instead. Loading is batched, not unbounded streaming: paginate parent queries to respect driver parameter limits and memory budgets. Eager loading does not itself start a transaction or promise a consistent snapshot across concurrent writes; use the existing transaction scope if required.
 

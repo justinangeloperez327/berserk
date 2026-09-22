@@ -46,21 +46,67 @@ fn model_json<M: claw_orm::Model>(model: &M) -> Result<Json> {
 }
 
 #[cfg(feature = "claw")]
+fn named_attributes_json(
+    attributes: &claw_orm::Attributes,
+    key: &claw_orm::Value,
+    relations: &claw_orm::NamedRelations,
+) -> Result<Json> {
+    let mut object = match attributes_json(attributes)? {
+        Json::Object(object) => object,
+        _ => unreachable!("model presentation always produces an object"),
+    };
+    for relation in relations.iter() {
+        object.insert(
+            relation.name().to_owned(),
+            named_relation_json(relation, key)?,
+        );
+    }
+    Ok(Json::Object(object))
+}
+
+#[cfg(feature = "claw")]
 fn named_relation_json(
     relation: &claw_orm::NamedRelation,
     parent_key: &claw_orm::Value,
 ) -> Result<Json> {
     let values = relation.get(parent_key).unwrap_or(&[]);
+    if relation.nested().is_empty() {
+        return match relation.cardinality() {
+            claw_orm::RelationCardinality::Many => Ok(Json::Array(
+                values
+                    .iter()
+                    .map(attributes_json)
+                    .collect::<Result<Vec<_>>>()?,
+            )),
+            claw_orm::RelationCardinality::One => values
+                .first()
+                .map(attributes_json)
+                .unwrap_or(Ok(Json::Null)),
+        };
+    }
+
+    let keys = relation.keys(parent_key).unwrap_or(&[]);
+    if keys.len() != values.len() {
+        return Err(crate::ConfigError::new(
+            "model presentation",
+            "nested eager relation data is missing related model keys",
+        )
+        .into());
+    }
+
+    let nested = relation.nested();
     match relation.cardinality() {
         claw_orm::RelationCardinality::Many => Ok(Json::Array(
             values
                 .iter()
-                .map(attributes_json)
+                .zip(keys)
+                .map(|(attributes, key)| named_attributes_json(attributes, key, nested))
                 .collect::<Result<Vec<_>>>()?,
         )),
         claw_orm::RelationCardinality::One => values
             .first()
-            .map(attributes_json)
+            .zip(keys.first())
+            .map(|(attributes, key)| named_attributes_json(attributes, key, nested))
             .unwrap_or(Ok(Json::Null)),
     }
 }
@@ -70,18 +116,7 @@ fn named_model_json<M: claw_orm::Model>(
     model: &M,
     relations: &claw_orm::NamedRelations,
 ) -> Result<Json> {
-    let mut object = match model_json(model)? {
-        Json::Object(object) => object,
-        _ => unreachable!("model presentation always produces an object"),
-    };
-    let key = model.key();
-    for relation in relations.iter() {
-        object.insert(
-            relation.name().to_owned(),
-            named_relation_json(relation, &key)?,
-        );
-    }
-    Ok(Json::Object(object))
+    named_attributes_json(&model.visible_attributes(), &model.key(), relations)
 }
 
 #[cfg(feature = "claw")]

@@ -173,6 +173,11 @@ with only the requested relationships, while `meta` contains
 also exposes `items()`, `collection()`, `relations()`, the pagination
 metadata accessors, and `into_parts()` for lower-level code.
 
+Nested named relationships keep the same presentation contract. For example,
+`with(["posts.comments"])` places `comments` inside each loaded post rather
+than adding a separate top-level structure. Nested paths are batch-loaded and
+bounded to four segments and 32 unique paths per query level.
+
 ## Compatibility decisions
 
 - The existing query API, model binding, scoped/custom binding, input contracts,
