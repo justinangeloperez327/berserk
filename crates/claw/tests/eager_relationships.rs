@@ -136,6 +136,94 @@ fn scoped_eager_loading_pagination_and_direct_loaders_use_the_same_connection() 
 }
 
 #[test]
+fn eager_relationship_key_queries_are_chunked_before_driver_limits() {
+    let mut c = setup();
+    let users: Vec<User> = (0..501)
+        .map(|index| User {
+            id: 1_000 + index,
+            name: format!("User {index}"),
+        })
+        .collect();
+
+    let user_rows = users
+        .iter()
+        .map(|user| format!("({}, 'User {}')", user.id, user.id))
+        .collect::<Vec<_>>()
+        .join(",");
+    let post_rows = users
+        .iter()
+        .map(|user| {
+            format!(
+                "({}, {}, 'Post {}', 1)",
+                10_000 + user.id,
+                user.id,
+                user.id
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(",");
+    let role_rows = users
+        .iter()
+        .map(|user| format!("({}, 'Role {}')", 20_000 + user.id, user.id))
+        .collect::<Vec<_>>()
+        .join(",");
+    let pivot_rows = users
+        .iter()
+        .map(|user| format!("({}, {})", user.id, 20_000 + user.id))
+        .collect::<Vec<_>>()
+        .join(",");
+
+    c.execute(&Statement::new(format!(
+        "INSERT INTO users (id, name) VALUES {user_rows}"
+    )))
+    .unwrap();
+    c.execute(&Statement::new(format!(
+        "INSERT INTO posts (id, user_id, title, published) VALUES {post_rows}"
+    )))
+    .unwrap();
+    c.execute(&Statement::new(format!(
+        "INSERT INTO roles (id, name) VALUES {role_rows}"
+    )))
+    .unwrap();
+    c.execute(&Statement::new(format!(
+        "INSERT INTO role_user (user_id, role_id) VALUES {pivot_rows}"
+    )))
+    .unwrap();
+
+    c.statements.clear();
+    let posts = User::posts().load_on(&mut c, &users).unwrap();
+    assert_eq!(posts.len(), 501);
+    assert_eq!(c.statements.len(), 2);
+    assert_eq!(c.statements[0].bindings().len(), 500);
+    assert_eq!(c.statements[1].bindings().len(), 1);
+
+    let children: Vec<Post> = users
+        .iter()
+        .map(|user| Post {
+            id: 30_000 + user.id,
+            user_id: Some(user.id),
+            title: format!("Child {}", user.id),
+            published: true,
+        })
+        .collect();
+    c.statements.clear();
+    let owners = Post::user().load_on(&mut c, &children).unwrap();
+    assert_eq!(owners.len(), 501);
+    assert_eq!(c.statements.len(), 2);
+    assert_eq!(c.statements[0].bindings().len(), 500);
+    assert_eq!(c.statements[1].bindings().len(), 1);
+
+    c.statements.clear();
+    let roles = User::roles().load_on(&mut c, &users).unwrap();
+    assert_eq!(roles.len(), 501);
+    assert_eq!(c.statements.len(), 4);
+    assert_eq!(c.statements[0].bindings().len(), 500);
+    assert_eq!(c.statements[1].bindings().len(), 1);
+    assert_eq!(c.statements[2].bindings().len(), 500);
+    assert_eq!(c.statements[3].bindings().len(), 1);
+}
+
+#[test]
 fn has_one_and_related_decode_and_query_errors_propagate_through_eager_queries() {
     let mut c = setup();
     c.execute(&Statement::new("INSERT INTO profiles VALUES (3, 1)"))

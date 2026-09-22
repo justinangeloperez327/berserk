@@ -27,7 +27,7 @@ candidate.
   as `posts.comments` and `roles.permissions`.
 - [x] Give `LoadedPage<M, NamedRelations>` first-class JSON and Axe
   presentation, including pagination metadata.
-- [ ] Bound or chunk eager-load key queries so large parent collections do not
+- [x] Bound or chunk eager-load key queries so large parent collections do not
   fail solely because a database driver has a parameter limit.
 - [ ] Complete Axe's production template path with deterministic precompilation
   or an equivalent build-time validation step, useful file/line diagnostics,

@@ -1,5 +1,5 @@
 use crate::{
-    relationship::{keys_equal, unique_non_null, validate_key},
+    relationship::{key_chunks, keys_equal, unique_non_null, validate_key},
     Model, ModelQuery, RelatedSet,
 };
 use berserk_database::{Connection, DatabaseError, ErrorKind, Query, Result, Value};
@@ -73,10 +73,15 @@ impl<P, R: Model> BelongsToMany<P, R> {
             return Ok(RelatedSet::default());
         }
 
-        let links = Query::table(self.pivot_table)
-            .select([self.foreign_pivot_key, self.related_pivot_key])
-            .where_in(self.foreign_pivot_key, parent_keys.iter().cloned())
-            .get(connection)?;
+        let mut links = Vec::new();
+        for chunk in key_chunks(&parent_keys) {
+            links.extend(
+                Query::table(self.pivot_table)
+                    .select([self.foreign_pivot_key, self.related_pivot_key])
+                    .where_in(self.foreign_pivot_key, chunk.iter().cloned())
+                    .get(connection)?,
+            );
+        }
 
         let mut pairs = Vec::with_capacity(links.len());
         let mut related_keys = Vec::new();
@@ -115,9 +120,14 @@ impl<P, R: Model> BelongsToMany<P, R> {
             return Ok(RelatedSet::default());
         }
 
-        let related_rows = Query::table(R::TABLE)
-            .where_in(R::PRIMARY_KEY, related_keys)
-            .get(connection)?;
+        let mut related_rows = Vec::new();
+        for chunk in key_chunks(&related_keys) {
+            related_rows.extend(
+                Query::table(R::TABLE)
+                    .where_in(R::PRIMARY_KEY, chunk.iter().cloned())
+                    .get(connection)?,
+            );
+        }
         let mut keyed_rows = Vec::with_capacity(related_rows.len());
         for row in related_rows {
             let model = R::from_row(&row)?;
