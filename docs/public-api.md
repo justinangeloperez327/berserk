@@ -169,6 +169,12 @@ Operational inspection includes:
 
 The `berserk-testing` crate exposes in-memory request/response helpers and explicit fakes.
 
+The [foundation reference application](../examples/foundation/README.md) uses
+these contracts together: migration-backed SQLite setup, `CrudController` and
+`route.crud`, FormRequest validation, eager Claw relationships, configured
+bearer authentication, ability and policy authorization, Axe views, and
+`TestClient` application tests.
+
 - `TestClient` supports GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, and arbitrary methods through `request`.
 - `TestRequest` supports headers, bearer credentials, byte bodies, and JSON bodies.
 - `TestResponse` provides direct response inspection plus fluent assertions for status classes, redirects, headers, body/text, JSON paths, validation errors, and authentication/authorization responses.
