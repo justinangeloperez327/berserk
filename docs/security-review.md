@@ -49,6 +49,24 @@ The review covered the security-sensitive and developer-facing boundaries of the
 | SR-10 | Medium | Framework `Request` `Debug` output included the complete request path, which could expose route-parameter values in logs despite the intended redaction boundary. | Fixed in this review: request diagnostics now report only target byte length plus metadata, with regression coverage that rejects path/query value disclosure. |
 | SR-11 | Release process | The repository checklist requires an independent security/API review, but this pass was performed internally while developing the framework. | Kept open: an independent external reviewer must complete that gate before release readiness is claimed. |
 
+## V1 pre-review refresh — 2026-09-22
+
+This refresh was performed after the Claw eager-loading, Axe production-view,
+and foundation reference-application maturity work was merged. It is an
+**internal remediation pass only**. It does not satisfy the independent review
+gate.
+
+| ID | Severity | Finding | Resolution |
+| --- | --- | --- | --- |
+| SR-12 | Medium | `RequestLogger` recorded the concrete request path. Although query strings were excluded, route-parameter values such as account identifiers, opaque IDs, or secrets embedded in path segments could enter logs. | Fixed on `api-security-review-prep`: routing records the matched route template in request-local shared state; `RequestLogger` emits that template (for example `/users/{id}`) or a fixed unmatched/fallback marker. Regression tests assert that route-parameter and query values are absent. |
+| SR-13 | Low / availability | `LocalStorage` temporary-name generation used `OsRng.fill_bytes`, whose infallible wrapper can panic if operating-system entropy is unavailable. Storage operations should fail through the storage error boundary instead of terminating request work. | Fixed on `api-security-review-prep`: temporary-name generation uses `try_fill_bytes` and returns a controlled `StorageError`. |
+| SR-14 | Documentation | Security and limitation docs still called `MemorySessionStore` unbounded even though the current implementation has a configurable positive capacity and a 10,000-record default. | Fixed: documentation now describes the actual bounded, process-local, non-persistent behavior. |
+| SR-15 | Release process | The V1 independent API/security review is still outstanding. Internal review, CI, fuzzing, and this remediation pass cannot self-satisfy that requirement. | Kept open. The required evidence and reviewer sign-off format are defined in `docs/independent-api-security-review.md`. |
+
+The earlier SR-08 statement that the memory session store was unbounded is
+historical. The current implementation is capacity-bounded; its remaining
+production limitation is process-local, non-persistent storage.
+
 ## Public API review
 
 The primary API remains coherent around instance registration and explicit execution:
