@@ -1,8 +1,10 @@
 use berserk::{
-    claw::{IntoInsert, IntoUpdate, Transaction, Value},
-    response, view, Error, FormRequest, FromJson, IntoResponse, Json, Model, Request,
-    ResourceCollection, Response, Result, ValidationErrors, ValidationResult,
+    auth::{Ability, Decision, Policy, Principal},
+    claw::{Direction, IntoInsert, IntoUpdate, Transaction, Value},
+    response, view_data, CrudController, Error, FormRequest, FromJson, Json, Model, Request,
+    Response, Result, ValidationErrors, ValidationResult,
 };
+use std::path::PathBuf;
 
 #[derive(Model)]
 #[table("users")]
@@ -60,17 +62,11 @@ pub struct Role {
     pub name: String,
 }
 
-#[allow(dead_code)]
-fn eager_loading_examples() {
-    let _ = User::query().with([]);
-    let _ = User::query().with(["posts", "profile", "roles"]);
-    let _ = User::query().with(User::posts());
-}
-
 pub struct UserInput {
     name: String,
     email: String,
 }
+
 impl FromJson for UserInput {
     fn from_json(value: &Json) -> std::result::Result<Self, ValidationErrors> {
         let name = value.get("name").and_then(Json::as_str);
@@ -89,17 +85,28 @@ impl FromJson for UserInput {
         })
     }
 }
+
 impl FormRequest for UserInput {
     fn sanitize(&mut self) {
         self.name = self.name.trim().into();
         self.email = self.email.trim().to_ascii_lowercase();
     }
+
+    fn authorize_request(&self, request: &Request) -> Result<()> {
+        if request.can("users.manage") {
+            Ok(())
+        } else {
+            Err(Error::forbidden())
+        }
+    }
+
     fn validate(&self) -> ValidationResult {
         let mut errors = ValidationErrors::default();
         errors.length("name", &self.name, 1, 100);
         errors.email("email", &self.email);
         errors.finish()
     }
+
     fn validate_request(&self, request: &Request) -> Result<()> {
         let mut query = User::where_("email", self.email.clone());
         if let Some(Ok(id)) = request.param_as::<i64>("id") {
@@ -113,6 +120,7 @@ impl FormRequest for UserInput {
         Ok(())
     }
 }
+
 impl IntoInsert<User> for UserInput {
     fn into_insert(self) -> berserk::database::Result<Vec<(String, Value)>> {
         Ok(vec![
@@ -121,39 +129,79 @@ impl IntoInsert<User> for UserInput {
         ])
     }
 }
+
 impl IntoUpdate<User> for UserInput {
     fn into_update(self) -> berserk::database::Result<Vec<(String, Value)>> {
         self.into_insert()
     }
 }
 
+pub struct UserPolicy;
+
+impl Policy<User> for UserPolicy {
+    fn authorize(&self, principal: &Principal, action: &Ability, user: &User) -> Decision {
+        if action.as_str() != "users.view" {
+            return Decision::Deny;
+        }
+        if principal.has_role("admin") || principal.subject() == format!("user:{}", user.id) {
+            Decision::Allow
+        } else {
+            Decision::Deny
+        }
+    }
+}
+
 pub struct Users;
+
 impl Users {
     pub fn browse() -> Result<Response> {
-        let users = User::all()?;
-        view("users/index").with([("users", users)])
+        let users = User::query()
+            .with(["posts", "roles"])
+            .order_by("id", Direction::Asc)
+            .get()?;
+        let context = view_data!["users" => users];
+        let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("app/views");
+        Ok(Response::html(berserk::axe::render_from(
+            root,
+            "users/index",
+            &context,
+        )?))
     }
 
-    pub fn index() -> Result<Response> {
-        ResourceCollection::page(
-            User::query()
-                .order_by("id", berserk::claw::Direction::Asc)
-                .paginate(20)?,
-        )
-        .into_response()
+    pub fn policy_show(user: User, request: Request) -> Result<Response> {
+        request.authorize(&UserPolicy, "users.view", &user)?;
+        response().json(user)
     }
-    pub fn store(input: UserInput) -> Result<Response> {
+}
+
+impl CrudController for Users {
+    type Model = User;
+    type Create = UserInput;
+    type Update = UserInput;
+
+    fn index(&self) -> Result<Response> {
+        let users = User::query()
+            .with(["posts", "profile", "roles"])
+            .order_by("id", Direction::Asc)
+            .paginate(20)?;
+        response().json(&users)
+    }
+
+    fn store(&self, input: Self::Create) -> Result<Response> {
         let user = Transaction::run(|| User::create(input))?;
         response().status(201).json(user)
     }
-    pub fn show(user: User) -> Result<Response> {
+
+    fn show(&self, user: Self::Model) -> Result<Response> {
         response().json(user)
     }
-    pub fn update(mut user: User, input: UserInput) -> Result<Response> {
+
+    fn update(&self, mut user: Self::Model, input: Self::Update) -> Result<Response> {
         user.update(input)?;
         response().json(user)
     }
-    pub fn destroy(user: User) -> Result<Response> {
+
+    fn destroy(&self, user: Self::Model) -> Result<Response> {
         user.delete()?;
         response().no_content()
     }
