@@ -154,6 +154,25 @@ different API output, usually on a separate `PublicUserResource(User)` type.
 For a custom paginated representation, use
 `ResourceCollection::page(page.map(PublicUserResource))`.
 
+Named eager-loaded pagination is directly presentable without manually
+separating the page and relations:
+
+```rust
+let users = User::query()
+    .with(["posts", "roles"])
+    .order_by("id", Direction::Asc)
+    .paginate(20)?;
+
+response().json(&users)?;
+view("users/index").with([("users", &users)])?;
+```
+
+Both adapters use the same shape: `data` contains the current page's models
+with only the requested relationships, while `meta` contains
+`current_page`, `per_page`, `total`, and `last_page`. `LoadedPage`
+also exposes `items()`, `collection()`, `relations()`, the pagination
+metadata accessors, and `into_parts()` for lower-level code.
+
 ## Compatibility decisions
 
 - The existing query API, model binding, scoped/custom binding, input contracts,

@@ -25,7 +25,7 @@ candidate.
   experience after `.with(...)`.
 - [ ] Support nested named eager loading with explicit, bounded semantics such
   as `posts.comments` and `roles.permissions`.
-- [ ] Give `LoadedPage<M, NamedRelations>` first-class JSON and Axe
+- [x] Give `LoadedPage<M, NamedRelations>` first-class JSON and Axe
   presentation, including pagination metadata.
 - [ ] Bound or chunk eager-load key queries so large parent collections do not
   fail solely because a database driver has a parameter limit.
