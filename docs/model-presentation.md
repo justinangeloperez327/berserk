@@ -121,6 +121,12 @@ Normal interpolation escapes HTML. Accessing a hidden field is a missing-field
 render error; its value is not present in Axe's context. Axe itself has no Claw
 dependency and continues to accept its native values and contexts.
 
+Named views are compiled through Axe's deterministic view-tree compiler.
+`@include("shared/header")` resolves a root-relative dependency, and build-time
+validation can fail the application build with file/line/column diagnostics
+before deployment. See [Axe views](views.md) for include, validation, and
+production caching behavior.
+
 ## Collections and resources
 
 `all`, `find_many`, and query `get` return `Collection<T>`, including their
