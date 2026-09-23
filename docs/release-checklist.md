@@ -14,8 +14,9 @@ contains no automatic publish step.
 
 - The V1 framework core is implemented.
 - Normal repository CI is green on current `main`.
-- The independent API/security review remains open.
-- The formal 1.0 public API freeze has not yet been completed.
+- The owner has elected to publish v1.0.0 without a pre-release independent API/security review.
+- This is a risk-acceptance decision, not an audit; public documentation must state that clearly.
+- The intended 1.0 public API is frozen for publication.
 - The current publication graph contains **18 publishable crates**.
 - The release-artifact workflow expects **20 checksum subjects**: one source
   archive, 18 package-file lists, and one release manifest.
@@ -54,19 +55,16 @@ so.
 
 ## Framework maturity gate
 
-- [ ] Complete the independent API/security review against a specific candidate
-      commit and record the reviewer, findings, dispositions, verification, and
-      conclusion in `docs/independent-api-security-review.md`.
-- [ ] Resolve or explicitly document every release-blocking finding from that
-      review.
-
-Internal review, CI, fuzzing, and owner approval do not self-satisfy the
-independence requirement.
+- [~] Independent API/security review deferred by explicit owner decision for
+      v1.0.0. This does not constitute an audit.
+- [x] Public documentation states that v1.0.0 is not independently audited,
+      penetration-tested, security-certified, or production-certified.
+- [ ] A post-release independent review remains recommended and should be
+      tracked separately from the v1.0.0 publication gate.
 
 ## Exact release-candidate identity
 
-Complete these only after the independent review is closed and the intended
-1.0 API is frozen.
+Complete these against the frozen v1.0.0 publication candidate.
 
 - [ ] Record the exact release-candidate commit.
 - [ ] Confirm all 18 publishable crates are version-synchronized at `1.0.0`.
@@ -140,7 +138,7 @@ source commit differs, regenerate evidence.
 ## Owner authorization
 
 - [ ] The owner explicitly approves the exact source commit, 1.0.0 package set,
-      independent-review disposition, and final release evidence.
+      documented audit deferral, and final release evidence.
 - [ ] Publication is performed sequentially according to
       `docs/publication-runbook.md`.
 - [ ] Every published package/version is verified remotely from outside the
