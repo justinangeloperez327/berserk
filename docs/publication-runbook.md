@@ -2,7 +2,7 @@
 
 This runbook is for the repository owner or an explicitly authorized release maintainer publishing a coordinated Berserk release to crates.io.
 
-It does **not** replace the release checklist, independent security/API review, or owner approval. Do not publish until every required pre-publication gate is complete.
+It does **not** replace the release checklist or owner approval. For v1.0.0, the owner has explicitly deferred the independent API/security review; publication must therefore preserve the documented unaudited release posture.
 
 ## Publication model
 
@@ -16,8 +16,8 @@ The planner is deliberately read-only. It never publishes, yanks, tags, or chang
 
 Before the first `cargo publish` command:
 
-1. The independent API/security review is complete and every finding has a recorded disposition.
-2. The release checklist has no unresolved pre-publication gate.
+1. The release checklist has no unresolved pre-publication gate other than the explicitly documented independent-review deferral.
+2. Public release documentation clearly states that v1.0.0 is not independently audited or security-certified.
 3. The owner has approved the exact version and exact source commit.
 4. The worktree is clean and checked out at that approved commit.
 5. The manual `Release artifacts` workflow has been rerun for that exact final commit after all review fixes/documentation changes are merged.
