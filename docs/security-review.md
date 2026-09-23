@@ -2,7 +2,7 @@
 
 Date: 2026-09-17
 
-Status: this file contains the historical internal review from 2026-09-17 plus the V1 internal pre-review refresh from 2026-09-22. It is development evidence only. It does not satisfy the independent API/security review required for v1.0.0, and it is not a penetration test, security certification, or guarantee of vulnerability absence.
+Status: this file contains the historical internal review from 2026-09-17 plus the V1 internal pre-review refresh from 2026-09-22. It is development evidence only. The owner elected to publish v1.0.0 without a pre-release independent API/security review. This record is not a penetration test, security certification, or guarantee of vulnerability absence.
 
 ## Scope
 
@@ -47,7 +47,7 @@ The review covered the security-sensitive and developer-facing boundaries of the
 | SR-08 | Operational boundary | Historical finding: `MemorySessionStore` was described as process-local and unbounded; arbitrary synchronous handler code can also block indefinitely. | **Superseded in part by SR-14.** The current store is capacity-bounded (10,000 records by default) but remains process-local and non-persistent. Arbitrary blocking handler work remains an application/runtime boundary. |
 | SR-09 | Release process | Historical finding: a private vulnerability-reporting channel and named maintainer response ownership were not yet configured. | **Resolved later.** GitHub Private Vulnerability Reporting and maintainer ownership are now documented in `SECURITY.md`, `.github/CODEOWNERS`, and `docs/vulnerability-response.md`. |
 | SR-10 | Medium | Framework `Request` `Debug` output included the complete request path, which could expose route-parameter values in logs despite the intended redaction boundary. | Fixed in this review: request diagnostics now report only target byte length plus metadata, with regression coverage that rejects path/query value disclosure. |
-| SR-11 | Release process | The repository checklist requires an independent API/security review, but this pass was performed internally while developing the framework. | Kept open: a reviewer/process independent from the implementation work must complete that gate before release readiness is claimed. |
+| SR-11 | Release process | The repository originally required an independent API/security review, but this pass was performed internally while developing the framework. | Deferred for v1.0.0 by explicit owner decision. This is a risk acceptance, not an independent review. |
 
 ## V1 pre-review refresh — 2026-09-22
 
@@ -61,7 +61,7 @@ gate.
 | SR-12 | Medium | `RequestLogger` recorded the concrete request path. Although query strings were excluded, route-parameter values such as account identifiers, opaque IDs, or secrets embedded in path segments could enter logs. | Fixed on `api-security-review-prep`: routing records the matched route template in request-local shared state; `RequestLogger` emits that template (for example `/users/{id}`) or a fixed unmatched/fallback marker. Regression tests assert that route-parameter and query values are absent. |
 | SR-13 | Low / availability | `LocalStorage` temporary-name generation used `OsRng.fill_bytes`, whose infallible wrapper can panic if operating-system entropy is unavailable. Storage operations should fail through the storage error boundary instead of terminating request work. | Fixed on `api-security-review-prep`: temporary-name generation uses `try_fill_bytes` and returns a controlled `StorageError`. |
 | SR-14 | Documentation | Security and limitation docs still called `MemorySessionStore` unbounded even though the current implementation has a configurable positive capacity and a 10,000-record default. | Fixed: documentation now describes the actual bounded, process-local, non-persistent behavior. |
-| SR-15 | Release process | The V1 independent API/security review is still outstanding. Internal review, CI, fuzzing, and this remediation pass cannot self-satisfy that requirement. | Kept open. The required evidence and reviewer sign-off format are defined in `docs/independent-api-security-review.md`. |
+| SR-15 | Release process | No independent API/security review was completed before v1.0.0. Internal review, CI, fuzzing, and this remediation pass do not substitute for one. | Accepted for v1.0.0 by owner decision and disclosed publicly; a post-release independent review remains recommended. |
 
 The earlier SR-08 statement that the memory session store was unbounded is
 historical. The current implementation is capacity-bounded; its remaining
@@ -80,11 +80,11 @@ The primary API remains coherent around instance registration and explicit execu
 - Claw query chains build operations while terminal methods perform database I/O.
 - Optional subsystems remain feature-gated and the crate prelude exposes common application types without hiding ownership or error boundaries.
 
-The internal review found no additional release-blocking API inconsistency after correcting the stale contract documentation. That conclusion is limited to this internal review and does not replace the independent review gate.
+The internal review found no additional release-blocking API inconsistency after correcting the stale contract documentation. That conclusion is limited to internal review and must not be described as an independent audit.
 
 ## Residual release gates
 
-Internal review and remediation do not close the independent API/security review requirement. The current source of truth is `docs/v1-maturity-gate.md`: the independent review remains a framework-maturity blocker, followed by the exact-commit release-candidate validation, publication-graph, provenance, final documentation, and owner-approval gates. Private vulnerability reporting, maintainer ownership, support policy, and release-recovery procedures are already documented and should be re-verified by the independent reviewer rather than treated as missing.
+Internal review and remediation do not constitute an independent API/security review. For v1.0.0, the owner explicitly deferred that review and accepted the residual risk. The remaining release gates are exact-commit validation, publication-graph verification, provenance, final documentation review, and owner approval.
 
 ## Conclusion
 
