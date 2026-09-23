@@ -30,20 +30,19 @@ The V1 maturity gate is the source of truth:
 Do not add convenience features merely to increase feature count. The remaining
 sequence is:
 
-1. Complete the independent API/security review against a specific commit.
-2. Resolve or explicitly document every release-blocking finding.
-3. Freeze the intended 1.0 public API.
-4. Create the final release candidate.
-5. Rerun formatting, Clippy, tests, documentation, MSRV, feature matrices,
+1. Preserve the documented decision to publish without a pre-release independent audit.
+2. Freeze the intended 1.0 public API.
+3. Create the final release candidate.
+4. Rerun formatting, Clippy, tests, documentation, MSRV, feature matrices,
    live PostgreSQL/MySQL/SQLite checks, fuzzing, load/soak, package checks, and
    clean-consumer verification on the exact release commit.
-6. Re-check all 18 crates.io package names and the publication graph.
-7. Generate the final 20-subject release evidence set: one source archive,
+5. Re-check all 18 crates.io package names and the publication graph.
+6. Generate the final 20-subject release evidence set: one source archive,
    18 Cargo package-file lists, and one release manifest.
-8. Review public documentation, limitations, changelog, upgrade notes, and
+7. Review public documentation, limitations, changelog, upgrade notes, and
    examples against that same commit.
-9. Obtain explicit owner approval.
-10. Publish sequentially using the publication runbook.
+8. Obtain explicit owner approval.
+9. Publish sequentially using the publication runbook.
 
 ## Phase 2 — production proving
 
