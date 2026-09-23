@@ -2,7 +2,7 @@
 
 Berserk is a Rust web framework focused on a clear developer experience, explicit behavior, type safety, and predictable performance.
 
-> **Release target:** v1.0.0. Berserk has not yet been published publicly. The intended V1 framework core is implemented; the independent API/security review is the remaining framework-maturity blocker before formal API freeze and exact-commit release-candidate validation. Rust 1.88 is the minimum supported Rust version (MSRV).
+> **Release:** v1.0.0 is the first public stable release candidate. The owner has elected to publish without a pre-release independent API/security audit. Berserk has internal review, CI, fuzzing, database, load, package, and release-artifact validation, but it must not be described as independently audited or security-certified. Rust 1.88 is the minimum supported Rust version (MSRV).
 
 ## Why Berserk?
 
@@ -21,7 +21,7 @@ The pre-1.0 direct application verb shortcuts and `Request::principal()` compati
 
 ### Current maturity
 
-The framework core is no longer being treated as a prototype. The V1 maturity gate has one remaining framework-level blocker: an independent API/security review against a specific commit. After that, the intended 1.0 public API is frozen and the complete release matrix is rerun against the exact publication candidate.
+The framework core is no longer being treated as a prototype. The owner has chosen to defer an independent API/security audit until after the first public release. The intended 1.0 public API is therefore frozen by owner decision, and the complete release matrix must be rerun against the exact publication candidate.
 
 That does **not** mean Berserk already has Laravel-level ecosystem maturity. Production history, third-party packages, independent maintainers, deployment experience, long-term compatibility, and community adoption are post-1.0 evidence. See [ecosystem maturity](docs/ecosystem-maturity.md).
 
@@ -33,7 +33,7 @@ That does **not** mean Berserk already has Laravel-level ecosystem maturity. Pro
 
 ## Installation
 
-After the first public release, the package will be consumed as:
+The public package is consumed as:
 
 ```toml
 [dependencies]

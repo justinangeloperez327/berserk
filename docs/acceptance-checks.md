@@ -1,6 +1,6 @@
 # Implementation acceptance checks
 
-These checks define the release target. The workflow results for the exact release-candidate commit are the source of truth; results from an earlier commit do not satisfy a later candidate. Independent review and owner release authorization remain explicit non-automated gates.
+These checks define the release target. The workflow results for the exact release-candidate commit are the source of truth; results from an earlier commit do not satisfy a later candidate. For v1.0.0, the independent review is explicitly deferred by owner decision; owner release authorization remains a non-automated gate.
 
 ## Public API
 
@@ -239,7 +239,7 @@ These checks define the release target. The workflow results for the exact relea
 - Dependency advisory, license, duplicate-version, and source policies are automated and every exception requires review.
 - Security reporting, support, compatibility, contribution, changelog, and release ownership are documented.
 - Release preparation checks feature combinations, live databases, fuzzing, load/soak behavior, package contents, and clean-machine examples.
-- The project cannot be marked release-ready until the independent API/security review is complete, the intended 1.0 API is frozen, every exact-candidate executable gate passes, the current 18-package publication graph and 20-subject release evidence are verified, and the owner approves that exact candidate.
+- The project can be marked release-ready for v1.0.0 only when the documented audit deferral is preserved, the intended 1.0 API is frozen, every exact-candidate executable gate passes, the current 18-package publication graph and 20-subject release evidence are verified, and the owner approves that exact candidate.
 
 ## Phase 1 review items resolved in this document set
 

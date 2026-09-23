@@ -2,7 +2,7 @@
 
 Berserk follows the spirit of Keep a Changelog. Versioning and compatibility policy are defined in `docs/compatibility.md`.
 
-Berserk has not yet been published publicly. The entries below `1.0.0` describe development milestones that are being consolidated into the first public v1.0.0 release rather than previously published package releases.
+Berserk v1.0.0 is the first public release. Entries below `1.0.0` describe repository development milestones that were consolidated into the first public release rather than previously published package releases.
 
 ## Unreleased
 
@@ -11,7 +11,7 @@ Berserk has not yet been published publicly. The entries below `1.0.0` describe 
 - Consolidated migration, Claw relationship, and request-plumbing work into the first public v1.0.0 release target.
 - Documentation now distinguishes internal development milestones from public releases.
 - Development branches are named for their work; version numbers are reserved for actual release preparation.
-- Documentation now reflects the current V1 maturity state: the core implementation is complete except for the independent API/security review, while exact-commit release validation remains outstanding.
+- The owner elected to publish v1.0.0 without a pre-release independent API/security audit; the release must not be represented as independently audited or security-certified.
 - Release documentation now uses the current 18-crate publication graph and 20-subject release-evidence model instead of older 15/17-package-era evidence.
 - Post-1.0 ecosystem maturity is documented separately from framework-core feature completeness; production history, third-party packages, community adoption, and multi-release compatibility are explicitly not V1 feature-count requirements.
 

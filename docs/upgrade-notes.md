@@ -1,6 +1,6 @@
 # Upgrade notes
 
-Berserk has not yet been published publicly. These notes describe migrations between repository development milestones and the first public v1.0.0 target; they are not evidence of prior public package releases.
+Berserk v1.0.0 is the first public release. The notes below describe migrations from repository development milestones into that stable baseline; the earlier milestone numbers were not public package releases.
 
 ## Pre-release development → v1.0.0
 

@@ -14,9 +14,10 @@ candidate.
 ## Current status
 
 The implementation-side V1 core is mature enough for the first stable release
-candidate. Nine of the ten framework-maturity blockers below are complete. The
-only remaining framework-maturity blocker is the **independent API/security
-review**.
+candidate. The owner has explicitly chosen to publish v1.0.0 without completing
+a pre-release independent API/security review. That decision does not count as
+an audit and does not permit Berserk to be described as independently audited or
+security-certified.
 
 Normal `main` CI passing is necessary but does not satisfy the final
 release-candidate gates, because those checks must be rerun against the exact
@@ -46,14 +47,13 @@ source commit that would be published.
 - [x] Maintain at least one realistic reference application that exercises
   generated CRUD, validation, migrations, relationships, authentication,
   authorization, views, and application tests together.
-- [ ] Perform an independent API/security review and resolve or explicitly
-  document every release-blocking finding. Record the exact reviewed commit,
-  findings, dispositions, verification, and reviewer conclusion in
-  `docs/independent-api-security-review.md`.
+- [~] Independent API/security review deferred by explicit owner decision for
+  v1.0.0. This is a documented risk acceptance, not completion of the review.
+  A post-release independent review remains recommended.
 
 ## Release-candidate blockers
 
-After the framework maturity blockers are complete:
+For the v1.0.0 publication candidate:
 
 - [ ] Freeze the intended 1.0 public API and stop adding convenience features
   that are not required to correct a demonstrated usability or correctness gap.
