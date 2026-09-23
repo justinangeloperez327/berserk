@@ -1,6 +1,6 @@
 # Security policy
 
-Berserk v1.0.0 is the intended first public stable framework release and has not yet been published. The repository has completed dedicated internal security/API review passes, but it has not yet completed the independent security/API review required by the V1 maturity gate, nor has it received a third-party penetration test or security certification. Do not describe it as independently audited or production-certified.
+Berserk v1.0.0 is the first public stable framework release. The repository has completed dedicated internal security/API review passes and automated security validation, but the owner chose to publish without a pre-release independent API/security audit. Berserk has not received a third-party penetration test or security certification. Do not describe it as independently audited or production-certified.
 
 ## Security maintainer
 
@@ -20,7 +20,7 @@ The maintainer targets acknowledgement within 3 business days and initial triage
 
 ## Supported versions
 
-Berserk has no published stable version yet. v1.0.0 is the intended first stable baseline and remains under pre-publication review. Security issues affecting the candidate are handled against the current repository state. After v1.0.0 is published, public API compatibility follows semantic versioning and security remediation follows the published support policy.
+Berserk v1.0.0 is the supported stable baseline. Public API compatibility follows semantic versioning and security remediation follows the published support policy.
 
 ## Security boundaries
 
