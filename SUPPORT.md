@@ -1,11 +1,8 @@
 # Support
 
-Berserk v1.0.0 is the intended first public stable release. It has **not** yet
-been published, so there is no published stable Berserk version to support at
-this time.
+Berserk v1.0.0 is the first public stable release.
 
-The support matrix below defines the target contract for the first public
-release candidate:
+The support matrix below defines the supported v1.0.0 contract:
 
 - Minimum supported Rust version (MSRV): **Rust 1.88**.
 - Stable Rust is the primary development toolchain.
@@ -13,8 +10,7 @@ release candidate:
 - Windows and macOS receive development compatibility coverage.
 - PostgreSQL, MySQL, and SQLite support is feature-gated and defined by the
   tested matrix.
-- Once v1.0.0 is published, users should normally upgrade to the latest
-  compatible release to receive fixes.
+- Users should normally upgrade to the latest compatible Berserk release to receive fixes.
 - After v1.0.0, breaking public API changes require a new major release;
   security and correctness fixes should remain within semantic-versioning
   constraints whenever practical.
