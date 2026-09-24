@@ -3,7 +3,7 @@
 use berserk::{
     claw::{field, Model, Row, Value},
     database::{drivers::sqlite::SqliteConnection, Database, Query},
-    App, Headers, Method, Request, Response, Result,
+    App, Headers, Method, Request, Response,
 };
 
 #[derive(Debug)] struct User { id: i64, name: String }
