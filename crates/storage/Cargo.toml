@@ -11,4 +11,4 @@ description = "Storage contracts and local or memory storage for Berserk."
 publish = true
 
 [dependencies]
-rand_core = { version = "0.6", features = ["getrandom"] }
+rand_core = "0.10"
