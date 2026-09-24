@@ -35,7 +35,11 @@ fn explicit_head_wins_over_get_fallback() {
 #[test]
 fn query_string_does_not_participate_in_route_matching() {
     let mut app = App::new();
-    app.route().get("/search", |request: Request| Response::text(request.query("q").unwrap().unwrap_or("").to_owned())).unwrap();
+    app.route()
+        .get("/search", |request: Request| {
+            Response::text(request.query("q").unwrap().unwrap_or_default())
+        })
+        .unwrap();
     let response = app.respond(request("GET", "/search?q=rust"));
     assert_eq!(response.status_code(), 200);
     assert_eq!(response.body(), b"rust");
