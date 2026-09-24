@@ -254,3 +254,39 @@ mod tests {
         }
     }
 }
+
+#[cfg(all(test, feature = "database"))]
+mod database_error_tests {
+    use super::*;
+    use berserk_database::{DatabaseError, ErrorKind};
+
+    #[test]
+    fn integrity_errors_are_conflicts_and_redact_driver_details() {
+        for kind in [
+            ErrorKind::Constraint,
+            ErrorKind::UniqueViolation,
+            ErrorKind::ForeignKeyViolation,
+            ErrorKind::NotNullViolation,
+        ] {
+            let error = Error::from(DatabaseError::new(kind, "secret driver detail"));
+            assert_eq!(error.status_code(), 409);
+            let response = error.response();
+            assert_eq!(response.status_code(), 409);
+            assert!(!String::from_utf8_lossy(response.body()).contains("secret driver detail"));
+        }
+    }
+
+    #[test]
+    fn database_not_found_invalid_input_and_timeout_keep_public_statuses() {
+        for (kind, status) in [
+            (ErrorKind::NotFound, 404),
+            (ErrorKind::InvalidInput, 400),
+            (ErrorKind::Timeout, 503),
+        ] {
+            assert_eq!(
+                Error::from(DatabaseError::new(kind, "internal")).status_code(),
+                status
+            );
+        }
+    }
+}
