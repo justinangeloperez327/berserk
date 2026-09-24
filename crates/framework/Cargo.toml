@@ -39,7 +39,7 @@ claw-orm = { workspace = true, optional = true }
 berserk-auth = { workspace = true, optional = true }
 berserk-axe = { workspace = true, optional = true }
 berserk-openapi = { workspace = true, optional = true }
-rand_core = { version = "0.6", features = ["getrandom"] }
+rand_core = "0.10"
 berserk-cache = { workspace = true, optional = true }
 berserk-storage = { workspace = true, optional = true }
 berserk-events = { workspace = true, optional = true }
