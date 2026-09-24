@@ -64,3 +64,9 @@ fn postgres_runs_the_live_migration_contract() {
     };
     common::run_live_migration_contract(&mut connection);
 }
+
+#[test]
+fn postgres_runs_the_live_database_contract() {
+    let Some(mut connection) = connection() else { return; };
+    common::run_live_database_contract(&mut connection);
+}
