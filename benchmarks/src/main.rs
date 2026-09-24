@@ -1,4 +1,7 @@
-use berserk::{App, Headers, Json, Method, Request, Response};
+use berserk::{
+    database::{drivers::sqlite::SqliteConnection, Connection, Query, Value},
+    App, Headers, Json, Method, Request, Response,
+};
 use std::{
     error::Error,
     hint::black_box,
@@ -63,8 +66,8 @@ fn main() -> Result<()> {
     if n == 0 || n > 10_000_000 || warmup > 1_000_000 {
         return Err("invalid iteration or warmup count".into());
     }
-    if !["routing", "json", "tcp"].contains(&scenario) {
-        return Err("scenario must be routing, json or tcp".into());
+    if !["routing", "json", "query", "tcp"].contains(&scenario) {
+        return Err("scenario must be routing, json, query or tcp".into());
     }
     eprintln!("scenario={scenario}; os={}; arch={}; profile={}; samples contain timer/allocation overhead",std::env::consts::OS,std::env::consts::ARCH,if cfg!(debug_assertions){"debug (do not use as baseline)"}else{"release"});
     println!("scenario,iterations,warmup,elapsed_seconds,operations_per_second,p50_ns,p95_ns,p99_ns,max_ns");
@@ -105,6 +108,33 @@ fn main() -> Result<()> {
                     Ok(())
                 },
                 "json_parse_encode",
+                n,
+                warmup,
+            )
+        }
+        "query" => {
+            let mut connection = SqliteConnection::in_memory()?;
+            Query::raw("CREATE TABLE benchmark_users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, active INTEGER NOT NULL)").execute(&mut connection)?;
+            for id in 1_i64..=100 {
+                Query::table("benchmark_users").insert([
+                    ("id", Value::I64(id)),
+                    ("name", Value::from(format!("User {id}"))),
+                    ("active", Value::I64((id % 2 == 0) as i64)),
+                ]).execute(&mut connection)?;
+            }
+            measure(
+                || {
+                    let rows = Query::table("benchmark_users")
+                        .select(["id", "name"])
+                        .where_("active", 1_i64)
+                        .order_by("id", berserk::database::Direction::Desc)
+                        .limit(20)
+                        .get(&mut connection)?;
+                    if rows.len() != 20 { return Err("incorrect query result".into()); }
+                    black_box(rows);
+                    Ok(())
+                },
+                "sqlite_query_100_rows",
                 n,
                 warmup,
             )
