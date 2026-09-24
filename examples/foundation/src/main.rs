@@ -10,7 +10,9 @@ use berserk::{
     response, App, HandleErrors, Next, Request, RequestId, Result,
 };
 use std::sync::Arc;
-use berserk::{cache::MemoryCache, events::EventBus, jobs::{MemoryFailedJobs, QueueConfig, WorkerPool}, notifications::{MemoryMailTransport, Notifier, NotifierConfig}, storage::MemoryStorage};
+use berserk::{cache::MemoryCache, events::EventBus, jobs::{JobQueue, MemoryFailedJobs, QueueConfig, WorkerPool}, notifications::{MemoryMailTransport, Notifier, NotifierConfig}, storage::MemoryStorage};
+
+struct FoundationWorkers(WorkerPool);
 
 fn application<G: Guard>(database: Database, guard: G) -> Result<App> {
     let mut app = App::new();
@@ -21,8 +23,9 @@ fn application<G: Guard>(database: Database, guard: G) -> Result<App> {
     app.events(EventBus::new())?;
     let workers = WorkerPool::new(QueueConfig { workers: 1, capacity: 256 }, Arc::new(MemoryFailedJobs::default()))
         .map_err(|e| berserk::ConfigError::new("jobs", e.to_string()))?;
-    app.jobs(workers.queue())?;
-    std::mem::forget(workers);
+    let queue: JobQueue = workers.queue();
+    app.jobs(queue)?;
+    app.state(FoundationWorkers(workers))?;
     let mail = Arc::new(MemoryMailTransport::new(256).map_err(|e| berserk::ConfigError::new("notifications", e.to_string()))?);
     app.notifications(Notifier::new(NotifierConfig::default()).map_err(|e| berserk::ConfigError::new("notifications", e.to_string()))?.with_mail(mail))?;
     app.middleware(RequestId);
