@@ -50,6 +50,48 @@ impl Migration for CreateFoundationSchema {
                         .on_delete(ForeignAction::Cascade)]),
             )
             .create(
+                Table::create("projects")
+                    .columns([
+                        Column::id(),
+                        Column::big_integer("owner_id"),
+                        Column::string("name"),
+                        Column::string("status"),
+                    ])
+                    .indexes([Index::new(["owner_id"]), Index::new(["status"])])
+                    .foreign_keys([ForeignKey::new(["owner_id"])
+                        .references("users", ["id"])
+                        .on_delete(ForeignAction::Cascade)]),
+            )
+            .create(
+                Table::create("tasks")
+                    .columns([
+                        Column::id(),
+                        Column::big_integer("project_id"),
+                        Column::big_integer("assignee_id").nullable(),
+                        Column::string("title"),
+                        Column::string("status"),
+                    ])
+                    .indexes([Index::new(["project_id"]), Index::new(["assignee_id"]), Index::new(["status"])])
+                    .foreign_keys([
+                        ForeignKey::new(["project_id"]).references("projects", ["id"]).on_delete(ForeignAction::Cascade),
+                        ForeignKey::new(["assignee_id"]).references("users", ["id"]).on_delete(ForeignAction::SetNull),
+                    ]),
+            )
+            .create(
+                Table::create("comments")
+                    .columns([
+                        Column::id(),
+                        Column::big_integer("task_id"),
+                        Column::big_integer("user_id"),
+                        Column::string("body"),
+                    ])
+                    .indexes([Index::new(["task_id"]), Index::new(["user_id"])])
+                    .foreign_keys([
+                        ForeignKey::new(["task_id"]).references("tasks", ["id"]).on_delete(ForeignAction::Cascade),
+                        ForeignKey::new(["user_id"]).references("users", ["id"]).on_delete(ForeignAction::Cascade),
+                    ]),
+            )
+            .create(
                 Table::create("role_user")
                     .columns([
                         Column::big_integer("user_id"),
@@ -72,6 +114,9 @@ impl Migration for CreateFoundationSchema {
     fn down(&self, driver: Driver) -> Result<Vec<Statement>> {
         MigrationPlan::new()
             .table(Table::drop("role_user"))
+            .table(Table::drop("comments"))
+            .table(Table::drop("tasks"))
+            .table(Table::drop("projects"))
             .table(Table::drop("profiles"))
             .table(Table::drop("posts"))
             .table(Table::drop("roles"))
