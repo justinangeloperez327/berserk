@@ -127,6 +127,8 @@ jobs:
           RUSTDOCFLAGS: -D warnings
       - run: cargo test --manifest-path examples/minimal-api/Cargo.toml
       - run: python3 scripts/verify_generators.py
+      - name: Verify v1 external compatibility contracts
+        run: python3 scripts/verify_v1_compatibility.py
       - run: python3 scripts/release_plan.py --format json
       - run: git diff --exit-code Cargo.lock
 
