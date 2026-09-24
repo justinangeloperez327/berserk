@@ -6,6 +6,12 @@ Berserk v1.0.0 is the first public stable baseline. Rust 1.88 is the minimum sup
 
 The 1.0 public API is frozen for publication. The owner chose to defer an independent API/security review until after the first public release; this does not change the semantic-versioning commitment. Breaking public API changes require a new major release. New aliases and convenience surfaces should still be avoided unless they solve a concrete gap. Compatibility-affecting changes must be documented rather than introduced silently.
 
+## Executable v1 compatibility firewall
+
+Consumer-visible v1.0 contracts are compiled from independent Cargo workspaces by `scripts/verify_v1_compatibility.py` in normal CI. The fixtures cover the framework facade, routing and input contracts, Claw model/query/collection APIs, typed writes, CRUD controllers, and selected feature-gated integrations. They are a SemVer guard: an implementation refactor must continue to compile the frozen v1.0 consumer surface throughout 1.x.
+
+See [v1 compatibility fixtures](v1-compatibility-fixtures.md) for scope and maintenance rules.
+
 ## Versioning policy
 
 - Follow semantic versioning for published packages.
