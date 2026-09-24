@@ -238,3 +238,82 @@ fn integer_eq(value: Option<&berserk_database::Value>, expected: i64) -> bool {
     matches!(value, Some(berserk_database::Value::I64(value)) if *value == expected)
         || matches!(value, Some(berserk_database::Value::U64(value)) if *value == expected as u64)
 }
+
+
+/// Cross-backend transaction contract: commit, rollback, multi-statement atomicity,
+/// constraint rollback, and connection usability after completion.
+pub fn run_live_transaction_contract(connection: &mut dyn Connection) {
+    const TABLE: &str = "berserk_transaction_contract";
+    connection.execute(&Statement::new(format!("DROP TABLE IF EXISTS {TABLE}"))).unwrap();
+    connection.execute(&Statement::new(format!(
+        "CREATE TABLE {TABLE} (id BIGINT PRIMARY KEY, value VARCHAR(255) NOT NULL UNIQUE)"
+    ))).unwrap();
+    let driver = connection.driver();
+
+    {
+        let mut tx = connection.begin(Default::default()).unwrap();
+        transaction_insert(&mut *tx, driver, TABLE, 1, "committed").unwrap();
+        tx.commit().unwrap();
+    }
+    assert!(transaction_exists(connection, driver, TABLE, 1));
+
+    {
+        let mut tx = connection.begin(Default::default()).unwrap();
+        transaction_insert(&mut *tx, driver, TABLE, 2, "rolled-back").unwrap();
+        transaction_insert(&mut *tx, driver, TABLE, 3, "also-rolled-back").unwrap();
+        tx.rollback().unwrap();
+    }
+    assert!(!transaction_exists(connection, driver, TABLE, 2));
+    assert!(!transaction_exists(connection, driver, TABLE, 3));
+
+    {
+        let mut tx = connection.begin(Default::default()).unwrap();
+        transaction_insert(&mut *tx, driver, TABLE, 4, "duplicate").unwrap();
+        let error = transaction_insert(&mut *tx, driver, TABLE, 5, "duplicate").unwrap_err();
+        assert_eq!(error.kind(), &berserk_database::ErrorKind::UniqueViolation);
+        tx.rollback().unwrap();
+    }
+    assert!(!transaction_exists(connection, driver, TABLE, 4));
+    assert!(!transaction_exists(connection, driver, TABLE, 5));
+
+    // A completed transaction must release the connection for ordinary work.
+    contract_execute_insert(connection, driver, TABLE, 6, "after-transaction").unwrap();
+    assert!(transaction_exists(connection, driver, TABLE, 6));
+
+    connection.execute(&Statement::new(format!("DROP TABLE {TABLE}"))).unwrap();
+}
+
+fn transaction_insert(
+    tx: &mut dyn berserk_database::Transaction,
+    driver: Driver,
+    table: &str,
+    id: i64,
+    value: &str,
+) -> berserk_database::Result<berserk_database::Execution> {
+    let sql = format!(
+        "INSERT INTO {table} (id, value) VALUES ({}, {})",
+        placeholder(driver, 1),
+        placeholder(driver, 2)
+    );
+    tx.execute(&Statement::new(sql).bind(id).bind(value))
+}
+
+fn contract_execute_insert(
+    connection: &mut dyn Connection,
+    driver: Driver,
+    table: &str,
+    id: i64,
+    value: &str,
+) -> berserk_database::Result<berserk_database::Execution> {
+    let sql = format!(
+        "INSERT INTO {table} (id, value) VALUES ({}, {})",
+        placeholder(driver, 1),
+        placeholder(driver, 2)
+    );
+    connection.execute(&Statement::new(sql).bind(id).bind(value))
+}
+
+fn transaction_exists(connection: &mut dyn Connection, driver: Driver, table: &str, id: i64) -> bool {
+    let sql = format!("SELECT id FROM {table} WHERE id = {}", placeholder(driver, 1));
+    !connection.query(&Statement::new(sql).bind(id)).unwrap().is_empty()
+}
