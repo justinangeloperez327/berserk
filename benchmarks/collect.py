@@ -27,8 +27,8 @@ def main():
         "limitations": "Shared runner, uncontrolled power mode; RSS includes the whole benchmark process. No capacity or soak claim.",
     }
     (output / "environment.json").write_text(json.dumps(environment, indent=2) + "\n")
-    expected_names = {"routing": "routing_101_routes", "json": "json_parse_encode", "tcp": "tcp_sequential_new_connection"}
-    for scenario, iterations, warmup in [("routing", 10000, 1000), ("json", 10000, 1000), ("tcp", 100, 10)]:
+    expected_names = {"routing": "routing_101_routes", "json": "json_parse_encode", "query": "sqlite_query_100_rows", "tcp": "tcp_sequential_new_connection"}
+    for scenario, iterations, warmup in [("routing", 10000, 1000), ("json", 10000, 1000), ("query", 5000, 500), ("tcp", 100, 10)]:
         for repeat in range(1, 6):
             prefix = output / f"{scenario}-{repeat}"
             result = subprocess.run(
@@ -54,7 +54,7 @@ def main():
             memory = Path(str(prefix) + ".memory.txt").read_text()
             if "Maximum resident set size (kbytes):" not in memory:
                 raise ValueError(f"{prefix}: missing peak RSS")
-    (output / "SUCCESS").write_text("All 15 checked benchmark runs completed.\n")
+    (output / "SUCCESS").write_text("All 20 checked benchmark runs completed.\n")
 
 
 if __name__ == "__main__":
