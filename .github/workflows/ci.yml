@@ -129,7 +129,7 @@ jobs:
           git add -u
           if ! git diff --cached --quiet; then
             git commit -m "build: upgrade dependencies to latest stable releases"
-            git push origin HEAD:fix/quality-latest-dependencies
+            git push origin HEAD:refs/heads/${GITHUB_HEAD_REF:-fix/quality-upgrade-push}
           fi
       - run: cargo fmt --all -- --check
       - run: cargo check --locked --workspace
