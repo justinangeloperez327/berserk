@@ -1,5 +1,7 @@
+mod domain;
 mod migrations;
 mod users;
+mod projects;
 
 use berserk::{
     auth::{Guard, MemoryTokenStore, Principal, TokenManager},
@@ -25,6 +27,10 @@ fn application<G: Guard>(database: Database, guard: G) -> Result<App> {
             .get("/users/browse", users::Users::browse)?;
         api.auth()
             .get("/users/{id}/policy", users::Users::policy_show)?;
+        api.can("projects.read")?.get("/projects", projects::Projects::index)?;
+        api.can("projects.read")?.get("/projects/{project}", projects::Projects::show)?;
+        api.can("projects.read")?.get("/projects/{project}/tasks/open", projects::Projects::open_tasks)?;
+        api.can("projects.read")?.get("/tasks/{task}", projects::Tasks::show)?;
     }
 
     app.route().get("/health", || response().text("OK"))?;
@@ -42,7 +48,7 @@ fn main() -> Result<()> {
         Principal::new("admin:1")
             .expect("static principal")
             .with_role("admin"),
-        ["users.manage", "users.read", "users.view"],
+        ["users.manage", "users.read", "users.view", "projects.read"],
         0,
     )?;
     if std::env::var_os("BERSERK_SHOW_DEMO_TOKEN").is_some() {
@@ -115,7 +121,7 @@ mod tests {
         )?;
         let reader = tokens.issue(
             Principal::new("user:1").expect("static principal"),
-            ["users.read", "users.view"],
+            ["users.read", "users.view", "projects.read"],
             0,
         )?;
 
@@ -188,6 +194,43 @@ mod tests {
                 ("role_id", Value::from(30_i64)),
             ])
             .execute(&mut connection)?;
+        Ok(())
+    }
+
+    fn seed_project_domain(path: &std::path::Path, owner_id: i64, assignee_id: i64) -> Result<()> {
+        let mut connection = SqliteConnection::open(path)?;
+        Query::table("projects").insert([
+            ("id", Value::from(100_i64)), ("owner_id", Value::from(owner_id)),
+            ("name", Value::from("Berserk 1.0")), ("status", Value::from("active")),
+        ]).execute(&mut connection)?;
+        Query::table("tasks").insert([
+            ("id", Value::from(200_i64)), ("project_id", Value::from(100_i64)),
+            ("assignee_id", Value::from(assignee_id)), ("title", Value::from("Ship hardening")),
+            ("status", Value::from("open")),
+        ]).execute(&mut connection)?;
+        Query::table("comments").insert([
+            ("id", Value::from(300_i64)), ("task_id", Value::from(200_i64)),
+            ("user_id", Value::from(owner_id)), ("body", Value::from("Keep the contract explicit.")),
+        ]).execute(&mut connection)?;
+        Ok(())
+    }
+
+    #[test]
+    fn project_task_comment_domain_exercises_nested_eager_and_pagination() -> Result<()> {
+        let fixture = test_application()?;
+        let client = TestClient::new(&fixture.app);
+        let owner = create_user(&client, &fixture.admin, "Ada", "ada@example.com")?;
+        let assignee = create_user(&client, &fixture.admin, "Grace", "grace@example.com")?;
+        seed_project_domain(&fixture.database_path, owner, assignee)?;
+
+        client.request("GET", "/projects")?.bearer(fixture.reader.expose())?.send()?
+            .assert_ok().assert_json_path("data.0.name", "Berserk 1.0");
+        client.request("GET", "/projects/100")?.bearer(fixture.reader.expose())?.send()?
+            .assert_ok().assert_text_contains("Ship hardening");
+        client.request("GET", "/projects/100/tasks/open")?.bearer(fixture.reader.expose())?.send()?
+            .assert_ok().assert_text_contains("Keep the contract explicit.");
+        client.request("GET", "/tasks/200")?.bearer(fixture.reader.expose())?.send()?
+            .assert_ok().assert_text_contains("Keep the contract explicit.");
         Ok(())
     }
 
