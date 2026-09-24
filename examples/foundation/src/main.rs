@@ -1,4 +1,5 @@
 mod domain;
+mod integrations;
 mod migrations;
 mod users;
 mod projects;
@@ -9,11 +10,26 @@ use berserk::{
     response, App, HandleErrors, Next, Request, RequestId, Result,
 };
 use std::sync::Arc;
+use berserk::{cache::MemoryCache, events::EventBus, jobs::{JobQueue, MemoryFailedJobs, QueueConfig, WorkerPool}, notifications::{MemoryMailTransport, Notifier, NotifierConfig}, storage::MemoryStorage};
+
+struct FoundationWorkers {
+    _pool: WorkerPool,
+}
 
 fn application<G: Guard>(database: Database, guard: G) -> Result<App> {
     let mut app = App::new();
     app.database(database)?;
     app.auth(guard)?;
+    app.cache(MemoryCache::new(256, 64 * 1024).map_err(|e| berserk::ConfigError::new("cache", e.to_string()))?)?;
+    app.storage(MemoryStorage::new(256, 1024 * 1024).map_err(|e| berserk::ConfigError::new("storage", e.to_string()))?)?;
+    app.events(EventBus::new())?;
+    let workers = WorkerPool::new(QueueConfig { workers: 1, capacity: 256 }, Arc::new(MemoryFailedJobs::default()))
+        .map_err(|e| berserk::ConfigError::new("jobs", e.to_string()))?;
+    let queue: JobQueue = workers.queue();
+    app.jobs(queue)?;
+    app.state(FoundationWorkers { _pool: workers })?;
+    let mail = Arc::new(MemoryMailTransport::new(256).map_err(|e| berserk::ConfigError::new("notifications", e.to_string()))?);
+    app.notifications(Notifier::new(NotifierConfig::default()).map_err(|e| berserk::ConfigError::new("notifications", e.to_string()))?.with_mail(mail))?;
     app.middleware(RequestId);
     app.middleware(HandleErrors);
 
@@ -31,6 +47,7 @@ fn application<G: Guard>(database: Database, guard: G) -> Result<App> {
         api.can("projects.read")?.get("/projects/{project}", projects::Projects::show)?;
         api.can("projects.read")?.get("/projects/{project}/tasks/open", projects::Projects::open_tasks)?;
         api.can("projects.read")?.get("/tasks/{task}", projects::Tasks::show)?;
+        api.can("projects.read")?.post("/tasks/{task}/integrate", projects::Tasks::integrate)?;
     }
 
     app.route().get("/health", || response().text("OK"))?;
