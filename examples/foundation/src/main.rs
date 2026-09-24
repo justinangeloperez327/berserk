@@ -47,6 +47,7 @@ fn application<G: Guard>(database: Database, guard: G) -> Result<App> {
         api.can("projects.read")?.get("/projects/{project}", projects::Projects::show)?;
         api.can("projects.read")?.get("/projects/{project}/tasks/open", projects::Projects::open_tasks)?;
         api.can("projects.read")?.get("/tasks/{task}", projects::Tasks::show)?;
+        api.can("projects.read")?.post("/tasks/{task}/integrate", projects::Tasks::integrate)?;
     }
 
     app.route().get("/health", || response().text("OK"))?;
