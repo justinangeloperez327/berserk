@@ -1,12 +1,13 @@
 # Performance baseline harness
 
-The `Performance baseline` workflow builds this harness in release mode and collects five checked runs each of routing, JSON, and sequential TCP. Download its artifact for raw CSV, per-run peak process RSS, diagnostics, and environment metadata. A `SUCCESS` marker is written only after all 15 runs pass; artifacts without it are incomplete. Shared-runner results are observations, not a stable regression threshold.
+The `Performance baseline` workflow builds this harness in release mode and collects five checked runs each of routing, JSON, SQLite query execution, and sequential TCP. Download its artifact for raw CSV, per-run peak process RSS, diagnostics, and environment metadata. A `SUCCESS` marker is written only after all 15 runs pass; artifacts without it are incomplete. Shared-runner results are observations, not a stable regression threshold.
 
 Build/run from the repository root with a Rust toolchain. Examples:
 
 ```sh
 cargo run --release -p berserk-benchmarks -- routing 10000 1000
 cargo run --release -p berserk-benchmarks -- json 10000 1000
+cargo run --release -p berserk-benchmarks -- query 5000 500
 cargo run --release -p berserk-benchmarks -- tcp 1000 100
 ```
 
@@ -16,6 +17,7 @@ Arguments: scenario, measured iterations, warmup iterations. Successful stdout c
 
 - routing: builds 101 routes once, then constructs and dispatches a parameter request per iteration. Includes request allocation and result checks, not networking.
 - json: parses and serializes one fixed small mixed object. Includes allocations and exact output comparison.
+- query: an in-memory SQLite table with 100 seeded rows; each sample builds and executes a bound filtered/ordered/limited query and verifies 20 returned rows. This measures query construction, binding, driver execution, and row decoding together; it is not a remote-database latency benchmark.
 - tcp: one sequential client; new loopback connection for every request; default worker count, queue, polling and deadlines. Includes connect, request, response and close. It is NOT a concurrent capacity benchmark and can be dominated by connection setup and OS networking costs. Large runs may encounter ephemeral-port constraints.
 
 ## Concurrent load and soak
@@ -56,6 +58,16 @@ The `Concurrent load` workflow runs the smoke suite plus a short 20-second soak 
 ## Regression review
 
 Compare the same scenario, machine, profile, settings and iteration counts. A repeatable throughput decrease or latency increase exceeding both 10% and observed run-to-run variation is a review trigger, not an automatic failure. Investigate correctness, changed workloads and measurement noise first. Do not compare these numbers directly to Laravel, Express or other frameworks without equivalent endpoints, networking, payloads and database work.
+
+## Comparing retained baselines
+
+After collecting two result directories on the same machine/settings, run:
+
+```sh
+python3 benchmarks/compare.py baseline-results current-results
+```
+
+The tool compares medians of the five run-level measurements and marks a scenario for review at a 10% throughput decrease or p95/p99 latency increase. A review marker is evidence to investigate, not a pass/fail verdict. Environment mismatch or run-to-run noise invalidates simplistic conclusions.
 
 ## Remaining measurements
 
