@@ -66,8 +66,8 @@ fn main() -> Result<()> {
     if n == 0 || n > 10_000_000 || warmup > 1_000_000 {
         return Err("invalid iteration or warmup count".into());
     }
-    if !["routing", "json", "query", "tcp"].contains(&scenario) {
-        return Err("scenario must be routing, json, query or tcp".into());
+    if !["routing", "routing_static", "json", "query", "tcp"].contains(&scenario) {
+        return Err("scenario must be routing, routing_static, json, query or tcp".into());
     }
     eprintln!("scenario={scenario}; os={}; arch={}; profile={}; samples contain timer/allocation overhead",std::env::consts::OS,std::env::consts::ARCH,if cfg!(debug_assertions){"debug (do not use as baseline)"}else{"release"});
     println!("scenario,iterations,warmup,elapsed_seconds,operations_per_second,p50_ns,p95_ns,p99_ns,max_ns");
@@ -93,6 +93,22 @@ fn main() -> Result<()> {
                 "routing_101_routes",
                 n,
                 warmup,
+            )
+        }
+        "routing_static" => {
+            let mut app = App::new();
+            for i in 0..100 {
+                app.route().get(&format!("/items/{i}"), || Response::text("ok"))?;
+            }
+            app.route().get("/users/{id}", |req: Request| Response::text(req.param("id").unwrap()))?;
+            measure(
+                || {
+                    let response = app.handle(request("/items/99"))?;
+                    if response.body() != b"ok" { return Err("incorrect static route result".into()); }
+                    black_box(response);
+                    Ok(())
+                },
+                "routing_static_101_routes", n, warmup,
             )
         }
         "json" => {
