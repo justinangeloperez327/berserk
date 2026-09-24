@@ -170,7 +170,10 @@ impl Error {
             Self::Database(error) => match error.kind() {
                 berserk_database::ErrorKind::NotFound => 404,
                 berserk_database::ErrorKind::InvalidInput => 400,
-                berserk_database::ErrorKind::Constraint => 409,
+                berserk_database::ErrorKind::Constraint
+                | berserk_database::ErrorKind::UniqueViolation
+                | berserk_database::ErrorKind::ForeignKeyViolation
+                | berserk_database::ErrorKind::NotNullViolation => 409,
                 berserk_database::ErrorKind::Timeout => 503,
                 _ => 500,
             },
@@ -246,6 +249,42 @@ mod tests {
         for (kind, status) in [(ErrorKind::Forbidden, 403), (ErrorKind::Store, 500)] {
             assert_eq!(
                 Error::from(AuthError::new(kind, "private detail")).status_code(),
+                status
+            );
+        }
+    }
+}
+
+#[cfg(all(test, feature = "database"))]
+mod database_error_tests {
+    use super::*;
+    use berserk_database::{DatabaseError, ErrorKind};
+
+    #[test]
+    fn integrity_errors_are_conflicts_and_redact_driver_details() {
+        for kind in [
+            ErrorKind::Constraint,
+            ErrorKind::UniqueViolation,
+            ErrorKind::ForeignKeyViolation,
+            ErrorKind::NotNullViolation,
+        ] {
+            let error = Error::from(DatabaseError::new(kind, "secret driver detail"));
+            assert_eq!(error.status_code(), 409);
+            let response = error.response();
+            assert_eq!(response.status_code(), 409);
+            assert!(!String::from_utf8_lossy(response.body()).contains("secret driver detail"));
+        }
+    }
+
+    #[test]
+    fn database_not_found_invalid_input_and_timeout_keep_public_statuses() {
+        for (kind, status) in [
+            (ErrorKind::NotFound, 404),
+            (ErrorKind::InvalidInput, 400),
+            (ErrorKind::Timeout, 503),
+        ] {
+            assert_eq!(
+                Error::from(DatabaseError::new(kind, "internal")).status_code(),
                 status
             );
         }
