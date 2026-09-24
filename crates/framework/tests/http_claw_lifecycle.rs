@@ -1,4 +1,4 @@
-#![cfg(feature = "sqlite")]
+#![cfg(all(feature = "sqlite", feature = "claw"))]
 
 use berserk::{
     claw::{field, Model, Row, Value},
