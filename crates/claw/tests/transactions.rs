@@ -38,7 +38,7 @@ fn nested_scoped_transaction_fails_before_inner_work() {
 
     with_scoped_connection(&mut connection, || {
         let outer: claw_orm::Result<()> = Transaction::run(|| {
-            let nested: claw_orm::Result<()> = Transaction::run(|| {
+            let nested: claw_orm::Result<()> = Transaction::run(|| -> claw_orm::Result<()> {
                 panic!("nested operation must not execute");
             });
             let error = nested.unwrap_err();
