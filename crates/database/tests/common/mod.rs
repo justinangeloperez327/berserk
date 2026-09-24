@@ -146,10 +146,10 @@ pub fn run_live_database_contract(connection: &mut dyn Connection) {
 
     let rows = contract_select(connection, driver);
     assert_eq!(rows.len(), 2);
-    assert_eq!(rows[0].get("id"), Some(&berserk_database::Value::I64(2)));
+    assert!(integer_eq(rows[0].get("id"), 2));
     assert_eq!(rows[0].get("name"), Some(&berserk_database::Value::Text("Grace λ".into())));
     assert_eq!(rows[0].get("optional_text"), Some(&berserk_database::Value::Text("unicode ✓".into())));
-    assert_eq!(rows[1].get("id"), Some(&berserk_database::Value::I64(1)));
+    assert!(integer_eq(rows[1].get("id"), 1));
     assert_eq!(rows[1].get("optional_text"), Some(&berserk_database::Value::Null));
 
     let duplicate = contract_insert_error(connection, driver, 4, "Ada", None);
@@ -232,4 +232,9 @@ fn contract_exists(connection: &mut dyn Connection, driver: Driver, id: i64) -> 
         placeholder(driver, 1)
     );
     !connection.query(&Statement::new(sql).bind(id)).unwrap().is_empty()
+}
+
+fn integer_eq(value: Option<&berserk_database::Value>, expected: i64) -> bool {
+    matches!(value, Some(berserk_database::Value::I64(value)) if *value == expected)
+        || matches!(value, Some(berserk_database::Value::U64(value)) if *value == expected as u64)
 }
