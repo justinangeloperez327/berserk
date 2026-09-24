@@ -129,7 +129,7 @@ impl Router {
         let best = self
             .routes
             .iter()
-            .filter(|route| route.pattern.captures(request.path()).is_some())
+            .filter(|route| route.pattern.matches(request.path()))
             .max_by_key(|route| route.pattern.specificity());
         let response = if let Some(best) = best {
             request.set_route_pattern(best.pattern.source());

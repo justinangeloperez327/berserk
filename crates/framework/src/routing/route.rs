@@ -95,13 +95,25 @@ impl Pattern {
             .count()
     }
 
-    pub(super) fn captures(&self, path: &str) -> Option<Vec<(String, String)>> {
-        let parts: Vec<_> = path.split('/').collect();
-        if parts.len() != self.segments.len() {
-            return None;
+    pub(super) fn matches(&self, path: &str) -> bool {
+        let mut parts = path.split('/');
+        for segment in &self.segments {
+            let Some(value) = parts.next() else { return false; };
+            match segment {
+                Segment::Static(expected) if expected == value => {}
+                Segment::Param(_) if !value.is_empty() => {}
+                _ => return false,
+            }
         }
+        parts.next().is_none()
+    }
+
+    pub(super) fn captures(&self, path: &str) -> Option<Vec<(String, String)>> {
+        let mut parts = path.split('/');
         let mut params = Vec::with_capacity(self.parameter_count());
-        for (segment, value) in self.segments.iter().zip(parts) {
+        for segment in &self.segments {
+            let value = parts.next()?;
+
             match segment {
                 Segment::Static(expected) if expected == value => {}
                 Segment::Param(name) if !value.is_empty() => {
@@ -110,6 +122,7 @@ impl Pattern {
                 _ => return None,
             }
         }
+        if parts.next().is_some() { return None; }
         Some(params)
     }
 
@@ -155,5 +168,33 @@ fn encode_path_segment(value: &str, output: &mut String) {
             output.push(HEX[(byte >> 4) as usize] as char);
             output.push(HEX[(byte & 0x0f) as usize] as char);
         }
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::*;
+
+    #[test]
+    fn allocation_free_match_probe_preserves_capture_semantics() {
+        let pattern = Pattern::parse("/projects/{project}/tasks/{task}").unwrap();
+        assert!(pattern.matches("/projects/7/tasks/11"));
+        assert!(!pattern.matches("/projects/7/tasks"));
+        assert!(!pattern.matches("/projects//tasks/11"));
+        assert!(!pattern.matches("/projects/7/comments/11"));
+
+        let captures = pattern.captures("/projects/7/tasks/11").unwrap();
+        assert_eq!(captures, vec![
+            ("project".to_owned(), "7".to_owned()),
+            ("task".to_owned(), "11".to_owned()),
+        ]);
+    }
+
+    #[test]
+    fn root_and_trailing_slash_matching_remain_distinct() {
+        assert!(Pattern::parse("/").unwrap().matches("/"));
+        assert!(Pattern::parse("/users").unwrap().matches("/users"));
+        assert!(!Pattern::parse("/users").unwrap().matches("/users/"));
+        assert!(Pattern::parse("/users/").unwrap().matches("/users/"));
     }
 }
