@@ -1,4 +1,4 @@
-use crate::domain::{Comment, Project, Task};
+use crate::domain::{Project, Task};
 use berserk::{claw::Direction, response, Json, Response, Result};
 
 pub struct Projects;
