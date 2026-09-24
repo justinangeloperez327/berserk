@@ -15,13 +15,17 @@ impl Model for User {
 }
 struct NewUser(&'static str, Option<&'static str>, i64);
 impl IntoInsert<User> for NewUser {
-    fn into_insert(self) -> Result<Vec<(&'static str, Value)>> {
-        Ok(vec![("name", self.0.into()), ("email", self.1.map(Value::from).unwrap_or(Value::Null)), ("score", self.2.into())])
+    fn into_insert(self) -> Result<Vec<(String, Value)>> {
+        Ok(vec![
+            ("name".into(), self.0.into()),
+            ("email".into(), self.1.map(Value::from).unwrap_or(Value::Null)),
+            ("score".into(), self.2.into()),
+        ])
     }
 }
 struct Rename(&'static str);
 impl IntoUpdate<User> for Rename {
-    fn into_update(self) -> Result<Vec<(&'static str, Value)>> { Ok(vec![("name", self.0.into())]) }
+    fn into_update(self) -> Result<Vec<(&'static str, Value)>> { Ok(vec![("name".into(), self.0.into())]) }
 }
 
 fn setup() -> SqliteConnection {
