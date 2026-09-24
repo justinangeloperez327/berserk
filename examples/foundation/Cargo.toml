@@ -7,7 +7,7 @@ license.workspace = true
 publish = false
 
 [dependencies]
-berserk = { workspace = true, features = ["auth", "claw", "sqlite", "view"] }
+berserk = { workspace = true, features = ["auth", "cache", "claw", "events", "jobs", "notifications", "sqlite", "storage", "view"] }
 
 [build-dependencies]
 berserk-axe = { workspace = true }
