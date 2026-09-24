@@ -42,6 +42,8 @@ fn metrics_snapshot_exposes_operational_summaries() {
         requests: 12,
         active: 2,
         failures: 1,
+        client_errors: 2,
+        server_errors: 1,
         rate_limited: 3,
         duration_us: 1_000,
     };
