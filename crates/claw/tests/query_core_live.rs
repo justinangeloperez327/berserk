@@ -65,7 +65,7 @@ fn create_update_fresh_refresh_delete_and_destroy_have_consistent_lifecycle() {
         assert_eq!(user.name, "Augusta");
         assert_eq!(user.id, original_id);
 
-        c_external_update_for_scope("users", original_id, "Ada Lovelace").unwrap();
+        external_update_for_scope(original_id, "Ada Lovelace").unwrap();
         let fresh = user.fresh().unwrap().unwrap();
         assert_eq!(fresh.name, "Ada Lovelace");
         assert_eq!(user.name, "Augusta");
@@ -81,7 +81,7 @@ fn create_update_fresh_refresh_delete_and_destroy_have_consistent_lifecycle() {
     });
 }
 
-fn c_external_update_for_scope(_table: &str, id: i64, name: &str) -> Result<()> {
+fn external_update_for_scope(id: i64, name: &str) -> Result<()> {
     berserk_database::scope::with_connection(|connection| {
         connection.execute(&Statement::new("UPDATE users SET name = ? WHERE id = ?").bind(name).bind(id))?;
         Ok(())
