@@ -170,7 +170,10 @@ impl Error {
             Self::Database(error) => match error.kind() {
                 berserk_database::ErrorKind::NotFound => 404,
                 berserk_database::ErrorKind::InvalidInput => 400,
-                berserk_database::ErrorKind::Constraint => 409,
+                berserk_database::ErrorKind::Constraint
+                | berserk_database::ErrorKind::UniqueViolation
+                | berserk_database::ErrorKind::ForeignKeyViolation
+                | berserk_database::ErrorKind::NotNullViolation => 409,
                 berserk_database::ErrorKind::Timeout => 503,
                 _ => 500,
             },
