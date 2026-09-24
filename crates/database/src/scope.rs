@@ -138,6 +138,8 @@ pub fn transaction<T, E: From<DatabaseError>>(
     operation: impl FnOnce() -> std::result::Result<T, E>,
 ) -> std::result::Result<T, E> {
     with_connection(|connection| {
+        // Reject nesting before asking a driver to begin another transaction. This keeps
+        // behavior identical across backends and guarantees no inner work has run.
         let driver = connection.driver();
         let capabilities = connection.capabilities();
         let mut transaction = connection.begin(options)?;
@@ -154,9 +156,9 @@ pub fn transaction<T, E: From<DatabaseError>>(
                 transaction.commit()?;
                 Ok(value)
             }
-            Err(error) => {
-                transaction.rollback()?;
-                Err(error)
+            Err(error) => match transaction.rollback() {
+                Ok(()) => Err(error),
+                Err(rollback) => Err(rollback.into()),
             }
         }
     })
