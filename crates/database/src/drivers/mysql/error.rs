@@ -16,7 +16,9 @@ pub(super) fn map_error(error: mysql::Error) -> DatabaseError {
         mysql::Error::MySqlError(server) => {
             let code = server.code.to_string();
             let kind = match server.code {
-                1062 | 1216 | 1217 | 1451 | 1452 => ErrorKind::Constraint,
+                1062 => ErrorKind::UniqueViolation,
+                1216 | 1217 | 1451 | 1452 => ErrorKind::ForeignKeyViolation,
+                1048 => ErrorKind::NotNullViolation,
                 1205 | 1213 => ErrorKind::Serialization,
                 _ => ErrorKind::Query,
             };
