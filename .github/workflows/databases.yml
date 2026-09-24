@@ -28,15 +28,11 @@ jobs:
       - run: cargo test --locked -p claw-orm --test relationships_live
 
   postgres:
-    name: postgres-${{ matrix.version }}
+    name: postgres-18
     runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        version: ["15", "16", "17", "18"]
     services:
       postgres:
-        image: postgres:${{ matrix.version }}-alpine
+        image: postgres:18-alpine
         env:
           POSTGRES_DB: berserk
           POSTGRES_PASSWORD: berserk
@@ -58,11 +54,11 @@ jobs:
       - run: cargo test --locked -p claw-orm --features postgres --test relationships_live
 
   mysql:
-    name: mysql-8.4
+    name: mysql-26.7
     runs-on: ubuntu-24.04
     services:
       mysql:
-        image: mysql:8.4
+        image: mysql:26.7
         env:
           MYSQL_DATABASE: berserk
           MYSQL_PASSWORD: berserk
@@ -83,3 +79,29 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test -p berserk-database --features mysql --test mysql
       - run: cargo test --locked -p claw-orm --features mysql --test relationships_live
+
+
+  mongodb:
+    name: mongodb-8.3.11
+    runs-on: ubuntu-24.04
+    services:
+      mongodb:
+        image: mongo:8.3.11
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' localhost:27017/test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify MongoDB latest baseline
+        run: |
+          docker exec ${{ job.services.mongodb.id }} mongosh --quiet --eval '
+            const result = db.adminCommand({ buildInfo: 1 });
+            if (!result.version.startsWith("8.3.11")) {
+              throw new Error("unexpected MongoDB version: " + result.version);
+            }
+            print(result.version);
+          ' localhost:27017/admin

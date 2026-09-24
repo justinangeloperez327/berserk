@@ -33,26 +33,26 @@ Database support means Berserk's driver contract and migration tests run against
 
 | Database | Intended v1.0.0 support | CI evidence |
 | --- | --- | --- |
-| PostgreSQL | **15, 16, 17, 18** | Real server test for each major version using the current official major Docker image |
-| MySQL | **8.4 LTS** | Real MySQL 8.4 server test |
-| SQLite | **Bundled SQLite through `rusqlite 0.40.2`** | Driver/migration tests using the crate's `bundled` SQLite feature |
+| PostgreSQL | **18 (latest patch line)** | Real PostgreSQL 18 server test using the current official major Docker image |
+| MySQL | **26.7 (latest production Innovation line)** | Real MySQL 26.7 server test |
+| SQLite | **Latest bundled SQLite through the current `rusqlite` dependency** | Driver/migration tests using the crate's `bundled` SQLite feature |
+| MongoDB | **8.3.11 server baseline** | Real MongoDB 8.3.11 service/version smoke test; framework driver support is not yet claimed |
 
-For PostgreSQL, use the latest available minor release in the supported major line. The CI major tags intentionally follow the current patch release in each major version.
+Berserk now follows a latest-database baseline rather than carrying historical server-version matrices. PostgreSQL 17 and older and MySQL 8.4/9.x are removed from the active CI support baseline. PostgreSQL prereleases and MySQL Early Access releases are not used as release targets.
 
-PostgreSQL 14 and older are not part of the current support contract. PostgreSQL 14 reaches upstream end of support on 2026-11-12, so Berserk does not add a new release commitment to that line shortly before its retirement. PostgreSQL 19 prereleases are not supported.
+The SQLite feature uses `rusqlite` with its `bundled` feature, so SQLite is upgraded through the Rust dependency rather than a separate server image. Compatibility with an arbitrary system-installed SQLite library is not part of the v1.0.0 contract.
 
-MySQL versions other than 8.4 LTS, including MySQL 8.0 and 9.x/other later lines, are not claimed as supported until they are added to the live-database matrix. MariaDB is not claimed as MySQL-compatible for the current baseline.
-
-The SQLite feature uses `rusqlite` with its `bundled` feature. Berserk therefore supports the SQLite library compiled by that dependency; compatibility with an arbitrary system-installed SQLite library is not part of the v1.0.0 contract.
+MongoDB is intentionally listed as a server baseline only. Berserk does not yet expose a MongoDB `Connection` implementation, query dialect, or Claw persistence adapter, so the repository must not claim MongoDB application-level support until those contracts are designed and tested.
 
 ## What CI enforces
 
 - Ubuntu 24.04 runs the main workspace quality and MSRV gates.
 - Windows and macOS run cross-platform workspace compile/tests with all features.
 - The standalone minimal API and fresh external-consumer builds run on Ubuntu.
-- PostgreSQL 15 through 18 run the same live driver/migration contract tests.
-- MySQL 8.4 runs the live driver/migration contract tests.
+- PostgreSQL 18 runs the live driver/migration contract tests.
+- MySQL 26.7 runs the live driver/migration contract tests.
 - SQLite runs its driver/migration contract tests with the bundled library.
+- MongoDB 8.3.11 runs a live server/version smoke test; this does not imply framework-driver support.
 
 A platform or database line should not be added to the public support table until an appropriate automated test exists. Likewise, removing a supported target requires an explicit support-policy update and release note.
 
