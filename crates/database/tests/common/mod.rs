@@ -123,3 +123,56 @@ fn clean(connection: &mut dyn Connection) {
             .unwrap();
     }
 }
+
+
+const CONTRACT_PARENT: &str = "berserk_contract_parent";
+const CONTRACT_CHILD: &str = "berserk_contract_child";
+
+/// Backend-neutral CRUD, value, constraint, ordering, pagination, and rollback contract.
+pub fn run_live_database_contract(connection: &mut dyn Connection) {
+    clean_database_contract(connection);
+    let driver = connection.driver();
+
+    connection.execute(&Statement::new(format!(
+        "CREATE TABLE {CONTRACT_PARENT} (id BIGINT PRIMARY KEY, name VARCHAR(255) NOT NULL UNIQUE, optional_text VARCHAR(255) NULL)"
+    ))).unwrap();
+    connection.execute(&Statement::new(format!(
+        "CREATE TABLE {CONTRACT_CHILD} (id BIGINT PRIMARY KEY, parent_id BIGINT NOT NULL, label VARCHAR(255) NOT NULL, CONSTRAINT fk_berserk_contract_parent FOREIGN KEY (parent_id) REFERENCES {CONTRACT_PARENT}(id))"
+    ))).unwrap();
+
+    crate::contract_insert(connection, driver, 1, "Ada", None);
+    crate::contract_insert(connection, driver, 2, "Grace λ", Some("unicode ✓"));
+    crate::contract_insert(connection, driver, 3, "Linus", Some("third"));
+
+    let rows = crate::contract_select(connection, driver);
+    assert_eq!(rows.len(), 2);
+    assert_eq!(rows[0].get("id"), Some(&berserk_database::Value::I64(2)));
+    assert_eq!(rows[0].get("name"), Some(&berserk_database::Value::Text("Grace λ".into())));
+    assert_eq!(rows[0].get("optional_text"), Some(&berserk_database::Value::Text("unicode ✓".into())));
+    assert_eq!(rows[1].get("id"), Some(&berserk_database::Value::I64(1)));
+    assert_eq!(rows[1].get("optional_text"), Some(&berserk_database::Value::Null));
+
+    let duplicate = crate::contract_insert_error(connection, driver, 4, "Ada", None);
+    assert_eq!(duplicate.kind(), &berserk_database::ErrorKind::UniqueViolation);
+
+    let null_error = crate::contract_null_error(connection, driver, 5);
+    assert_eq!(null_error.kind(), &berserk_database::ErrorKind::NotNullViolation);
+
+    let fk_error = crate::contract_fk_error(connection, driver);
+    assert_eq!(fk_error.kind(), &berserk_database::ErrorKind::ForeignKeyViolation);
+
+    {
+        let mut tx = connection.begin(Default::default()).unwrap();
+        crate::contract_insert(&mut tx, driver, 10, "Rolled Back", None);
+        tx.rollback().unwrap();
+    }
+    assert!(!crate::contract_exists(connection, driver, 10));
+
+    clean_database_contract(connection);
+}
+
+fn clean_database_contract(connection: &mut dyn Connection) {
+    for table in [CONTRACT_CHILD, CONTRACT_PARENT] {
+        connection.execute(&Statement::new(format!("DROP TABLE IF EXISTS {table}"))).unwrap();
+    }
+}
