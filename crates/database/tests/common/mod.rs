@@ -140,11 +140,11 @@ pub fn run_live_database_contract(connection: &mut dyn Connection) {
         "CREATE TABLE {CONTRACT_CHILD} (id BIGINT PRIMARY KEY, parent_id BIGINT NOT NULL, label VARCHAR(255) NOT NULL, CONSTRAINT fk_berserk_contract_parent FOREIGN KEY (parent_id) REFERENCES {CONTRACT_PARENT}(id))"
     ))).unwrap();
 
-    crate::contract_insert(connection, driver, 1, "Ada", None);
-    crate::contract_insert(connection, driver, 2, "Grace λ", Some("unicode ✓"));
-    crate::contract_insert(connection, driver, 3, "Linus", Some("third"));
+    contract_insert(connection, driver, 1, "Ada", None);
+    contract_insert(connection, driver, 2, "Grace λ", Some("unicode ✓"));
+    contract_insert(connection, driver, 3, "Linus", Some("third"));
 
-    let rows = crate::contract_select(connection, driver);
+    let rows = contract_select(connection, driver);
     assert_eq!(rows.len(), 2);
     assert_eq!(rows[0].get("id"), Some(&berserk_database::Value::I64(2)));
     assert_eq!(rows[0].get("name"), Some(&berserk_database::Value::Text("Grace λ".into())));
@@ -152,21 +152,21 @@ pub fn run_live_database_contract(connection: &mut dyn Connection) {
     assert_eq!(rows[1].get("id"), Some(&berserk_database::Value::I64(1)));
     assert_eq!(rows[1].get("optional_text"), Some(&berserk_database::Value::Null));
 
-    let duplicate = crate::contract_insert_error(connection, driver, 4, "Ada", None);
+    let duplicate = contract_insert_error(connection, driver, 4, "Ada", None);
     assert_eq!(duplicate.kind(), &berserk_database::ErrorKind::UniqueViolation);
 
-    let null_error = crate::contract_null_error(connection, driver, 5);
+    let null_error = contract_null_error(connection, driver, 5);
     assert_eq!(null_error.kind(), &berserk_database::ErrorKind::NotNullViolation);
 
-    let fk_error = crate::contract_fk_error(connection, driver);
+    let fk_error = contract_fk_error(connection, driver);
     assert_eq!(fk_error.kind(), &berserk_database::ErrorKind::ForeignKeyViolation);
 
     {
         let mut tx = connection.begin(Default::default()).unwrap();
-        crate::contract_insert(&mut tx, driver, 10, "Rolled Back", None);
+        contract_insert(&mut tx, driver, 10, "Rolled Back", None);
         tx.rollback().unwrap();
     }
-    assert!(!crate::contract_exists(connection, driver, 10));
+    assert!(!contract_exists(connection, driver, 10));
 
     clean_database_contract(connection);
 }
@@ -175,4 +175,61 @@ fn clean_database_contract(connection: &mut dyn Connection) {
     for table in [CONTRACT_CHILD, CONTRACT_PARENT] {
         connection.execute(&Statement::new(format!("DROP TABLE IF EXISTS {table}"))).unwrap();
     }
+}
+
+fn placeholder(driver: Driver, index: usize) -> String {
+    match driver {
+        Driver::Postgres => format!("${index}"),
+        Driver::MySql | Driver::Sqlite => "?".to_owned(),
+    }
+}
+
+fn contract_insert(connection: &mut dyn Connection, driver: Driver, id: i64, name: &str, optional: Option<&str>) {
+    let sql = format!(
+        "INSERT INTO {CONTRACT_PARENT} (id, name, optional_text) VALUES ({}, {}, {})",
+        placeholder(driver, 1), placeholder(driver, 2), placeholder(driver, 3)
+    );
+    let optional_value = optional.map(berserk_database::Value::from).unwrap_or(berserk_database::Value::Null);
+    connection.execute(&Statement::new(sql).bind(id).bind(name).bind(optional_value)).unwrap();
+}
+
+fn contract_insert_error(connection: &mut dyn Connection, driver: Driver, id: i64, name: &str, optional: Option<&str>) -> berserk_database::DatabaseError {
+    let sql = format!(
+        "INSERT INTO {CONTRACT_PARENT} (id, name, optional_text) VALUES ({}, {}, {})",
+        placeholder(driver, 1), placeholder(driver, 2), placeholder(driver, 3)
+    );
+    let optional_value = optional.map(berserk_database::Value::from).unwrap_or(berserk_database::Value::Null);
+    connection.execute(&Statement::new(sql).bind(id).bind(name).bind(optional_value)).unwrap_err()
+}
+
+fn contract_select(connection: &mut dyn Connection, driver: Driver) -> Vec<berserk_database::Row> {
+    let sql = format!(
+        "SELECT id, name, optional_text FROM {CONTRACT_PARENT} WHERE id >= {} ORDER BY id DESC LIMIT 2 OFFSET 1",
+        placeholder(driver, 1)
+    );
+    connection.query(&Statement::new(sql).bind(1_i64)).unwrap()
+}
+
+fn contract_null_error(connection: &mut dyn Connection, driver: Driver, id: i64) -> berserk_database::DatabaseError {
+    let sql = format!(
+        "INSERT INTO {CONTRACT_PARENT} (id, name) VALUES ({}, NULL)",
+        placeholder(driver, 1)
+    );
+    connection.execute(&Statement::new(sql).bind(id)).unwrap_err()
+}
+
+fn contract_fk_error(connection: &mut dyn Connection, driver: Driver) -> berserk_database::DatabaseError {
+    let sql = format!(
+        "INSERT INTO {CONTRACT_CHILD} (id, parent_id, label) VALUES ({}, {}, {})",
+        placeholder(driver, 1), placeholder(driver, 2), placeholder(driver, 3)
+    );
+    connection.execute(&Statement::new(sql).bind(1_i64).bind(999_i64).bind("orphan")).unwrap_err()
+}
+
+fn contract_exists(connection: &mut dyn Connection, driver: Driver, id: i64) -> bool {
+    let sql = format!(
+        "SELECT id FROM {CONTRACT_PARENT} WHERE id = {}",
+        placeholder(driver, 1)
+    );
+    !connection.query(&Statement::new(sql).bind(id)).unwrap().is_empty()
 }
