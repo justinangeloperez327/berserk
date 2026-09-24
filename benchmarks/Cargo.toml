@@ -7,4 +7,4 @@ license.workspace = true
 publish = false
 
 [dependencies]
-berserk.workspace = true
+berserk = { workspace = true, features = ["sqlite"] }
