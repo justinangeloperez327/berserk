@@ -1,6 +1,6 @@
 #![cfg(feature = "sqlite")]
 
-use berserk_database::{drivers::sqlite::SqliteConnection, scope::DatabaseScope, Connection, Database, DatabaseError, ErrorKind, Statement};
+use berserk_database::{drivers::sqlite::SqliteConnection, scope::DatabaseScope, Connection, Database, ErrorKind, Statement};
 use claw_orm::{field, Model, Row, Value};
 
 #[derive(Debug)]
