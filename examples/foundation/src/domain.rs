@@ -1,4 +1,4 @@
-use berserk::{claw::Value, Model};
+use berserk::Model;
 
 #[derive(Model)]
 #[table("projects")]
