@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   repository-hygiene:
@@ -115,6 +115,22 @@ jobs:
           workspaces: |
             . -> target
             examples/minimal-api -> target
+      - name: Upgrade all dependencies to latest stable releases
+        shell: bash
+        run: |
+          cargo update
+          cargo install cargo-edit --locked
+          cargo upgrade --workspace --incompatible allow
+          cargo update
+          cargo fmt --all
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Cargo.toml Cargo.lock crates/*/Cargo.toml examples/*/Cargo.toml benchmarks/Cargo.toml
+          git add -u
+          if ! git diff --cached --quiet; then
+            git commit -m "build: upgrade dependencies to latest stable releases"
+            git push origin HEAD:feature/latest-dependencies
+          fi
       - run: cargo fmt --all -- --check
       - run: cargo check --locked --workspace
       - run: cargo test --locked --workspace
