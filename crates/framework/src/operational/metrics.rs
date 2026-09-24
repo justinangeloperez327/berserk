@@ -12,6 +12,8 @@ pub struct Metrics {
     failures: AtomicU64,
     rate_limited: AtomicU64,
     duration_us: AtomicU64,
+    client_errors: AtomicU64,
+    server_errors: AtomicU64,
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -21,6 +23,8 @@ pub struct MetricsSnapshot {
     pub failures: u64,
     pub rate_limited: u64,
     pub duration_us: u64,
+    pub client_errors: u64,
+    pub server_errors: u64,
 }
 
 impl MetricsSnapshot {
@@ -46,6 +50,8 @@ impl Metrics {
             failures: self.failures.load(Ordering::Relaxed),
             rate_limited: self.rate_limited.load(Ordering::Relaxed),
             duration_us: self.duration_us.load(Ordering::Relaxed),
+            client_errors: self.client_errors.load(Ordering::Relaxed),
+            server_errors: self.server_errors.load(Ordering::Relaxed),
         }
     }
     pub fn prometheus(&self) -> String {
@@ -55,8 +61,10 @@ impl Metrics {
             "# TYPE framework_http_active gauge\nframework_http_active {}\n",
             "# TYPE framework_http_failures_total counter\nframework_http_failures_total {}\n",
             "# TYPE framework_http_rate_limited_total counter\nframework_http_rate_limited_total {}\n",
-            "# TYPE framework_http_duration_microseconds_total counter\nframework_http_duration_microseconds_total {}\n"
-        ), value.requests, value.active, value.failures, value.rate_limited, value.duration_us)
+            "# TYPE framework_http_duration_microseconds_total counter\nframework_http_duration_microseconds_total {}\n",
+            "# TYPE framework_http_client_errors_total counter\nframework_http_client_errors_total {}\n",
+            "# TYPE framework_http_server_errors_total counter\nframework_http_server_errors_total {}\n"
+        ), value.requests, value.active, value.failures, value.rate_limited, value.duration_us, value.client_errors, value.server_errors)
     }
     pub fn response(&self) -> Result<Response> {
         Response::text(self.prometheus()).header("content-type", "text/plain; version=0.0.4")
@@ -88,12 +96,16 @@ impl Middleware for MetricsLayer {
         self.metrics
             .duration_us
             .fetch_add(elapsed, Ordering::Relaxed);
-        let failed = match &result {
-            Ok(response) => response.status_code() >= 500,
-            Err(error) => error.status_code() >= 500,
+        let status = match &result {
+            Ok(response) => response.status_code(),
+            Err(error) => error.status_code(),
         };
-        if failed {
+        if (400..500).contains(&status) {
+            self.metrics.client_errors.fetch_add(1, Ordering::Relaxed);
+        }
+        if status >= 500 {
             self.metrics.failures.fetch_add(1, Ordering::Relaxed);
+            self.metrics.server_errors.fetch_add(1, Ordering::Relaxed);
         }
         drop(guard);
         result
