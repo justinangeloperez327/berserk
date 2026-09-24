@@ -106,7 +106,9 @@ fn sqlite_runs_the_live_migration_contract() {
 #[test]
 fn sqlite_runs_the_live_database_contract() {
     let mut connection = SqliteConnection::in_memory().unwrap();
-    connection.execute(&Statement::new("PRAGMA foreign_keys = ON")).unwrap();
+    connection
+        .execute(&Statement::new("PRAGMA foreign_keys = ON"))
+        .unwrap();
     common::run_live_database_contract(&mut connection);
 }
 

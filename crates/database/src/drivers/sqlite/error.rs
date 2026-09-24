@@ -11,17 +11,17 @@ pub(super) fn map_error(error: rusqlite::Error) -> DatabaseError {
         Some(787) => ErrorKind::ForeignKeyViolation,
         Some(2067 | 1555) => ErrorKind::UniqueViolation,
         _ => match error.sqlite_error_code() {
-        Some(ErrorCode::ConstraintViolation) => ErrorKind::Constraint,
-        Some(ErrorCode::DatabaseBusy | ErrorCode::DatabaseLocked) => ErrorKind::Serialization,
-        Some(ErrorCode::CannotOpen | ErrorCode::NotADatabase) => ErrorKind::Connection,
-        _ => match error {
-            rusqlite::Error::InvalidPath(_) => ErrorKind::Configuration,
-            rusqlite::Error::FromSqlConversionFailure(..)
-            | rusqlite::Error::IntegralValueOutOfRange(..)
-            | rusqlite::Error::Utf8Error(..)
-            | rusqlite::Error::InvalidColumnType(..) => ErrorKind::Decode,
-            _ => ErrorKind::Query,
-        },
+            Some(ErrorCode::ConstraintViolation) => ErrorKind::Constraint,
+            Some(ErrorCode::DatabaseBusy | ErrorCode::DatabaseLocked) => ErrorKind::Serialization,
+            Some(ErrorCode::CannotOpen | ErrorCode::NotADatabase) => ErrorKind::Connection,
+            _ => match error {
+                rusqlite::Error::InvalidPath(_) => ErrorKind::Configuration,
+                rusqlite::Error::FromSqlConversionFailure(..)
+                | rusqlite::Error::IntegralValueOutOfRange(..)
+                | rusqlite::Error::Utf8Error(..)
+                | rusqlite::Error::InvalidColumnType(..) => ErrorKind::Decode,
+                _ => ErrorKind::Query,
+            },
         },
     };
     let mapped = DatabaseError::new(kind, error.to_string());
