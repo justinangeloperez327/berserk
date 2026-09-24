@@ -9,7 +9,9 @@ fn collection_remains_a_thin_rust_collection() {
     assert_eq!(values.last(), Some(&3));
     assert_eq!(values.get(1), Some(&2));
 
-    for value in &mut values { *value *= 2; }
+    for value in &mut values {
+        *value *= 2;
+    }
     assert_eq!(values.as_ref(), &[2, 4, 6]);
 
     values.push(8);

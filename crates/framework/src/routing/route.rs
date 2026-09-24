@@ -98,7 +98,9 @@ impl Pattern {
     pub(super) fn matches(&self, path: &str) -> bool {
         let mut parts = path.split('/');
         for segment in &self.segments {
-            let Some(value) = parts.next() else { return false; };
+            let Some(value) = parts.next() else {
+                return false;
+            };
             match segment {
                 Segment::Static(expected) if expected == value => {}
                 Segment::Param(_) if !value.is_empty() => {}
@@ -122,7 +124,9 @@ impl Pattern {
                 _ => return None,
             }
         }
-        if parts.next().is_some() { return None; }
+        if parts.next().is_some() {
+            return None;
+        }
         Some(params)
     }
 
@@ -184,10 +188,13 @@ mod performance_tests {
         assert!(!pattern.matches("/projects/7/comments/11"));
 
         let captures = pattern.captures("/projects/7/tasks/11").unwrap();
-        assert_eq!(captures, vec![
-            ("project".to_owned(), "7".to_owned()),
-            ("task".to_owned(), "11".to_owned()),
-        ]);
+        assert_eq!(
+            captures,
+            vec![
+                ("project".to_owned(), "7".to_owned()),
+                ("task".to_owned(), "11".to_owned()),
+            ]
+        );
     }
 
     #[test]

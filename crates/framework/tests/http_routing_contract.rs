@@ -1,15 +1,27 @@
 use berserk::{App, Headers, Method, Request, Response};
 
 fn request(method: &str, path: &str) -> Request {
-    Request::new(Method::new(method).unwrap(), path, Headers::new(), Vec::new()).unwrap()
+    Request::new(
+        Method::new(method).unwrap(),
+        path,
+        Headers::new(),
+        Vec::new(),
+    )
+    .unwrap()
 }
 
 #[test]
 fn allow_header_is_derived_from_the_selected_route_pattern() {
     let mut app = App::new();
-    app.route().get("/items/{id}", |_id: u64| Response::empty()).unwrap();
-    app.route().put("/items/{id}", |_id: u64| Response::empty()).unwrap();
-    app.route().post("/items/new", || Response::empty()).unwrap();
+    app.route()
+        .get("/items/{id}", |_id: u64| Response::empty())
+        .unwrap();
+    app.route()
+        .put("/items/{id}", |_id: u64| Response::empty())
+        .unwrap();
+    app.route()
+        .post("/items/new", || Response::empty())
+        .unwrap();
 
     let dynamic = app.respond(request("POST", "/items/7"));
     assert_eq!(dynamic.status_code(), 405);

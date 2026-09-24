@@ -1,11 +1,19 @@
 use claw_orm::{Direction, Driver, Model, Row, Value};
 
 #[derive(Debug, PartialEq)]
-struct User { id: u64 }
+struct User {
+    id: u64,
+}
 impl Model for User {
     const TABLE: &'static str = "users";
-    fn from_row(row: &Row) -> claw_orm::Result<Self> { Ok(Self { id: claw_orm::field(row, "id")? }) }
-    fn key(&self) -> Value { self.id.into() }
+    fn from_row(row: &Row) -> claw_orm::Result<Self> {
+        Ok(Self {
+            id: claw_orm::field(row, "id")?,
+        })
+    }
+    fn key(&self) -> Value {
+        self.id.into()
+    }
 }
 
 #[test]
@@ -28,9 +36,20 @@ fn combined_query_preserves_predicate_and_binding_order_for_every_driver() {
         assert!(sql.contains("email"));
         assert!(sql.contains("ORDER BY"));
         assert!(sql.ends_with("LIMIT 25 OFFSET 50"));
-        assert_eq!(statement.bindings(), &[Value::Bool(true), Value::U64(2), Value::U64(3), Value::U64(80), Value::U64(100)]);
+        assert_eq!(
+            statement.bindings(),
+            &[
+                Value::Bool(true),
+                Value::U64(2),
+                Value::U64(3),
+                Value::U64(80),
+                Value::U64(100)
+            ]
+        );
         if driver == Driver::Postgres {
-            for marker in ["$1", "$2", "$3", "$4", "$5"] { assert!(sql.contains(marker)); }
+            for marker in ["$1", "$2", "$3", "$4", "$5"] {
+                assert!(sql.contains(marker));
+            }
         } else {
             assert_eq!(sql.matches('?').count(), 5);
         }
