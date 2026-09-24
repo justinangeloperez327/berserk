@@ -1,5 +1,7 @@
+mod domain;
 mod migrations;
 mod users;
+mod projects;
 
 use berserk::{
     auth::{Guard, MemoryTokenStore, Principal, TokenManager},
@@ -25,6 +27,10 @@ fn application<G: Guard>(database: Database, guard: G) -> Result<App> {
             .get("/users/browse", users::Users::browse)?;
         api.auth()
             .get("/users/{id}/policy", users::Users::policy_show)?;
+        api.can("projects.read")?.get("/projects", projects::Projects::index)?;
+        api.can("projects.read")?.get("/projects/{project}", projects::Projects::show)?;
+        api.can("projects.read")?.get("/projects/{project}/tasks/open", projects::Projects::open_tasks)?;
+        api.can("projects.read")?.get("/tasks/{task}", projects::Tasks::show)?;
     }
 
     app.route().get("/health", || response().text("OK"))?;
@@ -42,7 +48,7 @@ fn main() -> Result<()> {
         Principal::new("admin:1")
             .expect("static principal")
             .with_role("admin"),
-        ["users.manage", "users.read", "users.view"],
+        ["users.manage", "users.read", "users.view", "projects.read"],
         0,
     )?;
     if std::env::var_os("BERSERK_SHOW_DEMO_TOKEN").is_some() {
@@ -115,7 +121,7 @@ mod tests {
         )?;
         let reader = tokens.issue(
             Principal::new("user:1").expect("static principal"),
-            ["users.read", "users.view"],
+            ["users.read", "users.view", "projects.read"],
             0,
         )?;
 
