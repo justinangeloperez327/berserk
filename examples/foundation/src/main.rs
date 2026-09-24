@@ -12,7 +12,9 @@ use berserk::{
 use std::sync::Arc;
 use berserk::{cache::MemoryCache, events::EventBus, jobs::{JobQueue, MemoryFailedJobs, QueueConfig, WorkerPool}, notifications::{MemoryMailTransport, Notifier, NotifierConfig}, storage::MemoryStorage};
 
-struct FoundationWorkers(WorkerPool);
+struct FoundationWorkers {
+    _pool: WorkerPool,
+}
 
 fn application<G: Guard>(database: Database, guard: G) -> Result<App> {
     let mut app = App::new();
@@ -25,7 +27,7 @@ fn application<G: Guard>(database: Database, guard: G) -> Result<App> {
         .map_err(|e| berserk::ConfigError::new("jobs", e.to_string()))?;
     let queue: JobQueue = workers.queue();
     app.jobs(queue)?;
-    app.state(FoundationWorkers(workers))?;
+    app.state(FoundationWorkers { _pool: workers })?;
     let mail = Arc::new(MemoryMailTransport::new(256).map_err(|e| berserk::ConfigError::new("notifications", e.to_string()))?);
     app.notifications(Notifier::new(NotifierConfig::default()).map_err(|e| berserk::ConfigError::new("notifications", e.to_string()))?.with_mail(mail))?;
     app.middleware(RequestId);
