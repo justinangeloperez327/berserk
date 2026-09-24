@@ -65,12 +65,16 @@ fn mysql_runs_the_live_migration_contract() {
 
 #[test]
 fn mysql_runs_the_live_database_contract() {
-    let Some(mut connection) = connection() else { return; };
+    let Some(mut connection) = connection() else {
+        return;
+    };
     common::run_live_database_contract(&mut connection);
 }
 
 #[test]
 fn mysql_runs_the_live_transaction_contract() {
-    let Some(mut connection) = connection() else { return; };
+    let Some(mut connection) = connection() else {
+        return;
+    };
     common::run_live_transaction_contract(&mut connection);
 }

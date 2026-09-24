@@ -159,7 +159,7 @@ pub fn transaction<T, E: From<DatabaseError>>(
             Err(error) => match transaction.rollback() {
                 Ok(()) => Err(error),
                 Err(rollback) => Err(rollback.into()),
-            }
+            },
         }
     })
 }

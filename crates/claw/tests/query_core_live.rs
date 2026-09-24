@@ -1,24 +1,42 @@
 #![cfg(feature = "sqlite")]
 
-use berserk_database::{drivers::sqlite::SqliteConnection, scope::with_scoped_connection, Connection, Direction, Statement, Value};
+use berserk_database::{
+    drivers::sqlite::SqliteConnection, scope::with_scoped_connection, Connection, Direction,
+    Statement, Value,
+};
 use claw_orm::{field, IntoInsert, IntoUpdate, Model, Result, Row};
 
 #[derive(Debug, PartialEq)]
-struct User { id: i64, name: String, email: Option<String>, score: i64 }
+struct User {
+    id: i64,
+    name: String,
+    email: Option<String>,
+    score: i64,
+}
 impl Model for User {
     const TABLE: &'static str = "users";
     const FILLABLE: &'static [&'static str] = &["name", "email", "score"];
     fn from_row(row: &Row) -> Result<Self> {
-        Ok(Self { id: field(row, "id")?, name: field(row, "name")?, email: field(row, "email")?, score: field(row, "score")? })
+        Ok(Self {
+            id: field(row, "id")?,
+            name: field(row, "name")?,
+            email: field(row, "email")?,
+            score: field(row, "score")?,
+        })
     }
-    fn key(&self) -> Value { self.id.into() }
+    fn key(&self) -> Value {
+        self.id.into()
+    }
 }
 struct NewUser(&'static str, Option<&'static str>, i64);
 impl IntoInsert<User> for NewUser {
     fn into_insert(self) -> Result<Vec<(String, Value)>> {
         Ok(vec![
             ("name".into(), self.0.into()),
-            ("email".into(), self.1.map(Value::from).unwrap_or(Value::Null)),
+            (
+                "email".into(),
+                self.1.map(Value::from).unwrap_or(Value::Null),
+            ),
             ("score".into(), self.2.into()),
         ])
     }
@@ -52,10 +70,15 @@ fn terminal_operations_share_one_predictable_query_contract() {
 
         let users = User::where_between("score", 80_i64, 100_i64)
             .order_by("score", Direction::Desc)
-            .get().unwrap();
+            .get()
+            .unwrap();
         assert_eq!(users.len(), 2);
 
-        let first = User::where_not_null("email").order_by("score", Direction::Desc).first().unwrap().unwrap();
+        let first = User::where_not_null("email")
+            .order_by("score", Direction::Desc)
+            .first()
+            .unwrap()
+            .unwrap();
         assert_eq!(first.name, "Ada");
     });
 }
@@ -89,7 +112,11 @@ fn create_update_fresh_refresh_delete_and_destroy_have_consistent_lifecycle() {
 
 fn external_update_for_scope(id: i64, name: &str) -> Result<()> {
     berserk_database::scope::with_connection(|connection| {
-        connection.execute(&Statement::new("UPDATE users SET name = ? WHERE id = ?").bind(name).bind(id))?;
+        connection.execute(
+            &Statement::new("UPDATE users SET name = ? WHERE id = ?")
+                .bind(name)
+                .bind(id),
+        )?;
         Ok(())
     })
 }

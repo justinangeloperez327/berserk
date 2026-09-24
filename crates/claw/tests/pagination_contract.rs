@@ -1,21 +1,36 @@
 #![cfg(feature = "sqlite")]
 
-use berserk_database::{drivers::sqlite::SqliteConnection, scope::DatabaseScope, Connection, Database, ErrorKind, Statement};
+use berserk_database::{
+    drivers::sqlite::SqliteConnection, scope::DatabaseScope, Connection, Database, ErrorKind,
+    Statement,
+};
 use claw_orm::{field, Model, Row, Value};
 
 #[derive(Debug)]
-struct Item { id: i64 }
+struct Item {
+    id: i64,
+}
 impl Model for Item {
     const TABLE: &'static str = "items";
-    fn from_row(row: &Row) -> claw_orm::Result<Self> { Ok(Self { id: field(row, "id")? }) }
-    fn key(&self) -> Value { self.id.into() }
+    fn from_row(row: &Row) -> claw_orm::Result<Self> {
+        Ok(Self {
+            id: field(row, "id")?,
+        })
+    }
+    fn key(&self) -> Value {
+        self.id.into()
+    }
 }
 
 fn database() -> Database {
     Database::new(|| {
         let mut c = SqliteConnection::in_memory()?;
-        c.execute(&Statement::new("CREATE TABLE items (id INTEGER PRIMARY KEY)"))?;
-        for id in 1_i64..=5 { c.execute(&Statement::new("INSERT INTO items (id) VALUES (?)").bind(id))?; }
+        c.execute(&Statement::new(
+            "CREATE TABLE items (id INTEGER PRIMARY KEY)",
+        ))?;
+        for id in 1_i64..=5 {
+            c.execute(&Statement::new("INSERT INTO items (id) VALUES (?)").bind(id))?;
+        }
         Ok(Box::new(c))
     })
 }

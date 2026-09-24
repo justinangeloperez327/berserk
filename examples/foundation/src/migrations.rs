@@ -71,10 +71,18 @@ impl Migration for CreateFoundationSchema {
                         Column::string("title"),
                         Column::string("status"),
                     ])
-                    .indexes([Index::new(["project_id"]), Index::new(["assignee_id"]), Index::new(["status"])])
+                    .indexes([
+                        Index::new(["project_id"]),
+                        Index::new(["assignee_id"]),
+                        Index::new(["status"]),
+                    ])
                     .foreign_keys([
-                        ForeignKey::new(["project_id"]).references("projects", ["id"]).on_delete(ForeignAction::Cascade),
-                        ForeignKey::new(["assignee_id"]).references("users", ["id"]).on_delete(ForeignAction::SetNull),
+                        ForeignKey::new(["project_id"])
+                            .references("projects", ["id"])
+                            .on_delete(ForeignAction::Cascade),
+                        ForeignKey::new(["assignee_id"])
+                            .references("users", ["id"])
+                            .on_delete(ForeignAction::SetNull),
                     ]),
             )
             .create(
@@ -87,8 +95,12 @@ impl Migration for CreateFoundationSchema {
                     ])
                     .indexes([Index::new(["task_id"]), Index::new(["user_id"])])
                     .foreign_keys([
-                        ForeignKey::new(["task_id"]).references("tasks", ["id"]).on_delete(ForeignAction::Cascade),
-                        ForeignKey::new(["user_id"]).references("users", ["id"]).on_delete(ForeignAction::Cascade),
+                        ForeignKey::new(["task_id"])
+                            .references("tasks", ["id"])
+                            .on_delete(ForeignAction::Cascade),
+                        ForeignKey::new(["user_id"])
+                            .references("users", ["id"])
+                            .on_delete(ForeignAction::Cascade),
                     ]),
             )
             .create(

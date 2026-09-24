@@ -98,17 +98,24 @@ fn main() -> Result<()> {
         "routing_static" => {
             let mut app = App::new();
             for i in 0..100 {
-                app.route().get(&format!("/items/{i}"), || Response::text("ok"))?;
+                app.route()
+                    .get(&format!("/items/{i}"), || Response::text("ok"))?;
             }
-            app.route().get("/users/{id}", |req: Request| Response::text(req.param("id").unwrap()))?;
+            app.route().get("/users/{id}", |req: Request| {
+                Response::text(req.param("id").unwrap())
+            })?;
             measure(
                 || {
                     let response = app.handle(request("/items/99"))?;
-                    if response.body() != b"ok" { return Err("incorrect static route result".into()); }
+                    if response.body() != b"ok" {
+                        return Err("incorrect static route result".into());
+                    }
                     black_box(response);
                     Ok(())
                 },
-                "routing_static_101_routes", n, warmup,
+                "routing_static_101_routes",
+                n,
+                warmup,
             )
         }
         "json" => {
@@ -132,11 +139,13 @@ fn main() -> Result<()> {
             let mut connection = SqliteConnection::in_memory()?;
             Query::raw("CREATE TABLE benchmark_users (id INTEGER PRIMARY KEY, name TEXT NOT NULL, active INTEGER NOT NULL)").execute(&mut connection)?;
             for id in 1_i64..=100 {
-                Query::table("benchmark_users").insert([
-                    ("id", Value::I64(id)),
-                    ("name", Value::from(format!("User {id}"))),
-                    ("active", Value::I64((id % 2 == 0) as i64)),
-                ]).execute(&mut connection)?;
+                Query::table("benchmark_users")
+                    .insert([
+                        ("id", Value::I64(id)),
+                        ("name", Value::from(format!("User {id}"))),
+                        ("active", Value::I64((id % 2 == 0) as i64)),
+                    ])
+                    .execute(&mut connection)?;
             }
             measure(
                 || {
@@ -146,7 +155,9 @@ fn main() -> Result<()> {
                         .order_by("id", berserk::database::Direction::Desc)
                         .limit(20)
                         .get(&mut connection)?;
-                    if rows.len() != 20 { return Err("incorrect query result".into()); }
+                    if rows.len() != 20 {
+                        return Err("incorrect query result".into());
+                    }
                     black_box(rows);
                     Ok(())
                 },

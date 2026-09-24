@@ -124,7 +124,6 @@ fn clean(connection: &mut dyn Connection) {
     }
 }
 
-
 const CONTRACT_PARENT: &str = "berserk_contract_parent";
 const CONTRACT_CHILD: &str = "berserk_contract_child";
 
@@ -147,19 +146,37 @@ pub fn run_live_database_contract(connection: &mut dyn Connection) {
     let rows = contract_select(connection, driver);
     assert_eq!(rows.len(), 2);
     assert!(integer_eq(rows[0].get("id"), 2));
-    assert_eq!(rows[0].get("name"), Some(&berserk_database::Value::Text("Grace λ".into())));
-    assert_eq!(rows[0].get("optional_text"), Some(&berserk_database::Value::Text("unicode ✓".into())));
+    assert_eq!(
+        rows[0].get("name"),
+        Some(&berserk_database::Value::Text("Grace λ".into()))
+    );
+    assert_eq!(
+        rows[0].get("optional_text"),
+        Some(&berserk_database::Value::Text("unicode ✓".into()))
+    );
     assert!(integer_eq(rows[1].get("id"), 1));
-    assert_eq!(rows[1].get("optional_text"), Some(&berserk_database::Value::Null));
+    assert_eq!(
+        rows[1].get("optional_text"),
+        Some(&berserk_database::Value::Null)
+    );
 
     let duplicate = contract_insert_error(connection, driver, 4, "Ada", None);
-    assert_eq!(duplicate.kind(), &berserk_database::ErrorKind::UniqueViolation);
+    assert_eq!(
+        duplicate.kind(),
+        &berserk_database::ErrorKind::UniqueViolation
+    );
 
     let null_error = contract_null_error(connection, driver, 5);
-    assert_eq!(null_error.kind(), &berserk_database::ErrorKind::NotNullViolation);
+    assert_eq!(
+        null_error.kind(),
+        &berserk_database::ErrorKind::NotNullViolation
+    );
 
     let fk_error = contract_fk_error(connection, driver);
-    assert_eq!(fk_error.kind(), &berserk_database::ErrorKind::ForeignKeyViolation);
+    assert_eq!(
+        fk_error.kind(),
+        &berserk_database::ErrorKind::ForeignKeyViolation
+    );
 
     {
         let mut tx = connection.begin(Default::default()).unwrap();
@@ -173,7 +190,9 @@ pub fn run_live_database_contract(connection: &mut dyn Connection) {
 
 fn clean_database_contract(connection: &mut dyn Connection) {
     for table in [CONTRACT_CHILD, CONTRACT_PARENT] {
-        connection.execute(&Statement::new(format!("DROP TABLE IF EXISTS {table}"))).unwrap();
+        connection
+            .execute(&Statement::new(format!("DROP TABLE IF EXISTS {table}")))
+            .unwrap();
     }
 }
 
@@ -184,22 +203,46 @@ fn placeholder(driver: Driver, index: usize) -> String {
     }
 }
 
-fn contract_insert(connection: &mut dyn Connection, driver: Driver, id: i64, name: &str, optional: Option<&str>) {
+fn contract_insert(
+    connection: &mut dyn Connection,
+    driver: Driver,
+    id: i64,
+    name: &str,
+    optional: Option<&str>,
+) {
     let sql = format!(
         "INSERT INTO {CONTRACT_PARENT} (id, name, optional_text) VALUES ({}, {}, {})",
-        placeholder(driver, 1), placeholder(driver, 2), placeholder(driver, 3)
+        placeholder(driver, 1),
+        placeholder(driver, 2),
+        placeholder(driver, 3)
     );
-    let optional_value = optional.map(berserk_database::Value::from).unwrap_or(berserk_database::Value::Null);
-    connection.execute(&Statement::new(sql).bind(id).bind(name).bind(optional_value)).unwrap();
+    let optional_value = optional
+        .map(berserk_database::Value::from)
+        .unwrap_or(berserk_database::Value::Null);
+    connection
+        .execute(&Statement::new(sql).bind(id).bind(name).bind(optional_value))
+        .unwrap();
 }
 
-fn contract_insert_error(connection: &mut dyn Connection, driver: Driver, id: i64, name: &str, optional: Option<&str>) -> berserk_database::DatabaseError {
+fn contract_insert_error(
+    connection: &mut dyn Connection,
+    driver: Driver,
+    id: i64,
+    name: &str,
+    optional: Option<&str>,
+) -> berserk_database::DatabaseError {
     let sql = format!(
         "INSERT INTO {CONTRACT_PARENT} (id, name, optional_text) VALUES ({}, {}, {})",
-        placeholder(driver, 1), placeholder(driver, 2), placeholder(driver, 3)
+        placeholder(driver, 1),
+        placeholder(driver, 2),
+        placeholder(driver, 3)
     );
-    let optional_value = optional.map(berserk_database::Value::from).unwrap_or(berserk_database::Value::Null);
-    connection.execute(&Statement::new(sql).bind(id).bind(name).bind(optional_value)).unwrap_err()
+    let optional_value = optional
+        .map(berserk_database::Value::from)
+        .unwrap_or(berserk_database::Value::Null);
+    connection
+        .execute(&Statement::new(sql).bind(id).bind(name).bind(optional_value))
+        .unwrap_err()
 }
 
 fn contract_select(connection: &mut dyn Connection, driver: Driver) -> Vec<berserk_database::Row> {
@@ -210,20 +253,33 @@ fn contract_select(connection: &mut dyn Connection, driver: Driver) -> Vec<berse
     connection.query(&Statement::new(sql).bind(1_i64)).unwrap()
 }
 
-fn contract_null_error(connection: &mut dyn Connection, driver: Driver, id: i64) -> berserk_database::DatabaseError {
+fn contract_null_error(
+    connection: &mut dyn Connection,
+    driver: Driver,
+    id: i64,
+) -> berserk_database::DatabaseError {
     let sql = format!(
         "INSERT INTO {CONTRACT_PARENT} (id, name) VALUES ({}, NULL)",
         placeholder(driver, 1)
     );
-    connection.execute(&Statement::new(sql).bind(id)).unwrap_err()
+    connection
+        .execute(&Statement::new(sql).bind(id))
+        .unwrap_err()
 }
 
-fn contract_fk_error(connection: &mut dyn Connection, driver: Driver) -> berserk_database::DatabaseError {
+fn contract_fk_error(
+    connection: &mut dyn Connection,
+    driver: Driver,
+) -> berserk_database::DatabaseError {
     let sql = format!(
         "INSERT INTO {CONTRACT_CHILD} (id, parent_id, label) VALUES ({}, {}, {})",
-        placeholder(driver, 1), placeholder(driver, 2), placeholder(driver, 3)
+        placeholder(driver, 1),
+        placeholder(driver, 2),
+        placeholder(driver, 3)
     );
-    connection.execute(&Statement::new(sql).bind(1_i64).bind(999_i64).bind("orphan")).unwrap_err()
+    connection
+        .execute(&Statement::new(sql).bind(1_i64).bind(999_i64).bind("orphan"))
+        .unwrap_err()
 }
 
 fn contract_exists(connection: &mut dyn Connection, driver: Driver, id: i64) -> bool {
@@ -231,7 +287,10 @@ fn contract_exists(connection: &mut dyn Connection, driver: Driver, id: i64) -> 
         "SELECT id FROM {CONTRACT_PARENT} WHERE id = {}",
         placeholder(driver, 1)
     );
-    !connection.query(&Statement::new(sql).bind(id)).unwrap().is_empty()
+    !connection
+        .query(&Statement::new(sql).bind(id))
+        .unwrap()
+        .is_empty()
 }
 
 fn integer_eq(value: Option<&berserk_database::Value>, expected: i64) -> bool {
@@ -239,15 +298,18 @@ fn integer_eq(value: Option<&berserk_database::Value>, expected: i64) -> bool {
         || matches!(value, Some(berserk_database::Value::U64(value)) if *value == expected as u64)
 }
 
-
 /// Cross-backend transaction contract: commit, rollback, multi-statement atomicity,
 /// constraint rollback, and connection usability after completion.
 pub fn run_live_transaction_contract(connection: &mut dyn Connection) {
     const TABLE: &str = "berserk_transaction_contract";
-    connection.execute(&Statement::new(format!("DROP TABLE IF EXISTS {TABLE}"))).unwrap();
-    connection.execute(&Statement::new(format!(
-        "CREATE TABLE {TABLE} (id BIGINT PRIMARY KEY, value VARCHAR(255) NOT NULL UNIQUE)"
-    ))).unwrap();
+    connection
+        .execute(&Statement::new(format!("DROP TABLE IF EXISTS {TABLE}")))
+        .unwrap();
+    connection
+        .execute(&Statement::new(format!(
+            "CREATE TABLE {TABLE} (id BIGINT PRIMARY KEY, value VARCHAR(255) NOT NULL UNIQUE)"
+        )))
+        .unwrap();
     let driver = connection.driver();
 
     {
@@ -280,7 +342,9 @@ pub fn run_live_transaction_contract(connection: &mut dyn Connection) {
     contract_execute_insert(connection, driver, TABLE, 6, "after-transaction").unwrap();
     assert!(transaction_exists(connection, driver, TABLE, 6));
 
-    connection.execute(&Statement::new(format!("DROP TABLE {TABLE}"))).unwrap();
+    connection
+        .execute(&Statement::new(format!("DROP TABLE {TABLE}")))
+        .unwrap();
 }
 
 fn transaction_insert(
@@ -313,7 +377,18 @@ fn contract_execute_insert(
     connection.execute(&Statement::new(sql).bind(id).bind(value))
 }
 
-fn transaction_exists(connection: &mut dyn Connection, driver: Driver, table: &str, id: i64) -> bool {
-    let sql = format!("SELECT id FROM {table} WHERE id = {}", placeholder(driver, 1));
-    !connection.query(&Statement::new(sql).bind(id)).unwrap().is_empty()
+fn transaction_exists(
+    connection: &mut dyn Connection,
+    driver: Driver,
+    table: &str,
+    id: i64,
+) -> bool {
+    let sql = format!(
+        "SELECT id FROM {table} WHERE id = {}",
+        placeholder(driver, 1)
+    );
+    !connection
+        .query(&Statement::new(sql).bind(id))
+        .unwrap()
+        .is_empty()
 }
