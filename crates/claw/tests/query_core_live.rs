@@ -25,7 +25,9 @@ impl IntoInsert<User> for NewUser {
 }
 struct Rename(&'static str);
 impl IntoUpdate<User> for Rename {
-    fn into_update(self) -> Result<Vec<(&'static str, Value)>> { Ok(vec![("name".into(), self.0.into())]) }
+    fn into_update(self) -> Result<Vec<(String, Value)>> {
+        Ok(vec![("name".into(), self.0.into())])
+    }
 }
 
 fn setup() -> SqliteConnection {
