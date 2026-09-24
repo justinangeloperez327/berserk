@@ -120,7 +120,7 @@ jobs:
         run: |
           cargo update
           cargo install cargo-edit --locked
-          cargo upgrade --workspace --incompatible allow
+          cargo upgrade --incompatible allow
           cargo update
           cargo fmt --all
           git config user.name "github-actions[bot]"
@@ -129,7 +129,7 @@ jobs:
           git add -u
           if ! git diff --cached --quiet; then
             git commit -m "build: upgrade dependencies to latest stable releases"
-            git push origin HEAD:feature/latest-dependencies
+            git push origin HEAD:fix/quality-latest-dependencies
           fi
       - run: cargo fmt --all -- --check
       - run: cargo check --locked --workspace
