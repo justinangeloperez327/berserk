@@ -3,7 +3,10 @@ use crate::App;
 use hyper::service::service_fn;
 use hyper_util::rt::{TokioIo, TokioTimer};
 use std::{
-    sync::{atomic::{AtomicUsize, Ordering}, Arc},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
     time::Instant,
 };
 
