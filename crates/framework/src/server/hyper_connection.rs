@@ -23,7 +23,11 @@ pub(super) async fn serve(stream: tokio::net::TcpStream, accepted: Instant, app:
         return false;
     }
 
-    // Only copy per-request scalar policies; avoid cloning ServerConfig.\n    let keep_alive = config.keep_alive;\n    let max_requests_per_connection = config.max_requests_per_connection;\n    let request_deadline = config.request_deadline;\n    let request_count = Arc::new(AtomicUsize::new(0));
+    // Only copy per-request scalar policies; avoid cloning ServerConfig.
+    let keep_alive = config.keep_alive;
+    let max_requests_per_connection = config.max_requests_per_connection;
+    let request_deadline = config.request_deadline;
+    let request_count = Arc::new(AtomicUsize::new(0));
     let service = service_fn({
         let app = Arc::clone(&app);
         let request_count = Arc::clone(&request_count);
