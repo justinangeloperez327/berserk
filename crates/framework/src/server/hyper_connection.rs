@@ -3,10 +3,7 @@ use crate::App;
 use hyper::service::service_fn;
 use hyper_util::rt::{TokioIo, TokioTimer};
 use std::{
-    sync::{
-        atomic::{AtomicUsize, Ordering},
-        Arc,
-    },
+    sync::{atomic::{AtomicUsize, Ordering}, Arc},
     time::Instant,
 };
 
@@ -27,15 +24,13 @@ pub(super) async fn serve(stream: tokio::net::TcpStream, accepted: Instant, app:
     let keep_alive = config.keep_alive;
     let max_requests_per_connection = config.max_requests_per_connection;
     let request_deadline = config.request_deadline;
-    let request_count = Arc::new(AtomicUsize::new(0));
+    let request_count = AtomicUsize::new(0);
     let service = service_fn({
         let app = Arc::clone(&app);
-        let request_count = Arc::clone(&request_count);
         move |request| {
             let app = Arc::clone(&app);
-            let request_count = Arc::clone(&request_count);
+            let current = request_count.fetch_add(1, Ordering::Relaxed) + 1;
             async move {
-                let current = request_count.fetch_add(1, Ordering::Relaxed) + 1;
                 let deadline = if current == 1 {
                     first_deadline
                 } else {
