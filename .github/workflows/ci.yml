@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   repository-hygiene:
@@ -115,30 +115,14 @@ jobs:
           workspaces: |
             . -> target
             examples/minimal-api -> target
-      - name: Upgrade all dependencies to latest stable releases
-        shell: bash
-        run: |
-          cargo update
-          cargo install cargo-edit --locked
-          cargo upgrade --incompatible allow
-          cargo update
-          cargo fmt --all
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Cargo.toml Cargo.lock crates/*/Cargo.toml examples/*/Cargo.toml benchmarks/Cargo.toml
-          git add -u
-          if ! git diff --cached --quiet; then
-            git commit -m "build: upgrade dependencies to latest stable releases"
-            git push origin HEAD:refs/heads/${GITHUB_HEAD_REF:-fix/quality-upgrade-push}
-          fi
       - run: cargo fmt --all -- --check
       - run: cargo check --locked --workspace
       - run: cargo test --locked --workspace
-      - run: cargo check --workspace --all-targets --all-features
-      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-      - run: cargo test --workspace --all-features
+      - run: cargo check --locked --workspace --all-targets --all-features
+      - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+      - run: cargo test --locked --workspace --all-features
       - run: cargo run --locked -p claw-orm --example relationships --features sqlite
-      - run: cargo doc --workspace --all-features --no-deps
+      - run: cargo doc --locked --workspace --all-features --no-deps
         env:
           RUSTDOCFLAGS: -D warnings
       - run: cargo test --manifest-path examples/minimal-api/Cargo.toml
