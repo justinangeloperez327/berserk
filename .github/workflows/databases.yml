@@ -24,7 +24,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test -p berserk-database --features sqlite --test sqlite
+      - run: cargo test --locked -p berserk-database --features sqlite --test sqlite
       - run: cargo test --locked -p claw-orm --test relationships_live
 
   postgres:
@@ -46,11 +46,11 @@ jobs:
           --health-retries 5
     env:
       BERSERK_REQUIRE_LIVE_DATABASES: "1"
-      FRAMEWORK_POSTGRES_TEST_URL: postgres://berserk:berserk@127.0.0.1:5432/berserk
+      BERSERK_POSTGRES_TEST_URL: postgres://berserk:berserk@127.0.0.1:5432/berserk
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test -p berserk-database --features postgres --test postgres
+      - run: cargo test --locked -p berserk-database --features postgres --test postgres
       - run: cargo test --locked -p claw-orm --features postgres --test relationships_live
 
   mysql:
@@ -73,11 +73,11 @@ jobs:
           --health-retries 10
     env:
       BERSERK_REQUIRE_LIVE_DATABASES: "1"
-      FRAMEWORK_MYSQL_TEST_URL: mysql://berserk:berserk@127.0.0.1:3306/berserk
+      BERSERK_MYSQL_TEST_URL: mysql://berserk:berserk@127.0.0.1:3306/berserk
     steps:
       - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo test -p berserk-database --features mysql --test mysql
+      - run: cargo test --locked -p berserk-database --features mysql --test mysql
       - run: cargo test --locked -p claw-orm --features mysql --test relationships_live
 
 

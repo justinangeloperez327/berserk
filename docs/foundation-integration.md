@@ -4,7 +4,7 @@ Foundation integrates Berserk services through explicit application boundaries r
 
 The root application owns cache, object storage, event bus, job queue/worker pool, notification dispatcher, authentication, and database state. Request handlers retrieve only the services needed for the workflow.
 
-The task integration flow demonstrates cache invalidation, typed event dispatch, and bounded background work. Background project snapshots write through the Storage contract. Notification composition is kept as an explicit application operation so delivery failures remain visible to the caller instead of being silently swallowed.
+The task integration flow requires the `tasks.integrate` ability and demonstrates cache invalidation, a `TaskIntegrated` event, bounded background work, and an explicitly composed snapshot notification. The `projects.read` ability alone cannot dispatch work. Background project snapshots write through the Storage contract. The example records mail through `MemoryMailTransport` using development addresses; delivery failures remain visible to the caller instead of being silently swallowed.
 
 Database mutation and external side effects are intentionally distinct consistency domains. A database transaction cannot atomically commit an email, webhook, file write, or in-memory job enqueue. Foundation therefore does not pretend these operations form a distributed transaction. Durable production delivery should use an outbox/idempotency strategy when database state and external effects must survive process failure together.
 

@@ -58,11 +58,11 @@ fn contract(c: &mut dyn Connection) {
     relation.attach_on(c, &User(2), 10).unwrap();
     assert_eq!(
         relation.attach_on(c, &User(1), 10).unwrap_err().kind(),
-        &ErrorKind::Constraint
+        &ErrorKind::UniqueViolation
     );
     assert_eq!(
         relation.sync_on(c, &User(1), [12, 999]).unwrap_err().kind(),
-        &ErrorKind::Constraint
+        &ErrorKind::ForeignKeyViolation
     );
     let loaded = User::query().with(roles()).get_on(c).unwrap();
     assert_eq!(loaded.relations.get(&Value::U64(1)).unwrap().len(), 2);
@@ -97,8 +97,8 @@ fn sqlite_relationship_contract() {
 }
 
 #[cfg(any(feature = "postgres", feature = "mysql"))]
-fn database_url(name: &str) -> Option<String> {
-    match std::env::var(name) {
+fn database_url(name: &str, legacy: &str) -> Option<String> {
+    match std::env::var(name).or_else(|_| std::env::var(legacy)) {
         Ok(url) => Some(url),
         Err(_) if std::env::var("BERSERK_REQUIRE_LIVE_DATABASES").as_deref() == Ok("1") => {
             panic!("{name} is required for live relationship tests")
@@ -113,7 +113,7 @@ fn database_url(name: &str) -> Option<String> {
 #[cfg(feature = "postgres")]
 #[test]
 fn postgres_relationship_contract() {
-    if let Some(url) = database_url("FRAMEWORK_POSTGRES_TEST_URL") {
+    if let Some(url) = database_url("BERSERK_POSTGRES_TEST_URL", "FRAMEWORK_POSTGRES_TEST_URL") {
         let mut c =
             berserk_database::drivers::postgres::PostgresConnection::connect_no_tls(&url).unwrap();
         contract(&mut c);
@@ -123,7 +123,7 @@ fn postgres_relationship_contract() {
 #[cfg(feature = "mysql")]
 #[test]
 fn mysql_relationship_contract() {
-    if let Some(url) = database_url("FRAMEWORK_MYSQL_TEST_URL") {
+    if let Some(url) = database_url("BERSERK_MYSQL_TEST_URL", "FRAMEWORK_MYSQL_TEST_URL") {
         let mut c = berserk_database::drivers::mysql::MySqlConnection::connect(&url).unwrap();
         contract(&mut c);
     }

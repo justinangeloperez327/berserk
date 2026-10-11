@@ -5,7 +5,9 @@ mod common;
 use berserk_database::{drivers::mysql::MySqlConnection, Connection, Statement, Value};
 
 fn connection() -> Option<MySqlConnection> {
-    let url = match std::env::var("FRAMEWORK_MYSQL_TEST_URL") {
+    let url = match std::env::var("BERSERK_MYSQL_TEST_URL")
+        .or_else(|_| std::env::var("FRAMEWORK_MYSQL_TEST_URL"))
+    {
         Ok(url) => url,
         Err(error) => {
             assert!(
@@ -13,7 +15,7 @@ fn connection() -> Option<MySqlConnection> {
                     std::env::var("BERSERK_REQUIRE_LIVE_DATABASES").as_deref(),
                     Ok("1")
                 ),
-                "FRAMEWORK_MYSQL_TEST_URL is required for live database tests: {error}"
+                "BERSERK_MYSQL_TEST_URL is required for live database tests: {error}"
             );
             return None;
         }

@@ -7,6 +7,7 @@ publish = false
 
 # Independent consumer workspace: no inherited package/dependency settings.
 [workspace]
+resolver = "3"
 
 [dependencies]
 berserk = { path = "../../crates/framework" }

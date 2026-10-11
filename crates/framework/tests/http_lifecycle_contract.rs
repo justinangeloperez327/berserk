@@ -64,7 +64,7 @@ fn lifecycle_status_contract_is_consistent() {
     );
     let wrong = app.respond(request("POST", "/users/7", b"", false));
     assert_eq!(wrong.status_code(), 405);
-    assert_eq!(wrong.headers().get("allow"), Some("GET, HEAD"));
+    assert_eq!(wrong.headers().get("allow"), Some("DELETE, GET, HEAD"));
     assert_eq!(
         app.respond(request("GET", "/users/nope", b"", false))
             .status_code(),

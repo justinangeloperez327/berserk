@@ -188,3 +188,12 @@ fn due_schedules_enqueue_one_job_per_tick() {
     pool.shutdown().unwrap();
     assert_eq!(count.load(Ordering::SeqCst), 1);
 }
+
+#[test]
+fn schedules_reject_intervals_below_clock_precision() {
+    let scheduler = Scheduler::new();
+    let result = scheduler.every(Duration::from_nanos(1), RetryPolicy::none(), || {
+        CountJob(Arc::new(AtomicUsize::new(0)))
+    });
+    assert_eq!(result.unwrap_err().kind(), ErrorKind::Configuration);
+}

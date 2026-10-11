@@ -31,7 +31,7 @@ fn database() -> Database {
         for id in 1_i64..=5 {
             c.execute(&Statement::new("INSERT INTO items (id) VALUES (?)").bind(id))?;
         }
-        Ok(Box::new(c))
+        Ok(c)
     })
 }
 

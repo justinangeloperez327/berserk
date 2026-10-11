@@ -73,10 +73,14 @@ impl Json {
         }
     }
     pub fn parse(bytes: &[u8]) -> Result<Self, JsonError> {
-        std::str::from_utf8(bytes).map_err(|e| JsonError {
+        let text = std::str::from_utf8(bytes).map_err(|e| JsonError {
             offset: e.valid_up_to(),
         })?;
-        let mut p = Parser { b: bytes, i: 0 };
+        let mut p = Parser {
+            b: bytes,
+            text,
+            i: 0,
+        };
         let value = p.value(0)?;
         p.ws();
         if p.i != bytes.len() {
@@ -138,6 +142,7 @@ fn quote(s: &str, out: &mut String) {
 }
 struct Parser<'a> {
     b: &'a [u8],
+    text: &'a str,
     i: usize,
 }
 impl Parser<'_> {
@@ -222,8 +227,12 @@ impl Parser<'_> {
                     _ => return self.err(),
                 }
             } else {
-                let tail = std::str::from_utf8(&self.b[self.i..])
-                    .map_err(|_| JsonError { offset: self.i })?;
+                // Input was validated once by parse; slicing a str only checks
+                // the character boundary instead of rescanning the suffix.
+                let tail = self
+                    .text
+                    .get(self.i..)
+                    .ok_or(JsonError { offset: self.i })?;
                 let c = tail.chars().next().ok_or(JsonError { offset: self.i })?;
                 self.i += c.len_utf8();
                 out.push(c);

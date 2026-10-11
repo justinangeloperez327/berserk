@@ -12,6 +12,10 @@ FRAMEWORK = (ROOT / "crates/framework").as_posix()
 VERSION = tomllib.loads((ROOT / "Cargo.toml").read_text())["workspace"]["package"]["version"]
 
 CASES = {
+    "http-example": {
+        "features": ["server"],
+        "source": (ROOT / "docs/design-examples/http-api.rs").read_text(),
+    },
     "core": {
         "features": [],
         "source": r'''use berserk::{response, App, FormRequest, FromJson, Json, Request, Response, Result, ValidationErrors, ValidationResult};
@@ -61,10 +65,10 @@ impl FromJson for UserInput {
 }
 impl FormRequest for UserInput { fn validate(&self) -> ValidationResult { Ok(()) } }
 impl IntoInsert<User> for UserInput {
-    fn into_insert(self) -> berserk::claw::Result<Vec<(&'static str, Value)>> { Ok(vec![("name", self.name.into())]) }
+    fn into_insert(self) -> berserk::claw::Result<Vec<(String, Value)>> { Ok(vec![("name".into(), self.name.into())]) }
 }
 impl IntoUpdate<User> for UserInput {
-    fn into_update(self) -> berserk::claw::Result<Vec<(&'static str, Value)>> { Ok(vec![("name", self.name.into())]) }
+    fn into_update(self) -> berserk::claw::Result<Vec<(String, Value)>> { Ok(vec![("name".into(), self.name.into())]) }
 }
 struct Users;
 impl CrudController for Users {
@@ -118,6 +122,7 @@ rust-version = "1.88"
 publish = false
 
 [workspace]
+resolver = "3"
 
 [dependencies]
 berserk = {{ version = "={VERSION}", path = "{FRAMEWORK}", default-features = false{feature_text} }}

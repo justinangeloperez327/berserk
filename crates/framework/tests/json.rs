@@ -59,3 +59,14 @@ fn validation_accumulates() {
     e.range("age", -1, 0, 120);
     assert_eq!(e.finish().unwrap_err().0.len(), 2);
 }
+
+#[test]
+fn large_strings_keep_unicode_and_escape_semantics() {
+    let text = "plain λ😀".repeat(64 * 1024);
+    let input = format!("{{\"text\":\"{text}\\nend\"}}");
+    let parsed = Json::parse(input.as_bytes()).unwrap();
+    assert_eq!(
+        parsed.get("text").and_then(Json::as_str),
+        Some(format!("{text}\nend").as_str())
+    );
+}

@@ -6,6 +6,10 @@ use berserk_database::{
     drivers::sqlite::SqliteConnection, Connection, Direction, ErrorKind, Query, Statement,
     TransactionOptions, Value,
 };
+use berserk_database::{
+    migrations::{compile_rebuild, Column, Table},
+    Migration, MigrationRunner,
+};
 
 #[test]
 fn sqlite_executes_bound_crud_and_maps_rows() {
@@ -116,4 +120,118 @@ fn sqlite_runs_the_live_database_contract() {
 fn sqlite_runs_the_live_transaction_contract() {
     let mut connection = SqliteConnection::in_memory().unwrap();
     common::run_live_transaction_contract(&mut connection);
+}
+
+struct RenameUser;
+impl Migration for RenameUser {
+    fn name(&self) -> &'static str {
+        "rename_user_name"
+    }
+    fn up(&self, driver: berserk_database::Driver) -> berserk_database::Result<Vec<Statement>> {
+        compile_rebuild(
+            &Table::rebuild(
+                "users",
+                Table::create("users").columns([Column::id(), Column::string("full_name")]),
+            )
+            .copy([("id", "id"), ("name", "full_name")]),
+            driver,
+        )
+    }
+    fn down(&self, _driver: berserk_database::Driver) -> berserk_database::Result<Vec<Statement>> {
+        Ok(vec![Statement::new("DROP TABLE users")])
+    }
+}
+
+#[test]
+fn sqlite_rebuild_rejects_referenced_parents_before_changing_data() {
+    for action in ["CASCADE", "SET NULL", "NO ACTION"] {
+        let mut connection = SqliteConnection::in_memory().unwrap();
+        for sql in [
+            "PRAGMA foreign_keys = ON".to_owned(),
+            "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)".to_owned(),
+            format!("CREATE TABLE tasks (id INTEGER PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE {action})"),
+            "INSERT INTO users VALUES (1, 'Ada')".to_owned(),
+            "INSERT INTO tasks VALUES (10, 1)".to_owned(),
+        ] {
+            connection.execute(&Statement::new(sql)).unwrap();
+        }
+        let migration = RenameUser;
+        let runner = MigrationRunner::new([&migration as &dyn Migration]).unwrap();
+        assert_eq!(
+            runner.migrate(&mut connection).unwrap_err().kind(),
+            &ErrorKind::InvalidInput
+        );
+        assert!(runner.applied(&mut connection).unwrap().is_empty());
+        let children = connection
+            .query(&Statement::new("SELECT user_id FROM tasks"))
+            .unwrap();
+        assert_eq!(children[0].get("user_id"), Some(&Value::I64(1)));
+        assert_eq!(
+            connection
+                .query(&Statement::new("SELECT name FROM users"))
+                .unwrap()[0]
+                .get("name"),
+            Some(&Value::from("Ada"))
+        );
+        assert!(connection
+            .query(&Statement::new("SELECT * FROM __br_users"))
+            .is_err());
+    }
+}
+
+#[test]
+fn sqlite_rebuild_preserves_unreferenced_table_rows() {
+    let mut connection = SqliteConnection::in_memory().unwrap();
+    connection
+        .execute(&Statement::new("PRAGMA foreign_keys = ON"))
+        .unwrap();
+    connection
+        .execute(&Statement::new(
+            "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT NOT NULL)",
+        ))
+        .unwrap();
+    connection
+        .execute(&Statement::new("INSERT INTO users VALUES (1, 'Ada')"))
+        .unwrap();
+    let migration = RenameUser;
+    MigrationRunner::new([&migration as &dyn Migration])
+        .unwrap()
+        .migrate(&mut connection)
+        .unwrap();
+    let rows = connection
+        .query(&Statement::new("SELECT id, full_name FROM users"))
+        .unwrap();
+    assert_eq!(rows[0].get("id"), Some(&Value::I64(1)));
+    assert_eq!(rows[0].get("full_name"), Some(&Value::from("Ada")));
+}
+
+#[test]
+fn sqlite_rebuild_guards_self_references_and_query_execution() {
+    let mut connection = SqliteConnection::in_memory().unwrap();
+    for sql in [
+        "PRAGMA foreign_keys = ON",
+        "CREATE TABLE UsErS (id INTEGER PRIMARY KEY, name TEXT, parent_id INTEGER REFERENCES UsErS(id) ON DELETE CASCADE)",
+        "INSERT INTO UsErS VALUES (1, 'Ada', NULL), (2, 'Grace', 1)",
+    ] {
+        connection.execute(&Statement::new(sql)).unwrap();
+    }
+    let statements = RenameUser.up(berserk_database::Driver::Sqlite).unwrap();
+    assert_eq!(
+        connection.query(&statements[0]).unwrap_err().kind(),
+        &ErrorKind::InvalidInput
+    );
+    assert_eq!(
+        connection.execute(&statements[0]).unwrap_err().kind(),
+        &ErrorKind::InvalidInput
+    );
+    assert_eq!(
+        connection
+            .query(&Statement::new("SELECT id FROM UsErS"))
+            .unwrap()
+            .len(),
+        2
+    );
+    assert!(connection
+        .query(&Statement::new("SELECT * FROM __br_users"))
+        .is_err());
 }

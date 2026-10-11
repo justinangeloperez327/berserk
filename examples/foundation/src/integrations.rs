@@ -1,19 +1,18 @@
 use berserk::{
-    cache::Cache,
-    events::{Event, EventBus},
-    jobs::{Job, JobContext, JobQueue, RetryPolicy},
-    notifications::{EmailAddress, MailMessage, Notification, Notifier, Recipient},
+    events::Event,
+    jobs::{Job, JobContext, RetryPolicy},
+    notifications::{EmailAddress, MailMessage, Notification, Recipient},
     storage::{Storage, StoragePath},
     Request, Result,
 };
 use std::{io::Cursor, sync::Arc};
 
-pub struct TaskCreated {
+pub struct TaskIntegrated {
     pub task_id: i64,
     pub project_id: i64,
 }
-impl Event for TaskCreated {
-    const NAME: &'static str = "task.created";
+impl Event for TaskIntegrated {
+    const NAME: &'static str = "task.integrated";
 }
 
 pub struct ProjectSnapshotJob {
@@ -36,10 +35,10 @@ impl Job for ProjectSnapshotJob {
     }
 }
 
-pub struct TaskAssignedMail {
+pub struct TaskSnapshotMail {
     pub title: String,
 }
-impl Notification for TaskAssignedMail {
+impl Notification for TaskSnapshotMail {
     fn mail(&self, recipient: &Recipient) -> berserk::notifications::Result<Option<MailMessage>> {
         let Some(to) = recipient.email_address() else {
             return Ok(None);
@@ -47,58 +46,58 @@ impl Notification for TaskAssignedMail {
         Ok(Some(MailMessage::text(
             EmailAddress::new("foundation@example.test")?,
             to.clone(),
-            "Task assigned",
-            format!("You were assigned: {}", self.title),
+            "Task snapshot requested",
+            format!("Snapshot requested for: {}", self.title),
         )?))
     }
 }
 
 pub fn invalidate_project(request: &Request, project_id: i64) -> Result<()> {
-    let cache = request
-        .state::<Arc<dyn Cache>>()
-        .ok_or_else(|| berserk::ConfigError::new("cache", "cache is not configured"))?;
+    let cache = request.cache()?;
     cache
         .forget(&format!("project:{project_id}"))
-        .map_err(|e| berserk::ConfigError::new("cache", e.to_string()))?;
+        .map_err(|_| berserk::ConfigError::new("cache", "cache invalidation failed"))?;
     Ok(())
 }
 
-pub fn dispatch_task_created(request: &Request, event: TaskCreated) -> Result<()> {
-    let events = request.shared::<Arc<EventBus>>()?;
+pub fn dispatch_task_integrated(request: &Request, event: TaskIntegrated) -> Result<()> {
+    let events = request.events()?;
     events
         .dispatch(&event)
-        .map_err(|e| berserk::ConfigError::new("events", e.to_string()))?;
+        .map_err(|_| berserk::ConfigError::new("events", "event dispatch failed"))?;
     Ok(())
 }
 
 pub fn queue_snapshot(request: &Request, project_id: i64) -> Result<()> {
-    let queue = request.shared::<JobQueue>()?;
-    let storage = request.shared::<Arc<dyn Storage>>()?;
+    let queue = request.jobs()?;
+    let storage = request.storage()?;
     queue
         .dispatch(
             ProjectSnapshotJob {
                 project_id,
-                storage: (*storage).clone(),
+                storage,
             },
             RetryPolicy::none(),
         )
-        .map_err(|e| berserk::ConfigError::new("jobs", e.to_string()))?;
+        .map_err(|_| berserk::ConfigError::new("jobs", "job dispatch failed"))?;
     Ok(())
 }
 
-pub fn notify_assignment(request: &Request, email: &str, title: String) -> Result<()> {
-    let notifier = request.shared::<Notifier>()?;
+pub fn notify_snapshot(request: &Request, email: &str, title: String) -> Result<()> {
+    let notifier = request.notifications()?;
     let recipient = Recipient::new().email(
         EmailAddress::new(email)
-            .map_err(|e| berserk::ConfigError::new("notifications", e.to_string()))?,
+            .map_err(|_| berserk::ConfigError::new("notifications", "invalid recipient email"))?,
     );
     let report = notifier
-        .send(&recipient, &TaskAssignedMail { title })
-        .map_err(|e| berserk::ConfigError::new("notifications", e.to_string()))?;
+        .send(&recipient, &TaskSnapshotMail { title })
+        .map_err(|_| berserk::ConfigError::new("notifications", "notification delivery failed"))?;
     if !report.all_sent() {
-        return Err(
-            berserk::ConfigError::new("notifications", "task assignment delivery failed").into(),
-        );
+        return Err(berserk::ConfigError::new(
+            "notifications",
+            "snapshot notification delivery failed",
+        )
+        .into());
     }
     Ok(())
 }

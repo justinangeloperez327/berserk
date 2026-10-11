@@ -99,7 +99,7 @@ The portable DSL includes identifiers, strings, text, tiny/small/regular/big int
 
 Migration identifiers are validated before SQL generation and limited to a portable 63-character ASCII identifier surface. String defaults are escaped by the compiler. Unsupported operations return errors rather than silently changing semantics.
 
-The migration runner records applied migrations in `__framework_migrations`, assigns batches, applies pending migrations in registration order, rolls the latest batch back in reverse registration order, and can roll back all registered batches.
+The migration runner records applied migrations in `__framework_migrations`, assigns batches, applies pending migrations in registration order, rolls the latest batch back in reverse registration order, and can roll back all registered batches. The tracking-table name is retained for compatibility with existing databases.
 
 
 ## Commands
@@ -175,6 +175,10 @@ MigrationPlan::new()
 ```
 
 The rebuild creates a temporary table, copies the explicitly mapped data, replaces the original table, and recreates declared indexes.
+
+With SQLite foreign-key enforcement enabled, the driver rejects a generated rebuild if any table references the original table, including self-references. The check runs before the temporary table is created. Dropping a referenced parent can otherwise delete or modify child rows through `ON DELETE` actions even inside a transaction. Rebuilds of unreferenced tables remain supported.
+
+Referenced-table changes require a separately verified manual migration following SQLite's generalized ALTER TABLE procedure: control foreign-key enforcement outside the transaction, preserve related schema objects, and run `PRAGMA foreign_key_check` before committing. `MigrationRunner` does not implement that procedure automatically. Disabling enforcement bypasses the guard and makes preservation and validation the caller's responsibility.
 
 ## Execution safety
 

@@ -37,6 +37,7 @@ impl fmt::Debug for Router {
 }
 
 impl Router {
+    #[cfg(feature = "openapi")]
     pub(crate) fn add<H, A>(&mut self, method: Method, path: &str, handler: H) -> Result<()>
     where
         H: Handler<A>,

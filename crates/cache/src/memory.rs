@@ -191,6 +191,10 @@ impl Cache for MemoryCache {
         let next = current
             .checked_add(amount)
             .ok_or_else(|| CacheError::new("cached counter overflow"))?;
+        let value = next.to_string().into_bytes();
+        if value.len() > self.max_value_bytes {
+            return Err(CacheError::new("cache value exceeds configured byte limit"));
+        }
         let expires_at = state
             .entries
             .get(key)
@@ -211,7 +215,7 @@ impl Cache for MemoryCache {
         state.entries.insert(
             key.into(),
             Entry {
-                value: next.to_string().into_bytes(),
+                value,
                 expires_at,
                 accessed,
             },

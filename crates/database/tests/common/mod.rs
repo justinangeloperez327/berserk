@@ -180,7 +180,8 @@ pub fn run_live_database_contract(connection: &mut dyn Connection) {
 
     {
         let mut tx = connection.begin(Default::default()).unwrap();
-        contract_insert(&mut tx, driver, 10, "Rolled Back", None);
+        tx.execute(&contract_insert_statement(driver, 10, "Rolled Back", None))
+            .unwrap();
         tx.rollback().unwrap();
     }
     assert!(!contract_exists(connection, driver, 10));
@@ -210,6 +211,17 @@ fn contract_insert(
     name: &str,
     optional: Option<&str>,
 ) {
+    connection
+        .execute(&contract_insert_statement(driver, id, name, optional))
+        .unwrap();
+}
+
+fn contract_insert_statement(
+    driver: Driver,
+    id: i64,
+    name: &str,
+    optional: Option<&str>,
+) -> Statement {
     let sql = format!(
         "INSERT INTO {CONTRACT_PARENT} (id, name, optional_text) VALUES ({}, {}, {})",
         placeholder(driver, 1),
@@ -219,9 +231,7 @@ fn contract_insert(
     let optional_value = optional
         .map(berserk_database::Value::from)
         .unwrap_or(berserk_database::Value::Null);
-    connection
-        .execute(&Statement::new(sql).bind(id).bind(name).bind(optional_value))
-        .unwrap();
+    Statement::new(sql).bind(id).bind(name).bind(optional_value)
 }
 
 fn contract_insert_error(

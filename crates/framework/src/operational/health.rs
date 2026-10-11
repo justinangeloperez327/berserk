@@ -42,6 +42,10 @@ pub struct HealthRegistry {
 }
 
 impl HealthRegistry {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn add(&mut self, check: impl HealthCheck) -> std::result::Result<(), OperationalError> {
         if self.checks.len() >= 64 {
             return Err(OperationalError::new("health check limit is 64"));

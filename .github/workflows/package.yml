@@ -137,6 +137,7 @@ jobs:
           publish = false
 
           [workspace]
+          resolver = "3"
 
           [dependencies]
           berserk = { path = "${GITHUB_WORKSPACE}/crates/framework" }
@@ -181,6 +182,7 @@ jobs:
           publish = false
 
           [workspace]
+          resolver = "3"
 
           [dependencies]
           berserk = { path = "${GITHUB_WORKSPACE}/crates/framework", features = ["sqlite", "claw", "auth", "openapi"] }

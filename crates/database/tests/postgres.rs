@@ -5,7 +5,9 @@ mod common;
 use berserk_database::{drivers::postgres::PostgresConnection, Connection, Statement, Value};
 
 fn connection() -> Option<PostgresConnection> {
-    let url = match std::env::var("FRAMEWORK_POSTGRES_TEST_URL") {
+    let url = match std::env::var("BERSERK_POSTGRES_TEST_URL")
+        .or_else(|_| std::env::var("FRAMEWORK_POSTGRES_TEST_URL"))
+    {
         Ok(url) => url,
         Err(error) => {
             assert!(
@@ -13,7 +15,7 @@ fn connection() -> Option<PostgresConnection> {
                     std::env::var("BERSERK_REQUIRE_LIVE_DATABASES").as_deref(),
                     Ok("1")
                 ),
-                "FRAMEWORK_POSTGRES_TEST_URL is required for live database tests: {error}"
+                "BERSERK_POSTGRES_TEST_URL is required for live database tests: {error}"
             );
             return None;
         }
@@ -79,4 +81,25 @@ fn postgres_runs_the_live_transaction_contract() {
         return;
     };
     common::run_live_transaction_contract(&mut connection);
+}
+
+#[test]
+fn postgres_binds_nullable_and_narrow_numeric_types() {
+    let Some(mut connection) = connection() else {
+        return;
+    };
+    let rows = connection.query(&Statement::new(
+        "SELECT $1::smallint AS small, $2::integer AS regular, $3::oid AS oid, $4::real AS real, $5::text AS optional_text, $6::boolean AS optional_bool, $7::bytea AS optional_bytes"
+    ).bind(i16::MIN).bind(i32::MAX).bind(u32::MAX).bind(1.25_f64).bind(Value::Null).bind(Value::Null).bind(Value::Null)).unwrap();
+    assert_eq!(rows[0].get("small"), Some(&Value::I64(i16::MIN.into())));
+    assert_eq!(rows[0].get("regular"), Some(&Value::I64(i32::MAX.into())));
+    assert_eq!(rows[0].get("oid"), Some(&Value::U64(u32::MAX.into())));
+    assert_eq!(rows[0].get("real"), Some(&Value::F64(1.25)));
+    for column in ["optional_text", "optional_bool", "optional_bytes"] {
+        assert_eq!(rows[0].get(column), Some(&Value::Null));
+    }
+    let error = connection
+        .query(&Statement::new("SELECT $1::smallint").bind(32_768_i64))
+        .unwrap_err();
+    assert_eq!(error.kind(), &berserk_database::ErrorKind::Decode);
 }

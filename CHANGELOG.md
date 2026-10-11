@@ -8,6 +8,15 @@ Berserk v1.0.0 is the first public release. Entries below `1.0.0` describe repos
 
 ### Changed
 
+- Centralized external dependency requirements and upgraded compatible dependencies with Cargo resolver 3 while retaining Rust 1.88 support.
+- CI feature, database, platform, and minimum-Rust checks now validate committed lockfiles with `--locked`; live SQL test variables use `BERSERK_*` names with legacy aliases retained.
+- The foundation task integration requires a dedicated ability and uses event and notification names that describe snapshot dispatch.
+- Fixed PostgreSQL NULL and numeric-width bindings, rejected unsafe referenced-table SQLite rebuilds, bounded outbound HTTP line reads, and made JSON string parsing linear in input size.
+- Cache increments now respect value-size limits, scheduler intervals enforce millisecond precision, and existing rate-limit keys avoid scanning the full key table on every request.
+- Repaired foundation application and SQL test fixtures, removed the obsolete uncompiled server transport, and aligned HTTP and pivot assertions with the current contracts.
+- Restored the binary response factory required by the v1 compatibility fixture and compile the documented HTTP example as an external consumer.
+- Added the `Metrics::new()` and `HealthRegistry::new()` constructors required by the integration compatibility fixture, preserving their existing default initialization.
+- Corrected the original external Claw fixture to use the owned column names its public write traits have always required.
 - Consolidated migration, Claw relationship, and request-plumbing work into the first public v1.0.0 release target.
 - Documentation now distinguishes internal development milestones from public releases.
 - Development branches are named for their work; version numbers are reserved for actual release preparation.

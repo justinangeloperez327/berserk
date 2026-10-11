@@ -73,6 +73,7 @@ impl Default for App {
 }
 
 impl App {
+    #[cfg(feature = "openapi")]
     fn register_route<H, A>(&mut self, method: crate::Method, path: &str, handler: H) -> Result<()>
     where
         H: crate::controller::Handler<A>,

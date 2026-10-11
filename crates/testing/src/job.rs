@@ -60,19 +60,25 @@ impl Job for RecordingJob {
             .lock()
             .map_err(|_| JobError::new(ErrorKind::Handler, "job probe lock poisoned"))?
             .push(context.attempt());
-        if self
-            .failures_remaining
-            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |remaining| {
-                remaining.checked_sub(1)
-            })
-            .is_ok()
-        {
-            Err(JobError::new(
-                ErrorKind::Handler,
-                "recording job configured failure",
-            ))
-        } else {
-            Ok(())
+        let mut remaining = self.failures_remaining.load(Ordering::SeqCst);
+        loop {
+            if remaining == 0 {
+                return Ok(());
+            }
+            match self.failures_remaining.compare_exchange_weak(
+                remaining,
+                remaining - 1,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            ) {
+                Ok(_) => {
+                    return Err(JobError::new(
+                        ErrorKind::Handler,
+                        "recording job configured failure",
+                    ))
+                }
+                Err(actual) => remaining = actual,
+            }
         }
     }
 }

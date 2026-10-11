@@ -71,6 +71,11 @@ impl ResponseFactory {
         self.finish(Response::text(value))
     }
 
+    /// Builds a binary response while preserving status and header validation.
+    pub fn bytes(self, value: impl Into<Vec<u8>>) -> Result<Response> {
+        self.finish(Response::bytes(value))
+    }
+
     #[cfg(feature = "view")]
     pub fn view<D, Kind>(self, view: &str, data: D) -> Result<Response>
     where

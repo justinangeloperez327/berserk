@@ -69,14 +69,18 @@ impl RateLimiter {
             .windows
             .lock()
             .map_err(|_| OperationalError::new("rate limiter lock poisoned"))?;
-        windows.retain(|_, window| now < window.started_at.saturating_add(self.window_secs));
         if !windows.contains_key(key) && windows.len() >= self.max_keys {
-            return Ok(RateLimitDecision {
-                allowed: false,
-                limit: self.limit,
-                remaining: 0,
-                reset_at: now.saturating_add(self.window_secs),
-            });
+            // Existing keys reset their own expired window below. Only a new
+            // key at capacity needs a global sweep to reclaim expired slots.
+            windows.retain(|_, window| now < window.started_at.saturating_add(self.window_secs));
+            if windows.len() >= self.max_keys {
+                return Ok(RateLimitDecision {
+                    allowed: false,
+                    limit: self.limit,
+                    remaining: 0,
+                    reset_at: now.saturating_add(self.window_secs),
+                });
+            }
         }
         let window = windows.entry(key.to_owned()).or_insert(Window {
             started_at: now,

@@ -49,6 +49,10 @@ Request-scoped transactions reuse the request connection. Nested request transac
 
 Supported database versions are defined in [support-policy.md](support-policy.md). Synchronous SQL drivers remain blocking. Claw splits eager-load key lookups into bounded batches, but very large eager-loaded result sets can still consume substantial memory; paginate parent queries for response-size and memory control. Offset pagination requires explicit ordering and a transaction when count/items must share a snapshot. Some model behaviors, such as timestamps and soft deletes, remain application responsibilities.
 
+The PostgreSQL driver maps boolean, integer/OID, floating-point, text, and binary scalar values. Native date/time, decimal, JSON, UUID, array, and custom column types require an explicit supported SQL cast or an application adapter; declaring a column through the migration DSL does not add a value codec.
+
+SQLite generated rebuilds reject referenced tables while foreign-key enforcement is enabled, before changing schema or child rows. Use a verified manual procedure for those changes; see [migrations.md](migrations.md).
+
 ## Platform support
 
 Linux x86_64 is the strongest release-validation target. Windows and macOS receive development compatibility coverage but not necessarily every live-database, fuzz, load, or soak workflow used on Linux.
