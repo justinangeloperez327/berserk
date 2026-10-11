@@ -47,12 +47,11 @@ pub(super) async fn serve(
                     tokio::time::Instant::now() + request_deadline
                 };
                 let mut response = hyper_adapter::dispatch(app, request, deadline).await?;
-                let connection =
-                    if keep_alive && current < max_requests_per_connection {
-                        "keep-alive"
-                    } else {
-                        "close"
-                    };
+                let connection = if keep_alive && current < max_requests_per_connection {
+                    "keep-alive"
+                } else {
+                    "close"
+                };
                 response.headers_mut().insert(
                     http::header::CONNECTION,
                     http::HeaderValue::from_static(connection),
