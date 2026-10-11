@@ -3,8 +3,8 @@
 use berserk::{App, Response, ServerConfig};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let address = std::env::var("BERSERK_BENCH_ADDR")
-        .unwrap_or_else(|_| "127.0.0.1:3000".to_owned());
+    let address =
+        std::env::var("BERSERK_BENCH_ADDR").unwrap_or_else(|_| "127.0.0.1:3000".to_owned());
     let config = ServerConfig {
         keep_alive: true,
         ..ServerConfig::default()
