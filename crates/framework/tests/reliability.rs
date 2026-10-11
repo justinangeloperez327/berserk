@@ -338,7 +338,7 @@ fn shutdown_closes_idle_keep_alive_without_waiting_for_client_disconnect() {
     })
     .unwrap();
     app.route().get("/", || Response::text("ok")).unwrap();
-    let server = Running::new(app);
+    let mut server = Running::new(app);
     let mut stream = server.connect();
     stream
         .write_all(b"GET / HTTP/1.1\r\nHost: x\r\n\r\n")
@@ -359,7 +359,7 @@ fn shutdown_closes_idle_keep_alive_without_waiting_for_client_disconnect() {
     let (tx, rx) = mpsc::channel();
     // Preserve ownership of the original listener thread in this helper so
     // that the test can still clean up deterministically on contract failure.
-    let mut worker = server.thread;
+    let mut worker = server.thread.take();
     shutdown.shutdown();
     let observer = thread::spawn(move || {
         let result = worker.take().expect("server worker").join();
@@ -367,6 +367,7 @@ fn shutdown_closes_idle_keep_alive_without_waiting_for_client_disconnect() {
     });
 
     let completed_before_peer_close = rx.recv_timeout(Duration::from_millis(500));
+    let drained_in_time = completed_before_peer_close.is_ok();
     // Ensure the regression test cannot leave a live server thread behind
     // on the current runtime, which may require a peer close to drain.
     drop(stream);
@@ -383,7 +384,7 @@ fn shutdown_closes_idle_keep_alive_without_waiting_for_client_disconnect() {
     assert_eq!(snapshot.accepted, 1);
     assert_eq!(snapshot.completed + snapshot.failed + snapshot.rejected, 1);
     assert!(
-        completed_before_peer_close.is_ok(),
+        drained_in_time,
         "shutdown waited for the idle keep-alive peer to disconnect"
     );
 }
