@@ -279,3 +279,50 @@ fn truncated_client_does_not_consume_worker_permanently() {
     wait_for(|| server.stats.snapshot().failed >= 1);
     server.stop();
 }
+
+#[test]
+fn keep_alive_peer_close_releases_connection_before_shutdown() {
+    let mut app = App::with_config(ServerConfig {
+        workers: 1,
+        keep_alive: true,
+        max_requests_per_connection: 10,
+        ..ServerConfig::default()
+    })
+    .unwrap();
+    app.route().get("/", || Response::text("ok")).unwrap();
+    let server = Running::new(app);
+
+    let mut stream = server.connect();
+    stream
+        .write_all(b"GET / HTTP/1.1\r\nHost: x\r\n\r\n")
+        .unwrap();
+
+    // Read one complete, bounded response without waiting for the persistent
+    // connection to close. The transport may split headers and body.
+    let mut received = Vec::new();
+    let mut chunk = [0u8; 1024];
+    while !received.ends_with(b"\r\n\r\nok") {
+        let count = stream.read(&mut chunk).unwrap();
+        assert!(count > 0, "connection closed before the response body");
+        received.extend_from_slice(&chunk[..count]);
+        assert!(received.len() < 16 * 1024, "unexpectedly large response");
+    }
+    assert!(received.starts_with(b"HTTP/1.1 200"));
+    assert!(
+        received.windows(b"connection: keep-alive".len()).any(|part| {
+            part.eq_ignore_ascii_case(b"connection: keep-alive")
+        }),
+        "persistent response must advertise keep-alive"
+    );
+
+    // Closing an idle persistent peer must release its connection permit.
+    drop(stream);
+    wait_for(|| server.stats.snapshot().completed == 1);
+    let stats = server.stats.clone();
+    server.stop();
+    let snapshot = stats.snapshot();
+    assert_eq!(snapshot.accepted, 1);
+    assert_eq!(snapshot.completed, 1);
+    assert_eq!(snapshot.failed, 0);
+    assert_eq!(snapshot.rejected, 0);
+}
