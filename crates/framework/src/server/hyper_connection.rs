@@ -1,5 +1,5 @@
 use super::{hyper_adapter, timeout_io::WriteTimeoutIo, ProtocolError};
-use crate::App;
+use crate::{App, ShutdownHandle};
 use hyper::service::service_fn;
 use hyper_util::rt::{TokioIo, TokioTimer};
 use std::{
@@ -7,12 +7,17 @@ use std::{
         atomic::{AtomicUsize, Ordering},
         Arc,
     },
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 const HYPER_MIN_BUFFER: usize = 8192;
 
-pub(super) async fn serve(stream: tokio::net::TcpStream, accepted: Instant, app: Arc<App>) -> bool {
+pub(super) async fn serve(
+    stream: tokio::net::TcpStream,
+    accepted: Instant,
+    app: Arc<App>,
+    shutdown: ShutdownHandle,
+) -> bool {
     let config = app.config().clone();
     let Some(first_deadline) = accepted.checked_add(config.request_deadline) else {
         return false;
@@ -66,7 +71,19 @@ pub(super) async fn serve(stream: tokio::net::TcpStream, accepted: Instant, app:
         .auto_date_header(false);
 
     let stream = WriteTimeoutIo::new(stream, config.write_timeout);
-    http.serve_connection(TokioIo::new(stream), service)
-        .await
-        .is_ok()
+    let connection = http.serve_connection(TokioIo::new(stream), service);
+    tokio::pin!(connection);
+    loop {
+        tokio::select! {
+            result = connection.as_mut() => return result.is_ok(),
+            _ = tokio::time::sleep(Duration::from_millis(5)) => {
+                if shutdown.is_requested() {
+                    // Stop retaining an idle keep-alive socket. Hyper completes
+                    // any request already in flight before closing the connection.
+                    connection.as_mut().graceful_shutdown();
+                    return connection.await.is_ok();
+                }
+            }
+        }
+    }
 }
