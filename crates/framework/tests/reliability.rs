@@ -326,3 +326,64 @@ fn keep_alive_peer_close_releases_connection_before_shutdown() {
     assert_eq!(snapshot.failed, 0);
     assert_eq!(snapshot.rejected, 0);
 }
+
+#[test]
+fn shutdown_closes_idle_keep_alive_without_waiting_for_client_disconnect() {
+    let mut app = App::with_config(ServerConfig {
+        workers: 1,
+        keep_alive: true,
+        max_requests_per_connection: 10,
+        read_timeout: Duration::from_secs(2),
+        ..ServerConfig::default()
+    })
+    .unwrap();
+    app.route().get("/", || Response::text("ok")).unwrap();
+    let server = Running::new(app);
+    let mut stream = server.connect();
+    stream
+        .write_all(b"GET / HTTP/1.1\r\nHost: x\r\n\r\n")
+        .unwrap();
+
+    let mut body = Vec::new();
+    let mut buffer = [0; 1024];
+    while !body.ends_with(b"\r\n\r\nok") {
+        let count = stream.read(&mut buffer).unwrap();
+        assert!(count > 0, "connection closed before first response completed");
+        body.extend_from_slice(&buffer[..count]);
+        assert!(body.len() < 16 * 1024);
+    }
+    assert!(body.starts_with(b"HTTP/1.1 200"));
+
+    let shutdown = server.shutdown.clone();
+    let stats = server.stats.clone();
+    let (tx, rx) = mpsc::channel();
+    // Preserve ownership of the original listener thread in this helper so
+    // that the test can still clean up deterministically on contract failure.
+    let mut worker = server.thread;
+    shutdown.shutdown();
+    let observer = thread::spawn(move || {
+        let result = worker.take().expect("server worker").join();
+        let _ = tx.send(result);
+    });
+
+    let completed_before_peer_close = rx.recv_timeout(Duration::from_millis(500));
+    // Ensure the regression test cannot leave a live server thread behind
+    // on the current runtime, which may require a peer close to drain.
+    drop(stream);
+    let result = match completed_before_peer_close {
+        Ok(result) => result,
+        Err(mpsc::RecvTimeoutError::Timeout) => rx
+            .recv_timeout(Duration::from_secs(4))
+            .expect("server failed to stop even after peer disconnect"),
+        Err(error) => panic!("server completion channel disconnected: {error}"),
+    };
+    observer.join().unwrap();
+    result.unwrap().unwrap();
+    let snapshot = stats.snapshot();
+    assert_eq!(snapshot.accepted, 1);
+    assert_eq!(snapshot.completed + snapshot.failed + snapshot.rejected, 1);
+    assert!(
+        completed_before_peer_close.is_ok(),
+        "shutdown waited for the idle keep-alive peer to disconnect"
+    );
+}
