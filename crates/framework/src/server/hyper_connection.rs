@@ -47,12 +47,11 @@ pub(super) async fn serve(
                     tokio::time::Instant::now() + request_deadline
                 };
                 let mut response = hyper_adapter::dispatch(app, request, deadline).await?;
-                let connection =
-                    if keep_alive && current < max_requests_per_connection {
-                        "keep-alive"
-                    } else {
-                        "close"
-                    };
+                let connection = if keep_alive && current < max_requests_per_connection {
+                    "keep-alive"
+                } else {
+                    "close"
+                };
                 response.headers_mut().insert(
                     http::header::CONNECTION,
                     http::HeaderValue::from_static(connection),
@@ -74,16 +73,14 @@ pub(super) async fn serve(
     let connection = http.serve_connection(TokioIo::new(stream), service);
     tokio::pin!(connection);
     loop {
-        tokio::select! {
-            result = connection.as_mut() => return result.is_ok(),
-            _ = tokio::time::sleep(Duration::from_millis(5)) => {
-                if shutdown.is_requested() {
-                    // Stop retaining an idle keep-alive socket. Hyper completes
-                    // any request already in flight before closing the connection.
-                    connection.as_mut().graceful_shutdown();
-                    return connection.await.is_ok();
-                }
+        match tokio::time::timeout(Duration::from_millis(5), connection.as_mut()).await {
+            Ok(result) => return result.is_ok(),
+            Err(_) if shutdown.is_requested() => {
+                // Hyper completes in-flight work while closing idle keep-alive sockets.
+                connection.as_mut().graceful_shutdown();
+                return connection.await.is_ok();
             }
+            Err(_) => {}
         }
     }
 }
