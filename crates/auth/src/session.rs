@@ -1,5 +1,4 @@
 use crate::{AuthError, ErrorKind, Principal, Result};
-use rand_core::{OsRng, RngCore};
 use sha2::{Digest, Sha256};
 use std::{
     collections::HashMap,
@@ -18,7 +17,7 @@ impl SessionToken {
     /// Fallible generation for servers, without panicking on entropy failure.
     pub fn try_generate() -> Result<Self> {
         let mut bytes = Zeroizing::new([0_u8; 32]);
-        OsRng.try_fill_bytes(bytes.as_mut()).map_err(|_| {
+        getrandom::fill(bytes.as_mut()).map_err(|_| {
             AuthError::new(ErrorKind::Crypto, "operating system randomness unavailable")
         })?;
         Ok(Self(Zeroizing::new(hex(bytes.as_ref()))))
