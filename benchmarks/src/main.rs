@@ -151,7 +151,7 @@ fn main() -> Result<()> {
                 || {
                     let rows = Query::table("benchmark_users")
                         .select(["id", "name"])
-                        .where_("active", 1_i64)
+                        .where_("active", "=", 1_i64)
                         .order_by("id", berserk::database::Direction::Desc)
                         .limit(20)
                         .get(&mut connection)?;
