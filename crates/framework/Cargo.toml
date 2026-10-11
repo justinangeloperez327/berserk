@@ -53,7 +53,7 @@ http = { version = "1.5", optional = true }
 http-body-util = { version = "0.1.5", features = ["channel"], optional = true }
 hyper = { version = "1.11", features = ["http1", "server"], optional = true }
 hyper-util = { version = "0.1.20", features = ["http1", "server", "tokio"], optional = true }
-tokio = { version = "1.53", features = ["macros", "net", "rt-multi-thread", "sync", "time"], optional = true }
+tokio = { version = "1.53", features = ["net", "rt-multi-thread", "sync", "time"], optional = true }
 
 [[test]]
 name = "server"
