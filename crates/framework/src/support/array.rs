@@ -1,5 +1,4 @@
 use crate::Json;
-use rand_core::{OsRng, RngCore};
 use std::{collections::BTreeMap, fmt::Display};
 
 /// Collection and nested-value helpers for Rust collections and Berserk `Json`.
@@ -414,7 +413,9 @@ fn random_index(len: usize) -> usize {
     let bound = u64::try_from(len).expect("collection length exceeds u64::MAX");
     let zone = u64::MAX - (u64::MAX % bound);
     loop {
-        let value = OsRng.next_u64();
+        let mut bytes = [0u8; 8];
+        getrandom::fill(&mut bytes).expect("operating system randomness unavailable");
+        let value = u64::from_ne_bytes(bytes);
         if value < zone {
             return (value % bound) as usize;
         }
