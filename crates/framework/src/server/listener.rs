@@ -63,6 +63,7 @@ impl Server {
         let stats = self.stats.clone();
         let dispatch_stats = self.stats.clone();
         let dispatch_permits = Arc::clone(&permits);
+        let dispatch_shutdown = self.shutdown.clone();
         let dispatcher = tokio::spawn(async move {
             let mut connections = JoinSet::new();
 
@@ -78,9 +79,10 @@ impl Server {
 
                 let app = Arc::clone(&app);
                 let stats = dispatch_stats.clone();
+                let shutdown = dispatch_shutdown.clone();
                 connections.spawn(async move {
                     let _permit = permit;
-                    stats.finish(serve(stream, accepted, app).await);
+                    stats.finish(serve(stream, accepted, app, shutdown).await);
                 });
 
                 while let Some(result) = connections.try_join_next() {
