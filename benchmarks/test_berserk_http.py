@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """Smoke-test the actual Berserk HTTP benchmark fixture and client."""
-import json
 import os
 from pathlib import Path
 import socket
 import subprocess
 import sys
-import tempfile
 import time
 import unittest
 
