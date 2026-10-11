@@ -31,6 +31,8 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Build release benchmark
         run: cargo build --locked --release -p berserk-benchmarks
+      - name: Smoke-test live Berserk HTTP fixture and benchmark client
+        run: python3 benchmarks/test_berserk_http.py
       - name: Collect checked samples and process memory
         run: python3 benchmarks/collect.py
       - name: Retain measurements and environment
