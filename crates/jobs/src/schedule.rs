@@ -45,10 +45,10 @@ impl Scheduler {
         J: Job,
         F: Fn() -> J + Send + Sync + 'static,
     {
-        if interval.is_zero() {
+        if interval.as_millis() == 0 {
             return Err(JobError::new(
                 ErrorKind::Configuration,
-                "schedule interval must be greater than zero",
+                "schedule interval must be at least one millisecond",
             ));
         }
         let retry = retry.validate()?;

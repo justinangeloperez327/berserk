@@ -28,31 +28,45 @@ fn application<G: Guard>(database: Database, guard: G) -> Result<App> {
     app.auth(guard)?;
     app.cache(
         MemoryCache::new(256, 64 * 1024)
-            .map_err(|e| berserk::ConfigError::new("cache", e.to_string()))?,
+            .map_err(|_| berserk::ConfigError::new("cache", "cache initialization failed"))?,
     )?;
     app.storage(
         MemoryStorage::new(256, 1024 * 1024)
-            .map_err(|e| berserk::ConfigError::new("storage", e.to_string()))?,
+            .map_err(|_| berserk::ConfigError::new("storage", "storage initialization failed"))?,
     )?;
-    app.events(EventBus::new())?;
+    let events = EventBus::new();
+    events
+        .listen::<integrations::TaskIntegrated, _>(|event| {
+            eprintln!(
+                "task.integrated task_id={} project_id={}",
+                event.task_id, event.project_id
+            );
+            Ok(())
+        })
+        .map_err(|_| berserk::ConfigError::new("events", "listener registration failed"))?;
+    app.events(events)?;
     let workers = WorkerPool::new(
         QueueConfig {
             workers: 1,
             capacity: 256,
         },
-        Arc::new(MemoryFailedJobs::default()),
+        Arc::new(MemoryFailedJobs::new(256).map_err(|_| {
+            berserk::ConfigError::new("jobs", "failed-job store initialization failed")
+        })?),
     )
-    .map_err(|e| berserk::ConfigError::new("jobs", e.to_string()))?;
+    .map_err(|_| berserk::ConfigError::new("jobs", "worker initialization failed"))?;
     let queue: JobQueue = workers.queue();
     app.jobs(queue)?;
     app.state(FoundationWorkers { _pool: workers })?;
-    let mail = Arc::new(
-        MemoryMailTransport::new(256)
-            .map_err(|e| berserk::ConfigError::new("notifications", e.to_string()))?,
-    );
+    let mail =
+        Arc::new(MemoryMailTransport::new(256).map_err(|_| {
+            berserk::ConfigError::new("notifications", "mail initialization failed")
+        })?);
     app.notifications(
         Notifier::new(NotifierConfig::default())
-            .map_err(|e| berserk::ConfigError::new("notifications", e.to_string()))?
+            .map_err(|_| {
+                berserk::ConfigError::new("notifications", "notifier initialization failed")
+            })?
             .with_mail(mail),
     )?;
     app.middleware(RequestId);
@@ -78,7 +92,7 @@ fn application<G: Guard>(database: Database, guard: G) -> Result<App> {
         )?;
         api.can("projects.read")?
             .get("/tasks/{task}", projects::Tasks::show)?;
-        api.can("projects.read")?
+        api.can("tasks.integrate")?
             .post("/tasks/{task}/integrate", projects::Tasks::integrate)?;
     }
 
@@ -97,7 +111,13 @@ fn main() -> Result<()> {
         Principal::new("admin:1")
             .expect("static principal")
             .with_role("admin"),
-        ["users.manage", "users.read", "users.view", "projects.read"],
+        [
+            "users.manage",
+            "users.read",
+            "users.view",
+            "projects.read",
+            "tasks.integrate",
+        ],
         0,
     )?;
     if std::env::var_os("BERSERK_SHOW_DEMO_TOKEN").is_some() {
@@ -165,7 +185,13 @@ mod tests {
             Principal::new("admin:1")
                 .expect("static principal")
                 .with_role("admin"),
-            ["users.manage", "users.read", "users.view"],
+            [
+                "users.manage",
+                "users.read",
+                "users.view",
+                "projects.read",
+                "tasks.integrate",
+            ],
             0,
         )?;
         let reader = tokens.issue(
@@ -308,6 +334,25 @@ mod tests {
             .send()?
             .assert_ok()
             .assert_text_contains("Keep the contract explicit.");
+        Ok(())
+    }
+
+    #[test]
+    fn project_readers_cannot_dispatch_task_integrations() -> Result<()> {
+        let fixture = test_application()?;
+        let client = TestClient::new(&fixture.app);
+        let owner = create_user(&client, &fixture.admin, "Ada", "ada@example.com")?;
+        seed_project_domain(&fixture.database_path, owner, owner)?;
+        client
+            .post("/tasks/200/integrate")?
+            .bearer(fixture.reader.expose())?
+            .send()?
+            .assert_forbidden();
+        client
+            .post("/tasks/200/integrate")?
+            .bearer(fixture.admin.expose())?
+            .send()?
+            .assert_ok();
         Ok(())
     }
 

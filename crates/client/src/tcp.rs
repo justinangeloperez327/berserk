@@ -262,10 +262,24 @@ fn read_response(stream: TcpStream, method: Method, config: TcpClientConfig) -> 
     Response::new(status, headers, body)
 }
 fn read_line(reader: &mut impl BufRead, used: &mut usize, limit: usize) -> Result<String> {
+    let remaining = limit.checked_sub(*used).ok_or_else(|| {
+        ClientError::new(
+            ErrorKind::ResponseTooLarge,
+            "response headers exceed configured byte limit",
+        )
+    })?;
     let mut bytes = Vec::new();
+    // One extra byte detects overflow without reading an unbounded line.
     let read = reader
+        .take((remaining as u64).saturating_add(1))
         .read_until(b'\n', &mut bytes)
         .map_err(|error| map_io(ErrorKind::Io, error))?;
+    if read > remaining {
+        return Err(ClientError::new(
+            ErrorKind::ResponseTooLarge,
+            "response headers exceed configured byte limit",
+        ));
+    }
     if read == 0 {
         return Err(ClientError::new(
             ErrorKind::MalformedResponse,
@@ -297,6 +311,7 @@ fn read_line(reader: &mut impl BufRead, used: &mut usize, limit: usize) -> Resul
         )
     })
 }
+
 fn content_length(headers: &[Header]) -> Result<Option<usize>> {
     let values: Vec<_> = headers
         .iter()
@@ -454,4 +469,28 @@ fn map_io(default: ErrorKind, error: std::io::Error) -> ClientError {
         default
     };
     ClientError::new(kind, error.to_string())
+}
+
+#[cfg(test)]
+mod line_limit_tests {
+    use super::*;
+    use std::io::Cursor;
+
+    #[test]
+    fn oversized_unterminated_lines_stop_at_the_remaining_budget() {
+        let mut source = Cursor::new(vec![b'x'; 1024]);
+        let mut used = 8;
+        let error = read_line(&mut source, &mut used, 16).unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::ResponseTooLarge);
+        assert_eq!(source.position(), 9);
+    }
+
+    #[test]
+    fn line_at_the_exact_budget_is_accepted() {
+        let mut source = Cursor::new(b"OK\r\nextra");
+        let mut used = 12;
+        assert_eq!(read_line(&mut source, &mut used, 16).unwrap(), "OK\r\n");
+        assert_eq!(used, 16);
+        assert_eq!(source.position(), 4);
+    }
 }

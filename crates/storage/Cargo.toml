@@ -11,4 +11,4 @@ description = "Storage contracts and local or memory storage for Berserk."
 publish = true
 
 [dependencies]
-getrandom = "0.4"
+getrandom = { workspace = true }

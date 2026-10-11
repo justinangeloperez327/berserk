@@ -11,5 +11,5 @@ description = "OpenAPI document generation for Berserk applications."
 publish = true
 
 [dependencies]
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+serde = { workspace = true }
+serde_json = { workspace = true }

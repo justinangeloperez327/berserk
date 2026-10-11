@@ -4,6 +4,7 @@ use crate::Value;
 pub struct Statement {
     sql: String,
     bindings: Vec<Value>,
+    sqlite_rebuild_table: Option<String>,
 }
 
 impl std::fmt::Debug for Statement {
@@ -21,6 +22,7 @@ impl Statement {
         Self {
             sql: sql.into(),
             bindings: Vec::new(),
+            sqlite_rebuild_table: None,
         }
     }
     pub fn bind(mut self, value: impl Into<Value>) -> Self {
@@ -32,6 +34,16 @@ impl Statement {
     }
     pub fn bindings(&self) -> &[Value] {
         &self.bindings
+    }
+
+    pub(crate) fn for_sqlite_rebuild(mut self, table: String) -> Self {
+        self.sqlite_rebuild_table = Some(table);
+        self
+    }
+
+    #[cfg(feature = "sqlite")]
+    pub(crate) fn sqlite_rebuild_table(&self) -> Option<&str> {
+        self.sqlite_rebuild_table.as_deref()
     }
 }
 

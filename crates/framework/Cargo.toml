@@ -33,14 +33,13 @@ cli = ["dep:berserk-cli"]
 [dependencies]
 berserk-core.workspace = true
 berserk-macros = { workspace = true, optional = true }
-berserk-validation = { path = "../validation", version = "=1.0.0" }
+berserk-validation = { workspace = true }
 berserk-database = { workspace = true, optional = true }
 claw-orm = { workspace = true, optional = true }
 berserk-auth = { workspace = true, optional = true }
 berserk-axe = { workspace = true, optional = true }
 berserk-openapi = { workspace = true, optional = true }
-getrandom = "0.4"
-rand_core = "0.10"
+getrandom = { workspace = true }
 berserk-cache = { workspace = true, optional = true }
 berserk-storage = { workspace = true, optional = true }
 berserk-events = { workspace = true, optional = true }
@@ -48,12 +47,12 @@ berserk-jobs = { workspace = true, optional = true }
 berserk-client = { workspace = true, optional = true }
 berserk-notifications = { workspace = true, optional = true }
 berserk-cli = { workspace = true, optional = true }
-bytes = { version = "1.12", optional = true }
-http = { version = "1.5", optional = true }
-http-body-util = { version = "0.1.5", features = ["channel"], optional = true }
-hyper = { version = "1.11", features = ["http1", "server"], optional = true }
-hyper-util = { version = "0.1.20", features = ["http1", "server", "tokio"], optional = true }
-tokio = { version = "1.53", features = ["net", "rt-multi-thread", "sync", "time"], optional = true }
+bytes = { workspace = true, optional = true }
+http = { workspace = true, optional = true }
+http-body-util = { workspace = true, optional = true }
+hyper = { workspace = true, optional = true }
+hyper-util = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
 
 [[test]]
 name = "server"

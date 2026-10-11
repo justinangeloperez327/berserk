@@ -235,11 +235,11 @@ fn constraints_propagate_and_batch_and_sync_roll_back_partial_changes() {
     roles().attach_on(&mut c, &User(1), 10).unwrap();
     assert_eq!(
         roles().attach_on(&mut c, &User(1), 10).unwrap_err().kind(),
-        &ErrorKind::Constraint
+        &ErrorKind::UniqueViolation
     );
     assert_eq!(
         roles().attach_on(&mut c, &User(1), 999).unwrap_err().kind(),
-        &ErrorKind::Constraint
+        &ErrorKind::ForeignKeyViolation
     );
     assert!(roles().attach_many_on(&mut c, &User(1), [11, 999]).is_err());
     assert_eq!(ids(&mut c, 1), [10]);
@@ -249,7 +249,7 @@ fn constraints_propagate_and_batch_and_sync_roll_back_partial_changes() {
             .sync_on(&mut c, &User(1), [11, 999])
             .unwrap_err()
             .kind(),
-        &ErrorKind::Constraint
+        &ErrorKind::ForeignKeyViolation
     );
     assert_eq!(ids(&mut c, 1), [10]);
 }
@@ -352,7 +352,7 @@ fn deferred_constraint_commit_failure_does_not_leave_sync_changes() {
     ).unwrap();
     assert_eq!(
         roles().sync_on(&mut c, &User(1), [999]).unwrap_err().kind(),
-        &ErrorKind::Constraint
+        &ErrorKind::ForeignKeyViolation
     );
     assert_eq!(ids(&mut c, 1), [10]);
 }

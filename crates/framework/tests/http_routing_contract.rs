@@ -19,9 +19,7 @@ fn allow_header_is_derived_from_the_selected_route_pattern() {
     app.route()
         .put("/items/{id}", |_id: u64| Response::empty())
         .unwrap();
-    app.route()
-        .post("/items/new", || Response::empty())
-        .unwrap();
+    app.route().post("/items/new", Response::empty).unwrap();
 
     let dynamic = app.respond(request("POST", "/items/7"));
     assert_eq!(dynamic.status_code(), 405);

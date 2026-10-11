@@ -38,13 +38,11 @@ features.
 
 ### A1-001: CI quality job mutates dependencies
 
-`.github/workflows/ci.yml` quality currently runs `cargo update`, installs
-`cargo-edit`, runs `cargo upgrade --incompatible allow`, commits and tries to
-push modified manifests/lockfiles **before** quality checks. This makes the
-workflow non-hermetic and can validate a changed commit rather than the PR head.
-It also requires write permissions. **Plan:** move upgrades to a separate
-explicit maintenance workflow/PR; quality must run against the checked-out SHA
-with `--locked` and read-only repository permissions.
+**Resolved.** This historical finding described a quality job that updated
+dependencies and pushed changes before validation. The current workflow uses
+read-only repository permissions and validates committed dependency lockfiles
+with `--locked`. Dependency upgrades are reviewed as separate PR changes;
+Dependabot is configured for Cargo and GitHub Actions maintenance.
 
 Acceptance: the quality job contains no dependency upgrade, commit, or push
 steps; it validates the exact checked-out SHA. Dependency updates have their own

@@ -118,6 +118,7 @@ rust-version = "1.88"
 publish = false
 
 [workspace]
+resolver = "3"
 
 [dependencies]
 berserk = {{ version = "={VERSION}", path = "{FRAMEWORK}", default-features = false{feature_text} }}

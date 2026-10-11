@@ -87,7 +87,7 @@ pub fn application_files(spec: &ApplicationSpec) -> syn::Result<Vec<ApplicationF
     validate_rust_version(spec.rust_version())?;
 
     let cargo = format!(
-        "[package]\nname = \"{}\"\nversion = \"0.1.0\"\nedition = \"2021\"\nrust-version = \"{}\"\n\n[dependencies]\nberserk = {{ version = \"{}\", features = [\"claw\"] }}\n",
+        "[package]\nname = \"{}\"\nversion = \"0.1.0\"\nedition = \"2021\"\nresolver = \"3\"\nrust-version = \"{}\"\n\n[dependencies]\nberserk = {{ version = \"{}\", features = [\"claw\"] }}\n",
         spec.package(),
         spec.rust_version(),
         spec.berserk_version(),

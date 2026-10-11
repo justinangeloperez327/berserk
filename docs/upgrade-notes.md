@@ -6,6 +6,10 @@ Berserk v1.0.0 is the first public release. The notes below describe migrations 
 
 The first public 1.0 target consolidates the migration and Claw relationship work that was previously tracked internally as 1.1/1.2 development. Rust 1.88 remains supported.
 
+Repository maintenance uses Cargo resolver 3 to prefer dependencies compatible with the declared minimum Rust version. Generated applications and the independent minimal example use the same resolver while retaining Rust edition 2021. Retain application lockfiles and run locked checks when upgrading dependencies.
+
+SQLite generated rebuilds now reject referenced tables while foreign-key enforcement is enabled. This prevents cascading deletion or modification of child rows; those schema changes require a verified manual migration. Scheduler intervals below one millisecond are rejected because scheduler timestamps have millisecond precision. The foundation example's task integration endpoint requires `tasks.integrate` rather than a read-only ability.
+
 Relationship query and pivot APIs are additive. Existing explicit `load(connection, models)` signatures are retained as deprecated forwarding methods; use `load_on(connection, models)` for explicit loading and `Relationship::load(&relationship, &models)` for scoped direct loading where applicable.
 
 Pivot reads preserve duplicate rows. Add a database `UNIQUE` constraint when duplicate links are invalid. NULL pivot keys report `Decode`; signed and unsigned representations of equal positive keys are reconciled on supported live drivers. `sync` and `attach_many` own transactions and reject unsupported nesting.

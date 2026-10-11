@@ -21,7 +21,7 @@ fn combined_query_preserves_predicate_and_binding_order_for_every_driver() {
     for driver in [Driver::Sqlite, Driver::MySql, Driver::Postgres] {
         let statement = User::where_("active", true)
             .where_in("role_id", [2_u64, 3])
-            .or_where_between("score", 80_u64, 100)
+            .or_where_between("score", 80_u64, 100_u64)
             .where_not_null("email")
             .order_by("id", Direction::Desc)
             .limit(25)

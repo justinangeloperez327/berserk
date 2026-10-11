@@ -542,7 +542,10 @@ pub fn compile_rebuild(rebuild: &RebuildTable, driver: Driver) -> Result<Vec<Sta
     temporary.name = temporary_name.clone();
     temporary.indexes.clear();
 
-    let mut statements = vec![compile_create(&temporary, driver)?];
+    // Validate inbound references before the first schema change, even when
+    // compiled statements are executed directly instead of through the runner.
+    let mut statements =
+        vec![compile_create(&temporary, driver)?.for_sqlite_rebuild(rebuild.name.clone())];
     let source_columns = rebuild
         .copy
         .iter()

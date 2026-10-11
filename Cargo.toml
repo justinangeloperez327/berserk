@@ -1,5 +1,5 @@
 [workspace]
-resolver = "2"
+resolver = "3"
 exclude = ["examples/minimal-api"]
 members = ["crates/core", "crates/codegen", "crates/macros", "crates/axe", "crates/validation", "crates/database", "crates/claw", "crates/auth", "crates/openapi", "crates/cache", "crates/storage", "crates/events", "crates/jobs", "crates/client", "crates/notifications", "crates/cli", "crates/testing", "crates/framework", "examples/foundation", "benchmarks"]
 
@@ -18,6 +18,7 @@ unsafe_code = "forbid"
 
 [workspace.dependencies]
 berserk-core = { path = "crates/core", version = "=1.0.0" }
+berserk-validation = { path = "crates/validation", version = "=1.0.0" }
 berserk-codegen = { path = "crates/codegen", version = "=1.0.0" }
 berserk-macros = { path = "crates/macros", version = "=1.0.0" }
 berserk-axe = { path = "crates/axe", version = "=1.0.0" }
@@ -34,3 +35,24 @@ berserk-notifications = { path = "crates/notifications", version = "=1.0.0" }
 berserk-cli = { path = "crates/cli", version = "=1.0.0" }
 berserk-testing = { path = "crates/testing", version = "=1.0.0" }
 berserk = { path = "crates/framework", version = "=1.0.0" }
+
+# External versions share one baseline across the publishable crates.
+argon2 = "0.6"
+bytes = "1.12.1"
+getrandom = "0.4.3"
+http = "1.5"
+http-body-util = { version = "0.1.5", features = ["channel"] }
+hyper = { version = "1.12", features = ["http1", "server"] }
+hyper-util = { version = "0.1.21", features = ["http1", "server", "tokio"] }
+mysql = { version = "28.0.3", default-features = false, features = ["minimal-rust", "rustls-tls-ring"] }
+postgres = "0.19.14"
+proc-macro2 = "1"
+quote = "1"
+rusqlite = { version = "0.40.2", features = ["bundled"] }
+scoped-tls-hkt = "0.1.5"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1.0.154"
+sha2 = "0.11"
+syn = { version = "3.0.8", features = ["full"] }
+tokio = { version = "1.53.2", features = ["net", "rt-multi-thread", "sync", "time"] }
+zeroize = "1.9.1"

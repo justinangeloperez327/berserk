@@ -11,7 +11,7 @@ description = "Authentication, password, session, and authorization contracts fo
 publish = true
 
 [dependencies]
-argon2 = "0.6"
-getrandom = "0.4"
-sha2 = "0.11"
-zeroize = "1"
+argon2 = { workspace = true }
+getrandom = { workspace = true }
+sha2 = { workspace = true }
+zeroize = { workspace = true }

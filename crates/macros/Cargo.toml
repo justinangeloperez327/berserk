@@ -15,4 +15,4 @@ proc-macro = true
 
 [dependencies]
 berserk-codegen.workspace = true
-proc-macro2 = "1"
+proc-macro2 = { workspace = true }

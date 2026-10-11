@@ -15,7 +15,7 @@ def run(*args, cwd=ROOT):
 
 def main():
     workspace_package = tomllib.loads((ROOT / "Cargo.toml").read_text())["workspace"]["package"]
-    run("cargo", "build", "-p", "berserk-cli", "--bin", "berserk")
+    run("cargo", "build", "--locked", "-p", "berserk-cli", "--bin", "berserk")
     target = Path(os.environ.get("CARGO_TARGET_DIR", ROOT / "target"))
     if not target.is_absolute():
         target = ROOT / target
@@ -27,6 +27,8 @@ def main():
         manifest = consumer / "Cargo.toml"
         generated_text = manifest.read_text()
         generated = tomllib.loads(generated_text)
+        if generated["package"].get("resolver") != "3":
+            raise RuntimeError("generated application lost Rust-version-aware dependency resolution")
         framework = generated["dependencies"]["berserk"]
         if framework.get("version") != workspace_package["version"]:
             raise RuntimeError("generated Berserk dependency does not match the workspace version")

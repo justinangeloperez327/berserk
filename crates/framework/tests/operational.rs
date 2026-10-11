@@ -115,3 +115,14 @@ fn rate_limits_are_bounded_and_return_retry_metadata() {
     assert_eq!(rejected.status_code(), 429);
     assert!(rejected.headers().get("retry-after").is_some());
 }
+
+#[test]
+fn rate_limit_expiry_reclaims_capacity_without_resetting_active_keys() {
+    let limiter = RateLimiter::new(2, Duration::from_secs(10), 2).unwrap();
+    assert!(limiter.check("old", 100).unwrap().allowed);
+    assert!(limiter.check("active", 105).unwrap().allowed);
+    assert!(limiter.check("active", 110).unwrap().allowed);
+    assert!(!limiter.check("active", 110).unwrap().allowed);
+    assert!(limiter.check("new", 110).unwrap().allowed);
+    assert!(!limiter.check("full", 110).unwrap().allowed);
+}

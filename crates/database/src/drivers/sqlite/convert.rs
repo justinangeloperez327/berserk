@@ -26,6 +26,7 @@ fn parameters(statement: &Statement) -> Result<Vec<rusqlite::types::Value>> {
 }
 
 pub(super) fn execute(connection: &rusqlite::Connection, statement: &Statement) -> Result<u64> {
+    validate_rebuild(connection, statement)?;
     let values = parameters(statement)?;
     connection
         .execute(statement.sql(), params_from_iter(values.iter()))
@@ -34,6 +35,7 @@ pub(super) fn execute(connection: &rusqlite::Connection, statement: &Statement) 
 }
 
 pub(super) fn query(connection: &rusqlite::Connection, statement: &Statement) -> Result<Vec<Row>> {
+    validate_rebuild(connection, statement)?;
     let values = parameters(statement)?;
     let mut prepared = connection
         .prepare(statement.sql())
@@ -66,4 +68,32 @@ pub(super) fn query(connection: &rusqlite::Connection, statement: &Statement) ->
         output.push(Row::new(columns)?);
     }
     Ok(output)
+}
+
+fn validate_rebuild(connection: &rusqlite::Connection, statement: &Statement) -> Result<()> {
+    let Some(table) = statement.sqlite_rebuild_table() else {
+        return Ok(());
+    };
+    let enabled: bool = connection
+        .pragma_query_value(None, "foreign_keys", |row| row.get(0))
+        .map_err(super::error::map_error)?;
+    if !enabled {
+        return Ok(());
+    }
+    let referenced: bool = connection
+        .query_row(
+            "SELECT EXISTS (SELECT 1 FROM sqlite_schema AS schema \
+             JOIN pragma_foreign_key_list(schema.name) AS fk \
+             WHERE schema.type = 'table' AND fk.\"table\" = ?1 COLLATE NOCASE)",
+            [table],
+            |row| row.get(0),
+        )
+        .map_err(super::error::map_error)?;
+    if referenced {
+        return Err(DatabaseError::new(
+            ErrorKind::InvalidInput,
+            "SQLite rebuild of a referenced table is rejected to preserve child rows; use a verified manual migration procedure",
+        ));
+    }
+    Ok(())
 }

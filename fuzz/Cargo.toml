@@ -40,4 +40,5 @@ doc = false
 bench = false
 
 [workspace]
+resolver = "3"
 members = ["."]

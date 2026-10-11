@@ -1,5 +1,5 @@
 use berserk::{
-    database::{drivers::sqlite::SqliteConnection, Connection, Query, Value},
+    database::{drivers::sqlite::SqliteConnection, Query, Value},
     App, Headers, Json, Method, Request, Response,
 };
 use std::{
