@@ -97,6 +97,7 @@ dependencies = [
  "http-body-util",
  "hyper",
  "hyper-util",
+ "getrandom 0.4.3",
  "rand_core",
  "tokio",
 ]
