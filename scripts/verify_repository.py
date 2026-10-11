@@ -29,7 +29,10 @@ def main() -> int:
             elif path.suffix == ".md":
                 text = re.sub(r"^```[^\n]*\n.*?^```[^\n]*$", "", path.read_text(), flags=re.M | re.S)
                 for destination in re.findall(r"!?\[[^\]]*\]\(([^)]+)\)", text):
-                    destination = destination.split(maxsplit=1)[0].strip("<>")
+                    parts = destination.split(maxsplit=1)
+                    if not parts:
+                        continue
+                    destination = parts[0].strip("<>")
                     parsed = urlsplit(destination)
                     if parsed.scheme or parsed.netloc or not parsed.path:
                         continue

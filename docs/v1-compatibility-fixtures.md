@@ -10,6 +10,7 @@ The current fixtures compile representative contracts for:
 
 - application assembly through `App` and `app.route()`;
 - typed routes and request/response APIs;
+- the runnable HTTP example in `docs/design-examples/http-api.rs`;
 - `FromJson` and `FormRequest`;
 - the `#[derive(Model)]` model surface;
 - Claw `Model`, `ModelQuery`, `Collection<T>`, and query builders;
@@ -18,6 +19,14 @@ The current fixtures compile representative contracts for:
 - selected prelude and integration exports with auth, view, Claw, and SQLite enabled.
 
 The fixtures intentionally use `default-features = false`. Feature-specific cases opt in only to the public components they exercise. The normal CI feature matrix remains responsible for exhaustive independent feature compilation.
+
+The October repository audit corrected an original fixture error: the Claw
+write mappings declared borrowed column names, while the public `IntoInsert`
+and `IntoUpdate` traits have returned `Vec<(String, Value)>` since their
+introduction in commit `1e2ec0041eb3ae72827fa5235ebc80b371cac143`.
+The fixture now checks that established owned-name contract; the traits were
+not changed. The core fixture also required the previously missing binary
+response-factory terminal, which is now implemented and validated.
 
 ## Rules for 1.x
 

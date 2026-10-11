@@ -1,12 +1,13 @@
-// Phase 1 design example. Not runnable until the framework is implemented.
+// Runnable HTTP example, compiled by scripts/verify_v1_compatibility.py.
 use berserk::{App, Request, Response, Result};
 
 fn main() -> Result<()> {
     let mut app = App::new();
 
-    app.route().get("/", |_req| Response::text("Hello, world!"))?;
+    app.route().get("/", || Response::text("Hello, world!"))?;
     app.route().get("/users/{id}", show_user)?;
-    app.route().post("/echo", |req| Response::bytes(req.body().to_vec()))?;
+    app.route()
+        .post("/echo", |req: Request| Response::bytes(req.body().to_vec()))?;
     app.route().post("/echo-text", echo_text)?;
 
     app.listen("127.0.0.1:3000")

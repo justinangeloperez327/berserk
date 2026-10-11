@@ -43,6 +43,9 @@ The migration creates:
 - `users`
 - `posts`
 - `profiles`
+- `projects`
+- `tasks`
+- `comments`
 - `roles`
 - `role_user`
 - Berserk's migration tracking table
@@ -115,6 +118,17 @@ authorization.
 | `DELETE /users/{id}` | `users.manage` | delete |
 | `GET /users/browse` | `users.read` | Axe relationship view |
 | `GET /users/{id}/policy` | authenticated + policy | resource authorization |
+| `GET /projects` | `projects.read` | paginated projects with tasks |
+| `GET /projects/{project}` | `projects.read` | project and task relationship data |
+| `GET /projects/{project}/tasks/open` | `projects.read` | open tasks with comments |
+| `GET /tasks/{task}` | `projects.read` | task and comment relationship data |
+| `POST /tasks/{task}/integrate` | `tasks.integrate` | invalidate cache, dispatch an event, queue a snapshot, and record a memory notification |
+
+The integration endpoint uses the public request service helpers. The event is
+`TaskIntegrated`; the snapshot job writes through Storage, and mail is recorded
+by `MemoryMailTransport` at development addresses. Database changes and these
+effects are separate consistency domains; see
+[foundation integration](../../docs/foundation-integration.md).
 
 ## Application tests
 
@@ -131,6 +145,8 @@ router and middleware stack. Tests verify:
 - the Axe route renders related posts and roles;
 - resource policy ownership allows and denies the expected identities;
 - the actual migration runner creates the test schema.
+- project/task/comment queries compose nested eager loading with pagination;
+- a project reader cannot dispatch work, while an authorized operator can.
 
 Repository CI builds and tests this package as a workspace member, and the
 foundation build script validates the real Axe view tree.

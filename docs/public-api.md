@@ -121,7 +121,7 @@ Responses provide:
 - `Response::bytes(...)`;
 - `Response::empty()`;
 - `Response::json(...)`, `created(...)`, and `no_content()`;
-- fluent `response().status(...).header(...).json(...)`, text, empty, and Resource/ResourceCollection outputs, all returning `Result<Response>`;
+- fluent `response().status(...).header(...).json(...)`, text, bytes, empty, and Resource/ResourceCollection outputs, all returning `Result<Response>`;
 - `redirect(path)` or `response().status(303).redirect(path)` for validated same-origin absolute paths;
 - `.status(...)`;
 - validated header insertion/appending.

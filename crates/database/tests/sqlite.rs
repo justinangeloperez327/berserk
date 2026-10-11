@@ -204,3 +204,34 @@ fn sqlite_rebuild_preserves_unreferenced_table_rows() {
     assert_eq!(rows[0].get("id"), Some(&Value::I64(1)));
     assert_eq!(rows[0].get("full_name"), Some(&Value::from("Ada")));
 }
+
+#[test]
+fn sqlite_rebuild_guards_self_references_and_query_execution() {
+    let mut connection = SqliteConnection::in_memory().unwrap();
+    for sql in [
+        "PRAGMA foreign_keys = ON",
+        "CREATE TABLE UsErS (id INTEGER PRIMARY KEY, name TEXT, parent_id INTEGER REFERENCES UsErS(id) ON DELETE CASCADE)",
+        "INSERT INTO UsErS VALUES (1, 'Ada', NULL), (2, 'Grace', 1)",
+    ] {
+        connection.execute(&Statement::new(sql)).unwrap();
+    }
+    let statements = RenameUser.up(berserk_database::Driver::Sqlite).unwrap();
+    assert_eq!(
+        connection.query(&statements[0]).unwrap_err().kind(),
+        &ErrorKind::InvalidInput
+    );
+    assert_eq!(
+        connection.execute(&statements[0]).unwrap_err().kind(),
+        &ErrorKind::InvalidInput
+    );
+    assert_eq!(
+        connection
+            .query(&Statement::new("SELECT id FROM UsErS"))
+            .unwrap()
+            .len(),
+        2
+    );
+    assert!(connection
+        .query(&Statement::new("SELECT * FROM __br_users"))
+        .is_err());
+}

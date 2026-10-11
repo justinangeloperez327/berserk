@@ -141,3 +141,24 @@ fn framing_headers_and_invalid_statuses_are_rejected() {
     let failure: berserk::Result<Response> = Err(HttpError::InvalidTarget.into());
     assert!(failure.into_response().is_err());
 }
+
+#[test]
+fn binary_factory_preserves_bytes_and_validates_metadata() {
+    let response = berserk::response()
+        .status(201)
+        .header("x-format", "binary")
+        .bytes(vec![0, 255])
+        .unwrap();
+    assert_eq!(response.status_code(), 201);
+    assert_eq!(response.body(), &[0, 255]);
+    assert_eq!(response.headers().get("x-format"), Some("binary"));
+    assert_eq!(
+        response.headers().get("content-type"),
+        Some("application/octet-stream")
+    );
+    assert!(berserk::response().status(204).bytes(vec![1]).is_err());
+    assert!(berserk::response()
+        .header("x-format", "bad\r\nheader")
+        .bytes(Vec::new())
+        .is_err());
+}
