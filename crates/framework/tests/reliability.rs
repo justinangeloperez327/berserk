@@ -309,9 +309,9 @@ fn keep_alive_peer_close_releases_connection_before_shutdown() {
     }
     assert!(received.starts_with(b"HTTP/1.1 200"));
     assert!(
-        received.windows(b"connection: keep-alive".len()).any(|part| {
-            part.eq_ignore_ascii_case(b"connection: keep-alive")
-        }),
+        received
+            .windows(b"connection: keep-alive".len())
+            .any(|part| { part.eq_ignore_ascii_case(b"connection: keep-alive") }),
         "persistent response must advertise keep-alive"
     );
 
@@ -348,7 +348,10 @@ fn shutdown_closes_idle_keep_alive_without_waiting_for_client_disconnect() {
     let mut buffer = [0; 1024];
     while !body.ends_with(b"\r\n\r\nok") {
         let count = stream.read(&mut buffer).unwrap();
-        assert!(count > 0, "connection closed before first response completed");
+        assert!(
+            count > 0,
+            "connection closed before first response completed"
+        );
         body.extend_from_slice(&buffer[..count]);
         assert!(body.len() < 16 * 1024);
     }
