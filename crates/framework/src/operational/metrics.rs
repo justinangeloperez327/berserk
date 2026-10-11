@@ -43,6 +43,10 @@ impl MetricsSnapshot {
 }
 
 impl Metrics {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
     pub fn snapshot(&self) -> MetricsSnapshot {
         MetricsSnapshot {
             requests: self.requests.load(Ordering::Relaxed),

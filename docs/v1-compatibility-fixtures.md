@@ -27,6 +27,8 @@ introduction in commit `1e2ec0041eb3ae72827fa5235ebc80b371cac143`.
 The fixture now checks that established owned-name contract; the traits were
 not changed. The core fixture also required the previously missing binary
 response-factory terminal, which is now implemented and validated.
+The integration fixture's `Metrics::new()` and `HealthRegistry::new()`
+constructors now delegate to their existing default initialization.
 
 ## Rules for 1.x
 
