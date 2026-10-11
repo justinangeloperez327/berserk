@@ -1,5 +1,4 @@
 use crate::{Middleware, Next, Request, Response, Result};
-use rand_core::{OsRng, RngCore};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TraceContext {
@@ -83,7 +82,7 @@ fn valid_hex(value: &str, length: usize) -> bool {
 fn random_hex<const N: usize>() -> String {
     let mut bytes = [0_u8; N];
     loop {
-        OsRng.fill_bytes(&mut bytes);
+        getrandom::fill(&mut bytes).expect("operating system randomness unavailable");
         if bytes.iter().any(|byte| *byte != 0) {
             return hex(&bytes);
         }
