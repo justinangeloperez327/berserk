@@ -13,9 +13,10 @@ on:
   schedule:
     - cron: "41 3 * * 1"
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: fuzz-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -30,6 +31,8 @@ jobs:
         target: [json, http_values, routes, multipart]
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@nightly
       - uses: taiki-e/install-action@v2
         with:

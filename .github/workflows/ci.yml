@@ -4,9 +4,11 @@ on:
   push:
     branches: [main, eager-loading, "feature/**", "release/**"]
   pull_request:
+  workflow_dispatch:
+  workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -17,14 +19,22 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - name: Verify tracked source, documentation, and build hygiene
         run: python3 scripts/verify_repository.py
+      - name: Verify release-candidate preflight failures
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python3 -m unittest discover -s scripts/tests -p 'test_release_candidate.py'
 
   feature-core:
     name: feature-core
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -51,6 +61,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -75,6 +87,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -96,6 +110,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -125,6 +141,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.88"
@@ -142,6 +160,8 @@ jobs:
           - macos-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
       - run: cargo check --locked --workspace --all-targets --all-features

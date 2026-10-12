@@ -10,6 +10,12 @@ capability exists; it does not authorize publishing a later commit.
 Publishing is always a manual owner decision. This checklist intentionally
 contains no automatic publish step.
 
+Use [release-candidate.md](release-candidate.md) to run the complete technical
+matrix against one immutable workflow commit. Pull-request evidence validates
+the proposed merge; rerun the workflow manually on the final merged commit for
+signed publication evidence. Configure [main branch protection](branch-protection.md)
+to preserve the required CI checks.
+
 ## Current state
 
 - The V1 framework core is implemented.
@@ -59,8 +65,8 @@ so.
       v1.0.0. This does not constitute an audit.
 - [x] Public documentation states that v1.0.0 is not independently audited,
       penetration-tested, security-certified, or production-certified.
-- [ ] A post-release independent review remains recommended and should be
-      tracked separately from the v1.0.0 publication gate.
+An independent post-release review remains recommended. It is tracked after
+publication and is not an unchecked pre-publication gate.
 
 ## Exact release-candidate identity
 
@@ -121,7 +127,8 @@ replace this exact-commit rerun.
 
 ## Exact release artifacts
 
-- [ ] Run `Release artifacts` manually against the exact final commit.
+- [ ] Run `Release candidate` manually against the exact final commit; its
+      `Release artifacts` job generates the evidence and signed provenance.
 - [ ] Verify the evidence contains exactly **20** checksum subjects:
       one source archive, 18 package-file lists, and one release manifest.
 - [ ] Run `sha256sum -c SHA256SUMS` successfully.

@@ -53,9 +53,10 @@ source commit that would be published.
 
 ## Release-candidate blockers
 
-For the v1.0.0 publication candidate:
+For the v1.0.0 publication candidate, use the unified
+[release-candidate workflow](release-candidate.md):
 
-- [ ] Freeze the intended 1.0 public API and stop adding convenience features
+- [x] Freeze the intended 1.0 public API and stop adding convenience features
   that are not required to correct a demonstrated usability or correctness gap.
 - [ ] Rerun formatting, Clippy, tests, documentation, MSRV, feature matrices,
   live PostgreSQL/MySQL/SQLite checks, fuzzing, load/soak tests, package checks,

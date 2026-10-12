@@ -1,10 +1,11 @@
 # Berserk roadmap
 
 Berserk is preparing its first public v1.0.0 release. The framework core has
-reached its intended V1 architectural scope; the remaining framework-maturity
-blocker is the independent API/security review. After that review, work moves to
-an exact-commit release-candidate process rather than another feature-expansion
-cycle.
+reached its intended V1 architectural scope, and the intended 1.0 public API is
+frozen for publication. The owner has deferred the pre-release independent
+API/security review; this does not constitute completion of that review. The
+remaining work is the exact-commit release-candidate process in
+[release-candidate.md](release-candidate.md).
 
 Earlier numbered repository milestones are development history, not public
 package releases.
@@ -31,7 +32,7 @@ Do not add convenience features merely to increase feature count. The remaining
 sequence is:
 
 1. Preserve the documented decision to publish without a pre-release independent audit.
-2. Freeze the intended 1.0 public API.
+2. Preserve the frozen 1.0 public API, correcting demonstrated defects only.
 3. Create the final release candidate.
 4. Rerun formatting, Clippy, tests, documentation, MSRV, feature matrices,
    live PostgreSQL/MySQL/SQLite checks, fuzzing, load/soak, package checks, and

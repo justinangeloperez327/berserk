@@ -12,9 +12,10 @@ on:
       - "benchmarks/**"
       - ".github/workflows/benchmarks.yml"
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: benchmarks-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -28,6 +29,8 @@ jobs:
       LC_ALL: C
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
       - name: Build release benchmark
         run: cargo build --locked --release -p berserk-benchmarks
