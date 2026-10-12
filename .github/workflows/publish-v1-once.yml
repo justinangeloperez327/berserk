@@ -1,0 +1,202 @@
+name: Publish Berserk v1.0.0
+
+on:
+  push:
+    branches: [release/publish-v1.0.0-20261012]
+
+concurrency:
+  group: publish-berserk-v1.0.0
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    if: github.repository == 'justinangeloperez327/berserk'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: justinangeloperez327/berserk
+      RELEASE_COMMIT: c476f6ea4c3af60406031f5e925915d326cfd8e3
+      RELEASE_TAG: v1.0.0
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: c476f6ea4c3af60406031f5e925915d326cfd8e3
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Verify the approved source and publication graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          test "$(gh api "repos/$GH_REPO/branches/main" --jq .commit.sha)" = "$RELEASE_COMMIT"
+          gh api "repos/$GH_REPO/actions/runs?head_sha=$RELEASE_COMMIT&per_page=30" \
+            --jq '.workflow_runs | any(.name == "CI" and .conclusion == "success")' \
+            | grep -Fx true
+          python3 scripts/release_plan.py --version 1.0.0 --format json --output /tmp/publication-plan.json
+          python3 scripts/release_plan.py --version 1.0.0 --format tsv --output /tmp/publication-packages.tsv
+          test "$(wc -l < /tmp/publication-packages.tsv)" -eq 18
+          git diff --exit-code
+
+      - name: Preserve immutable version tags
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          repo = os.environ['GH_REPO']
+          tag = os.environ['RELEASE_TAG']
+          result = subprocess.run(['gh', 'api', f'repos/{repo}/git/ref/tags/{tag}'], capture_output=True, text=True)
+          if result.returncode:
+              if '404' not in result.stderr:
+                  raise SystemExit(result.stderr)
+          else:
+              obj = json.loads(result.stdout)['object']
+              for _ in range(4):
+                  if obj['type'] == 'commit':
+                      break
+                  if obj['type'] != 'tag':
+                      raise SystemExit('existing release tag does not resolve to a commit')
+                  obj = json.loads(subprocess.check_output(['gh', 'api', f"repos/{repo}/git/tags/{obj['sha']}"], text=True))['object']
+              if obj['type'] != 'commit' or obj['sha'] != os.environ['RELEASE_COMMIT']:
+                  raise SystemExit('existing v1.0.0 tag points to different source; refusing to move it')
+          PY
+
+      - name: Publish the coordinated crates when registry credentials are configured
+        id: registry
+        shell: bash
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CARGO_REGISTRY_TOKEN:-}" ]]; then
+            echo 'Crates.io credentials are not configured; publishing the GitHub source release.'
+            echo 'published=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          while IFS=$'\t' read -r package version; do
+            if (cd /tmp && cargo info "$package@$version" --registry crates-io >/tmp/registry-package.txt 2>&1); then
+              grep -F 'https://github.com/justinangeloperez327/berserk' /tmp/registry-package.txt
+              echo "$package@$version is already visible in the registry."
+            else
+              cargo publish --locked -p "$package"
+            fi
+            (cd /tmp && cargo info "$package@$version" --registry crates-io)
+          done < /tmp/publication-packages.tsv
+          git diff --exit-code Cargo.lock
+          echo 'published=true' >> "$GITHUB_OUTPUT"
+
+      - name: Verify a fresh registry consumer after coordinated publication
+        if: steps.registry.outputs.published == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/berserk-v1-consumer/src
+          cat > /tmp/berserk-v1-consumer/Cargo.toml <<'TOML'
+          [package]
+          name = "berserk-v1-registry-consumer"
+          version = "0.1.0"
+          edition = "2021"
+          rust-version = "1.88"
+          publish = false
+          [workspace]
+          resolver = "3"
+          [dependencies]
+          berserk = { version = "=1.0.0", features = ["sqlite", "claw", "auth", "openapi"] }
+          TOML
+          cat > /tmp/berserk-v1-consumer/src/main.rs <<'RUST'
+          use berserk::{App, Response, Result};
+          fn main() -> Result<()> {
+              let mut app = App::new();
+              app.route().get("/", || Response::text("Berserk v1.0.0"))?;
+              Ok(())
+          }
+          RUST
+          cargo generate-lockfile --manifest-path /tmp/berserk-v1-consumer/Cargo.toml
+          cargo check --locked --manifest-path /tmp/berserk-v1-consumer/Cargo.toml
+
+      - name: Prepare accurate stable release notes
+        shell: bash
+        env:
+          REGISTRY_PUBLISHED: ${{ steps.registry.outputs.published }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          notes = '''# Berserk v1.0.0
+
+          Berserk's first public stable release establishes the 1.0 API baseline for its Laravel-like Rust web framework.
+
+          - Typed routing, requests and responses, validation, authentication and authorization.
+          - PostgreSQL, MySQL and SQLite drivers, migrations, and the Claw ORM with relationships and bounded eager loading.
+          - Axe views, optional application services, code generation, CLI tooling, observability, and application testing.
+          - 18 coordinated workspace crates, Rust 1.88 minimum, and the MIT license.
+
+          The release source is commit `c476f6ea4c3af60406031f5e925915d326cfd8e3`.
+
+          '''
+          if os.environ['REGISTRY_PUBLISHED'] == 'true':
+              notes += '''All 18 coordinated crates are published at version 1.0.0. A fresh crates.io-only consumer was verified.
+
+          ```toml
+          [dependencies]
+          berserk = "=1.0.0"
+          ```
+
+          '''
+          else:
+              notes += '''This GitHub release provides the stable source distribution. Coordinated crates.io publication remains pending. Use the version tag as a Git dependency:
+
+          ```toml
+          [dependencies]
+          berserk = { git = "https://github.com/justinangeloperez327/berserk", tag = "v1.0.0" }
+          ```
+
+          '''
+          notes += '''See [release documentation](https://github.com/justinangeloperez327/berserk/blob/v1.0.0/docs/v1.0.0.md), [upgrade notes](https://github.com/justinangeloperez327/berserk/blob/v1.0.0/docs/upgrade-notes.md), and [known limitations](https://github.com/justinangeloperez327/berserk/blob/v1.0.0/docs/known-limitations.md).
+
+          The owner deferred an independent pre-release API/security review. This release is not independently audited or security-certified.
+          '''
+          Path('/tmp/berserk-v1-release.md').write_text(notes, encoding='utf-8')
+          PY
+
+      - name: Publish and verify the GitHub release
+        shell: bash
+        run: |
+          set -euo pipefail
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" --draft=false --prerelease=false --latest
+          else
+            gh release create "$RELEASE_TAG" --target "$RELEASE_COMMIT" \
+              --title 'Berserk v1.0.0' --notes-file /tmp/berserk-v1-release.md --latest
+          fi
+          gh release view "$RELEASE_TAG" --json tagName,isDraft,isPrerelease,url \
+            | tee /tmp/published-release.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          release = json.loads(Path('/tmp/published-release.json').read_text())
+          assert release['tagName'] == 'v1.0.0'
+          assert release['isDraft'] is False
+          assert release['isPrerelease'] is False
+          PY
+
+      - name: Retain the publication record
+        uses: actions/upload-artifact@v7
+        with:
+          name: berserk-v1.0.0-publication-record
+          path: |
+            /tmp/publication-plan.json
+            /tmp/published-release.json
+            /tmp/berserk-v1-release.md
+          if-no-files-found: error
+          retention-days: 90
