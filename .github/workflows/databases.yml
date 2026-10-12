@@ -9,9 +9,10 @@ on:
       - "crates/claw/**"
       - ".github/workflows/databases.yml"
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: databases-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -23,6 +24,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --locked -p berserk-database --features sqlite --test sqlite
       - run: cargo test --locked -p claw-orm --test relationships_live
@@ -49,6 +52,8 @@ jobs:
       BERSERK_POSTGRES_TEST_URL: postgres://berserk:berserk@127.0.0.1:5432/berserk
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --locked -p berserk-database --features postgres --test postgres
       - run: cargo test --locked -p claw-orm --features postgres --test relationships_live
@@ -76,6 +81,8 @@ jobs:
       BERSERK_MYSQL_TEST_URL: mysql://berserk:berserk@127.0.0.1:3306/berserk
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test --locked -p berserk-database --features mysql --test mysql
       - run: cargo test --locked -p claw-orm --features mysql --test relationships_live
@@ -96,6 +103,8 @@ jobs:
           --health-retries 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - name: Verify MongoDB latest baseline
         run: |
           docker exec ${{ job.services.mongodb.id }} mongosh --quiet --eval '

@@ -8,6 +8,8 @@ Berserk v1.0.0 is the first public release. Entries below `1.0.0` describe repos
 
 ### Changed
 
+- Release preparation now has one exact-commit workflow covering the complete matrix, a bounded prolonged soak, current registry-name observations, and source provenance. Release docs consistently preserve the API freeze and the owner's independent-review deferral.
+
 - Centralized external dependency requirements and upgraded compatible dependencies with Cargo resolver 3 while retaining Rust 1.88 support.
 - CI feature, database, platform, and minimum-Rust checks now validate committed lockfiles with `--locked`; live SQL test variables use `BERSERK_*` names with legacy aliases retained.
 - The foundation task integration requires a dedicated ability and uses event and notification names that describe snapshot dispatch.

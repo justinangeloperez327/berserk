@@ -70,8 +70,8 @@ Then use the local bundle and trusted root with `gh attestation verify` in the o
 
 For the intended release commit or tag:
 
-1. Ensure all normal release gates are green and the exact source commit has owner approval for artifact preparation.
-2. Run the `Release artifacts` workflow manually from that exact ref.
+1. Select the exact candidate commit and follow [release-candidate.md](release-candidate.md). Artifact preparation is a review step; owner approval for publication follows review of the completed evidence.
+2. Run `Release candidate` manually from that exact ref. It runs the full validation matrix and calls `Release artifacts` for signed evidence. A standalone `Release artifacts` run prepares artifacts only and does not prove the complete candidate gates passed.
 3. Download `berserk-release-evidence-<sha>` from the successful workflow run.
 4. Run `sha256sum -c SHA256SUMS`.
 5. Verify the source archive attestation with `gh attestation verify`, including the expected repository and signer workflow.

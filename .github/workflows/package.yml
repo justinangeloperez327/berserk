@@ -13,9 +13,10 @@ on:
       - "CHANGELOG.md"
       - ".github/workflows/package.yml"
   workflow_dispatch:
+  workflow_call:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: package-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -27,6 +28,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
@@ -119,6 +122,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
       - name: Compile README quick start from a fresh external project
         shell: bash

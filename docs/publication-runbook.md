@@ -20,7 +20,7 @@ Before the first `cargo publish` command:
 2. Public release documentation clearly states that v1.0.0 is not independently audited or security-certified.
 3. The owner has approved the exact version and exact source commit.
 4. The worktree is clean and checked out at that approved commit.
-5. The manual `Release artifacts` workflow has been rerun for that exact final commit after all review fixes/documentation changes are merged.
+5. The manual `Release candidate` workflow has passed for that exact final commit after all review fixes/documentation changes are merged, including its signed `Release artifacts` job.
 6. The release evidence for that commit has verified checksums and GitHub/Sigstore provenance.
 7. Package-name availability has been rechecked immediately before publication.
 8. The crates.io account is ready and the release credential is available only in the maintainer's secure environment.

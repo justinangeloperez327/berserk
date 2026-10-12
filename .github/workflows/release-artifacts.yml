@@ -11,9 +11,15 @@ on:
       - "docs/release-provenance.md"
       - "docs/release-checklist.md"
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      candidate_preflight:
+        description: Exact-commit candidate preflight and registry observations
+        type: string
+        default: ""
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: artifacts-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -30,6 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.sha }}
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
 
@@ -62,6 +69,8 @@ jobs:
 
       - name: Record release manifest and publish order
         shell: bash
+        env:
+          CANDIDATE_PREFLIGHT: ${{ inputs.candidate_preflight }}
         run: |
           set -euo pipefail
 
@@ -92,6 +101,17 @@ jobs:
               "publish_layers": plan["publish_layers"],
               "publish_order": plan["publish_order"],
           }
+
+          preflight = os.environ.get("CANDIDATE_PREFLIGHT", "")
+          if preflight:
+              candidate = json.loads(preflight)
+              if candidate["source_commit"] != manifest["source_commit"]:
+                  raise SystemExit("candidate preflight belongs to a different source commit")
+              if candidate["version"] != plan["version"] or candidate["publish_order"] != plan["publish_order"]:
+                  raise SystemExit("candidate preflight publication plan does not match")
+              if not candidate["registry"]["checked"]:
+                  raise SystemExit("candidate registry names were not checked")
+              manifest["candidate_preflight"] = candidate
 
           pathlib.Path("release-artifacts/RELEASE-MANIFEST.json").write_text(
               json.dumps(manifest, indent=2, sort_keys=True) + "\n",

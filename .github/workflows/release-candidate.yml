@@ -1,0 +1,132 @@
+name: Release candidate
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "scripts/release_plan.py"
+      - "scripts/verify_release_candidate.py"
+      - "scripts/tests/test_release_candidate.py"
+      - "docs/release-*.md"
+      - "docs/v1-maturity-gate.md"
+      - "docs/publication-runbook.md"
+      - "docs/branch-protection.md"
+  workflow_dispatch:
+    inputs:
+      soak_seconds:
+        description: Prolonged soak duration (300 to 900 seconds)
+        type: string
+        required: true
+        default: "300"
+
+concurrency:
+  group: release-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    outputs:
+      candidate_preflight: ${{ steps.preflight.outputs.candidate_preflight }}
+      soak_seconds: ${{ steps.preflight.outputs.soak_seconds }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Verify exact source, package graph, registry names, and soak duration
+        id: preflight
+        env:
+          SOAK_SECONDS: ${{ inputs.soak_seconds || '300' }}
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python3 scripts/verify_release_candidate.py \
+            --soak-seconds "$SOAK_SECONDS" --check-registry \
+            --output target/candidate-preflight.json --github-output "$GITHUB_OUTPUT"
+      - name: Retain candidate preflight
+        uses: actions/upload-artifact@v7
+        with:
+          name: candidate-preflight-${{ github.sha }}
+          path: target/candidate-preflight.json
+          if-no-files-found: error
+          retention-days: 90
+
+  ci:
+    needs: preflight
+    uses: ./.github/workflows/ci.yml
+  databases:
+    needs: preflight
+    uses: ./.github/workflows/databases.yml
+  security:
+    needs: preflight
+    uses: ./.github/workflows/security.yml
+  fuzz:
+    needs: preflight
+    uses: ./.github/workflows/fuzz.yml
+  load:
+    needs: preflight
+    uses: ./.github/workflows/load.yml
+    with:
+      release_candidate: true
+      soak_seconds: ${{ needs.preflight.outputs.soak_seconds }}
+  performance:
+    needs: preflight
+    uses: ./.github/workflows/benchmarks.yml
+  package:
+    needs: preflight
+    uses: ./.github/workflows/package.yml
+  artifacts:
+    needs: preflight
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    uses: ./.github/workflows/release-artifacts.yml
+    with:
+      candidate_preflight: ${{ needs.preflight.outputs.candidate_preflight }}
+
+  release-gate:
+    if: always()
+    needs: [preflight, ci, databases, security, fuzz, load, performance, package, artifacts]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require every candidate gate and record exact-commit results
+        env:
+          GATE_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          results = json.loads(os.environ['GATE_RESULTS'])
+          states = {name: job['result'] for name, job in results.items()}
+          evidence = {
+              'source_commit': os.environ['GITHUB_SHA'],
+              'workflow_run_id': os.environ['GITHUB_RUN_ID'],
+              'event': os.environ['GITHUB_EVENT_NAME'],
+              'gate_results': states,
+          }
+          Path('release-gate.json').write_text(json.dumps(evidence, indent=2) + '\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write(f"Candidate commit: `{evidence['source_commit']}`\n\n")
+              summary.write('| Gate | Result |\n| --- | --- |\n')
+              for name, state in states.items():
+                  summary.write(f'| {name} | {state} |\n')
+              summary.write('\nTechnical evidence only; publication requires owner approval.\n')
+          failed = {name: state for name, state in states.items() if state != 'success'}
+          if failed:
+              raise SystemExit(f'candidate gates did not all pass: {failed}')
+          PY
+      - name: Retain candidate gate results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-gate-${{ github.sha }}
+          path: release-gate.json
+          if-no-files-found: error
+          retention-days: 90

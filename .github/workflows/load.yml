@@ -15,11 +15,21 @@ on:
         description: Prolonged soak duration in seconds
         required: true
         default: "300"
+  workflow_call:
+    inputs:
+      release_candidate:
+        description: Require the prolonged soak for a candidate, including pull requests
+        type: boolean
+        default: false
+      soak_seconds:
+        description: Prolonged soak duration in seconds
+        type: string
+        default: "300"
   schedule:
     - cron: "17 2 * * 0"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: load-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -31,6 +41,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
       - name: Build release load harness
         run: cargo build --locked --release -p berserk-benchmarks --bin berserk-load
@@ -103,14 +115,27 @@ jobs:
           retention-days: 30
 
   prolonged-soak:
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' || inputs.release_candidate
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      SOAK_SECONDS: ${{ github.event_name == 'workflow_dispatch' && inputs.soak_seconds || '900' }}
+      SOAK_SECONDS: ${{ inputs.soak_seconds || '900' }}
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
       - uses: dtolnay/rust-toolchain@stable
+      - name: Validate bounded release soak duration
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python3 - <<'PY'
+          import os
+          import sys
+          sys.path.insert(0, 'scripts')
+          from verify_release_candidate import validate_soak_seconds
+          validate_soak_seconds(os.environ['SOAK_SECONDS'])
+          PY
       - name: Build release load harness
         run: cargo build --locked --release -p berserk-benchmarks --bin berserk-load
       - name: Run prolonged soak
