@@ -1,66 +1,55 @@
 # Berserk
 
-Berserk is a Rust web framework focused on a clear developer experience, explicit behavior, type safety, and predictable performance.
+**Berserk is a Rust web framework for building APIs, web applications, and backend services.**
 
-> **Release:** v1.0.0 is the first public stable release candidate. The owner has elected to publish without a pre-release independent API/security audit. Berserk has internal review, CI, fuzzing, database, load, package, and release-artifact validation, but it must not be described as independently audited or security-certified. Rust 1.88 is the minimum supported Rust version (MSRV).
+It combines familiar web-development conventions with Rust's type safety and explicit execution model. Applications can start with a single route and grow into projects with controllers, models, middleware, validation, authentication, database access, and background services.
 
-## Why Berserk?
+## What Berserk provides
 
-- **Readable application APIs** — routing, requests, responses, validation, middleware, state, and database access are designed to work together.
-- **Explicit execution** — query chains build operations; terminal methods perform database work.
-- **Safe boundaries** — validated input, bound SQL values, bounded resources, and explicit errors.
-- **Flexible structure** — start small and organize larger applications without mandatory folder discovery.
-- **Feature-gated components** — enable only the subsystems an application needs.
-- **Sync-first design** — synchronous application code remains the default; server and async capabilities are opt-in through Cargo features where applicable.
+- **HTTP and routing:** typed route parameters, named routes, middleware, controllers, request handling, and responses.
+- **Validation and security:** validated request data, authentication, authorization, and configurable HTTP protections.
+- **Databases and ORM:** PostgreSQL, MySQL, and SQLite drivers, migrations, query builders, and Claw ORM relationships with explicit eager loading.
+- **HTML views:** the Axe template engine.
+- **Application services:** optional cache, storage, events, jobs, outbound HTTP, and notifications.
+- **Developer tools:** a CLI, project generators, testing helpers, and operational health, logging, tracing, and metrics primitives.
 
-## 1.0 release target
+Components are selected with Cargo features; your Rust modules and application structure remain under your control.
 
-v1.0.0 is the intended first public stable API baseline **when published**. New application code uses instance- and request-scoped APIs such as `app.route()`, `Request::user()`, explicit application-service registration, and Claw's bound query builders.
+## Get started
 
-The pre-1.0 direct application verb shortcuts and `Request::principal()` compatibility alias were removed during stabilization. `Arr` and `Str` remain explicit root utilities and are intentionally excluded from the default prelude.
+**Requirements:** Rust 1.88 or newer, with Cargo.
 
-### Current maturity
+~~~sh
+cargo new hello-berserk
+cd hello-berserk
+~~~
 
-The framework core is no longer being treated as a prototype. The owner has chosen to defer an independent API/security audit until after the first public release. The intended 1.0 public API is therefore frozen by owner decision, and the complete release matrix must be rerun against the exact publication candidate.
+Add Berserk from its v1.0.0 GitHub release:
 
-That does **not** mean Berserk already has Laravel-level ecosystem maturity. Production history, third-party packages, independent maintainers, deployment experience, long-term compatibility, and community adoption are post-1.0 evidence. See [ecosystem maturity](docs/ecosystem-maturity.md).
-
-## Requirements
-
-- Rust 1.88 or later
-- Cargo
-- PostgreSQL, MySQL, or SQLite only when the corresponding database feature is enabled
-
-## Installation
-
-The public package is consumed as:
-
-```toml
+~~~toml
 [dependencies]
-berserk = "1.0"
-```
+berserk = { git = "https://github.com/justinangeloperez327/berserk", tag = "v1.0.0" }
+~~~
 
-Enable optional components as needed:
+Enable optional components when needed, for example:
 
-```toml
+~~~toml
 [dependencies]
-berserk = { version = "1.0", features = ["postgres", "auth", "cache", "storage"] }
-```
+berserk = { git = "https://github.com/justinangeloperez327/berserk", tag = "v1.0.0", features = ["sqlite", "claw", "auth"] }
+~~~
 
-Repository consumers can use the framework crate by path while developing Berserk itself.
+Create `src/main.rs`:
 
-## Quick start
-
-```rust
+~~~rust
 use berserk::{response, App, Response, Result};
 
 fn main() -> Result<()> {
     let mut app = App::new();
 
     {
-        let mut route = app.route();
-        route.get("/", || response().text("Hello from Berserk!"))?;
-        route.get("/users/{id}", show_user)?;
+        let mut routes = app.route();
+        routes.get("/", || response().text("Hello from Berserk!"))?;
+        routes.get("/users/{id}", show_user)?;
     }
 
     app.listen("127.0.0.1:3000")
@@ -69,214 +58,32 @@ fn main() -> Result<()> {
 fn show_user(id: u64) -> Result<Response> {
     response().text(format!("User {id}"))
 }
-```
+~~~
 
-## Routing
+Run `cargo run`, then open `http://127.0.0.1:3000`.
 
-Routes are registered through the application:
+## Berserk CLI
 
-```rust
-let mut route = app.route();
+Windows users can install the CLI with the official [v1.0.0 Windows installer](https://github.com/justinangeloperez327/berserk/releases/download/v1.0.0/BerserkSetup-1.0.0-windows-x64.exe). It adds the `berserk` command to the user PATH. Installing the CLI does not install Rust or the Microsoft C++ build tools required to compile applications.
 
-route.get("/health", health)?;
-route.get("/users/{id}", users::show)?;
-route.post("/users", users::store)?;
-route.put("/users/{id}", users::update)?;
-route.patch("/users/{id}", users::patch)?;
-route.delete("/users/{id}", users::destroy)?;
-```
-
-Routes support typed parameters, names, reverse routing, scoped prefixes and middleware, groups, fallbacks, and resource registration. Invalid typed route parameters produce controlled client errors rather than invoking the handler.
-
-## Requests and responses
-
-Berserk provides concise request input and response APIs:
-
-```rust,ignore
-let email = request.input("email")?;
-let page = request.query("page")?;
-let payload = request.json::<Payload>()?;
-let input = request.validate::<CreateUserRequest>()?;
-
-response().json(user)
-response().status(201).json(user)
-response().no_content()
-```
-
-FormRequest processing follows decode → sanitize → authorize → validate → request-aware validation.
-
-## Middleware, state, and configuration
-
-Middleware uses the existing request/response pipeline and can be applied globally, to a route, or to a scoped group. Application services and typed configuration are registered on an `App` instance and accessed through the request; Berserk does not require a process-global mutable application registry.
-
-## Application services
-
-Optional services stay explicit and instance-scoped. Register only what the application uses:
-
-```rust,ignore
-app.cache(cache)?;
-app.storage(storage)?;
-app.events(events)?;
-app.jobs(queue)?;
-app.http_client(client)?;
-app.notifications(notifier)?;
-```
-
-Handlers retrieve configured services from the request:
-
-```rust,ignore
-let cache = request.cache()?;
-let storage = request.storage()?;
-let events = request.events()?;
-```
-
-These APIs are thin typed accessors over application state. Berserk does not use a process-global service locator or folder discovery.
-
-## Claw ORM
-
-Claw provides model queries and request-scoped database access:
-
-```rust,ignore
-let users = User::where_("active", true)
-    .where_between("score", 50, 100)
-    .where_not_null("email")
-    .order_by("id", Direction::Asc)
-    .get()?;
-
-let user = User::find(id)?;
-let page = User::query().paginate(20)?;
-```
-
-Query values are bound separately from SQL text. Explicit connection APIs remain available when request-scoped access is not appropriate.
-
-## Testing
-
-The `berserk-testing` crate provides an in-memory HTTP client with fluent assertions:
-
-```rust,ignore
-TestClient::new(&app)
-    .get("/users/1")?
-    .assert_ok()
-    .assert_header("content-type", "application/json")
-    .assert_json_path("data.id", 1)
-    .assert_json_path_missing("errors");
-```
-
-Testing helpers also include event recorders, job probes, outbound HTTP fakes, temporary directories, and the in-memory mail transport. These are ordinary Rust types rather than a macro-specific test DSL.
-
-## Operations
-
-Berserk exposes production-facing health, logging, tracing, and metrics primitives without requiring a specific external observability vendor.
-
-```rust,ignore
-let snapshot = health.snapshot();
-if !snapshot.ready {
-    // application-specific shutdown or alerting
-}
-
-let metrics = metrics.snapshot();
-let completed = metrics.completed();
-let average_us = metrics.average_duration_us();
-```
-
-Health readiness can still be rendered as HTTP, while programmatic snapshots support supervisors and deployment integrations. Trace contexts expose W3C trace flags and sampling state, and the in-memory log sink can be drained by tests or controlled tooling.
-
-## CLI
-
-Windows users can install the prebuilt CLI through the
-[Windows installation guide](docs/windows-installation.md).
-
-The CLI includes application and code-generation commands such as:
-
-```sh
-berserk new my-api
+~~~powershell
+berserk new my-app
+cd my-app
 berserk serve
-berserk make:model User
-berserk make:crud User
-berserk make:controller UserController
-berserk make:controller UserController --resource --model User --request UserInput
-berserk make:request CreateUserRequest
-berserk make:request UserInput --model User
-berserk make:middleware Audit
-berserk make:resource UserResource
-berserk make:policy UserPolicy
-berserk make:migration create_users_table
-berserk migrate
-berserk migrate --dry-run
-berserk migrate:status
-berserk migrate:rollback
-berserk migrate:reset
-```
+~~~
 
-The generated application remains explicit: controllers, models, requests, middleware, configuration, and routes are ordinary Rust modules. The conventional project skeleton is emitted by `berserk-codegen`; the CLI is responsible for safe filesystem placement.
-
-## Optional features
-
-Major feature groups include `server`, `async`, `database`, `claw`, `postgres`, `mysql`, `sqlite`, `auth`, `view`, `openapi`, `cache`, `storage`, `events`, `jobs`, `client`, `notifications`, and `cli`.
-
-See [docs/public-api.md](docs/public-api.md) for the current API contract, [docs/migrations.md](docs/migrations.md) for the migration DSL, [docs/relationships.md](docs/relationships.md) for Claw relationships, [docs/views.md](docs/views.md) for Axe templates and production validation, and [docs/v1.0.0.md](docs/v1.0.0.md) for the first public release target.
-
-## Workspace
-
-```text
-crates/
-├── framework       # Main Berserk API and HTTP application assembly
-├── core            # Configuration, state, lifecycle, and shared foundations
-├── database        # Connections, query builder, migrations, and SQL drivers
-├── claw            # Claw ORM models, typed queries, and relationships
-├── axe             # HTML-first view engine
-├── validation      # Validation contracts
-├── auth            # Authentication and authorization
-├── openapi         # OpenAPI generation
-├── cache           # Cache contracts and implementations
-├── storage         # Storage contracts and implementations
-├── events          # Typed events
-├── jobs            # Background jobs and scheduling
-├── client          # Outbound HTTP
-├── notifications   # Notifications
-├── codegen         # Reusable parsing and Rust source/token generation
-├── macros          # Thin procedural-macro entry points
-├── cli             # Developer commands and filesystem generators
-└── testing         # Test helpers and fakes
-```
-
-## Development
-
-Run the repository quality gate before merging release work:
-
-```sh
-cargo fmt --all -- --check
-cargo check --workspace --all-targets --all-features
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace --all-features
-cargo doc --workspace --all-features --no-deps
-```
-
-Additional security, dependency, database, fuzz, load, package, and release checks are defined by the repository workflows and [release checklist](docs/release-checklist.md).
-
-## Project structure
-
-`berserk new` generates a conventional `app/`, `database/`, and `config/` layout, but the runtime does not require those folders. Applications may use feature modules or any other valid Rust module organization. See [docs/project-structure.md](docs/project-structure.md).
+You can also generate controllers, models, migrations, requests, resources, policies, and middleware. See the [CLI and generators guide](docs/codegen.md) and [Windows installation guide](docs/windows-installation.md).
 
 ## Documentation
 
-- [Public API](docs/public-api.md)
-- [Architecture](docs/architecture.md)
-- [Design principles](docs/design-principles.md)
-- [Compatibility and versioning](docs/compatibility.md)
-- [Known limitations](docs/known-limitations.md)
-- [Upgrade notes](docs/upgrade-notes.md)
-- [Roadmap](docs/roadmap.md)
-- [Ecosystem maturity](docs/ecosystem-maturity.md)
-- [V1 maturity gate](docs/v1-maturity-gate.md)
-- [Release checklist](docs/release-checklist.md)
-- [Support policy](docs/support-policy.md)
-- [Security policy](SECURITY.md)
+Start with the [documentation index](docs/index.md). The main guides cover [public APIs](docs/public-api.md), [project structure](docs/project-structure.md), [migrations](docs/migrations.md), [Claw relationships](docs/relationships.md), [Axe views](docs/views.md), and [supported environments](docs/support-policy.md).
 
-## Security
+An executable [minimal API example](examples/minimal-api/README.md) and a larger [Foundation example](examples/foundation/README.md) demonstrate application code.
 
-Berserk is preparing its first public v1.0.0 release and should not be represented as independently security-certified. Review [SECURITY.md](SECURITY.md) and [known limitations](docs/known-limitations.md) before deployment.
+## Compatibility and security
+
+Berserk v1.0.0 is the initial stable API baseline, with Rust 1.88 as its MSRV. See [compatibility](docs/compatibility.md), [known limitations](docs/known-limitations.md), and the [security policy](SECURITY.md) when evaluating production use. Berserk does not claim an independent security audit or certification.
 
 ## License
 
-Berserk is licensed under the [MIT License](LICENSE).
+[MIT](LICENSE).

@@ -1,91 +1,37 @@
-# Architecture
+# Berserk architecture
 
-## Target packages
+Berserk provides a single application entry point while keeping its capabilities in separate Rust crates. You choose which facilities to enable; the framework does not require a particular folder hierarchy or a global service container.
 
-All packages live under `crates/` with short folder names:
+## The application
 
-- `framework`: main import, App assembly, HTTP, routing, handlers, middleware, server, logging, health, metrics, trace propagation, and rate limiting.
-- `core`: small shared foundations, state, configuration utilities, lifecycle contracts, core errors.
-- `codegen`: reusable parsing, validation, and Rust token generation for Berserk application syntax; it is a normal library with no runtime framework state.
-- `macros`: thin procedural-macro entry points such as `#[derive(Model)]`; parsing and token emission are delegated to `codegen`.
-- `database`: execution interfaces, lexical request/job scope, query builder, migrations, and driver contracts.
-- `claw`: typed models, guarded input conversions, relationships, eager loading, and pagination.
-- `axe`: HTML templates, view values, escaping, and rendering; no database or ORM dependency.
-- `auth`: identity providers, password verification, sessions, principals, gates, policies, and optional HTTP integration.
-- `openapi`: standalone schemas, operations, security definitions, validation, and OpenAPI 3.1 JSON generation.
-- `cache`: backend-neutral byte-value cache operations, expiration, namespaces, and the bounded memory backend.
-- `storage`: backend-neutral object operations, validated paths, and bounded memory/local-file backends.
-- `events`: typed synchronous dispatch, ordered listeners, removal, and isolated failure reporting.
-- `jobs`: bounded process-local queues, workers, retries, failed-job records, statistics, and recurring schedules.
-- `client`: outbound HTTP contracts, validated request/response types, and the bounded plaintext TCP transport.
-- `notifications`: mail and webhook messages, delivery policies, channel reports, and replaceable transports.
-- `cli`: command parsing, safe generators, and application-provided migration command hooks.
-- `testing`: in-memory HTTP assertions, fakes, recorders, and isolated temporary workspaces.
-- `validation`: explicit field errors, validation rules, and sanitization helpers.
+An `App` owns its routes, configuration, and shared services. Register routes with `app.route()`, use middleware to compose request processing, and return typed `Response` values from handlers.
 
-Current package boundaries are architectural boundaries, not development phases. The `database` crate owns shared connection, transaction, statement, value, row, capability, migration, and driver contracts. Cache, storage, events, jobs, outbound HTTP, and notifications remain independent components and integrate through the main framework without depending on HTTP internals.
+Requests carry the context for typed parameters, validated input, the authenticated user when configured, and application services. Services such as cache and storage are registered explicitly on the app instead of being discovered by file name.
 
-The `cli` remains independent of runtime application state; applications provide runtime-specific resources such as migration execution. The `testing` crate may depend on the framework, while production framework crates do not depend on testing. Hardening is cross-cutting rather than a separate runtime layer.
+## Components
 
-Folder names and Cargo package names are independent. Published package names use `berserk`, `berserk-*`, and `claw-orm`.
+| Component | Purpose |
+| --- | --- |
+| `berserk` | Application assembly, HTTP, routing, middleware, requests, and responses |
+| `berserk-core` | Shared configuration, state, and lifecycle contracts |
+| `berserk-validation` | Field and form validation |
+| `berserk-database` | Database connections, bound queries, transactions, migrations, and SQL drivers |
+| `claw-orm` | Models, queries, relationships, eager loading, and pagination |
+| `berserk-axe` | HTML views and escaping |
+| `berserk-auth` | Authentication and authorization primitives |
+| `berserk-openapi` | OpenAPI definitions |
+| `berserk-cache`, `berserk-storage` | Optional cache and file/object storage contracts |
+| `berserk-events`, `berserk-jobs` | Events and background job facilities |
+| `berserk-client`, `berserk-notifications` | Outbound HTTP and notifications |
+| `berserk-cli`, `berserk-codegen`, `berserk-macros` | Developer commands, generators, and macros |
+| `berserk-testing` | HTTP assertions, fakes, and test utilities |
 
-### Extensibility and control
+## Request lifecycle
 
-Berserk uses inversion of control at framework boundaries: application code supplies behavior or implementations, and Berserk invokes them at the appropriate point in the request or application flow. This is distinct from a global dependency-injection container.
+A typical HTTP request passes through route matching and middleware, optional authentication or authorization, typed input extraction and validation, the handler, and response rendering. Framework errors remain explicit until they become HTTP responses.
 
-Prefer:
+Claw builds queries before terminal operations execute them. Relationship loading is explicit, with batching to avoid per-record query patterns. Database connection and transaction scope are intentionally separate from other application services.
 
-- small traits that describe a replaceable capability;
-- application-owned implementations registered explicitly on an `App` instance;
-- handler signatures that declare required framework-provided input;
-- middleware and callbacks composed through explicit APIs;
-- concrete defaults where a replaceable boundary is not needed.
+## Where to go next
 
-Avoid introducing an interface for every concrete type. A trait is justified when the framework needs to call application-defined behavior, multiple implementations are useful, or testing/replacement requires a stable boundary. Application code should retain control over construction, configuration, ownership, and explicit escape hatches.
-
-
-## Dependency direction
-
-The main framework assembles components. Core must not depend on the main framework, HTTP implementation, or database drivers. Components use core only where needed; each owns its domain-specific errors. `codegen` must not depend on Berserk runtime crates; it emits Rust paths without linking framework runtime behavior. `macros` may depend on `codegen`, while runtime crates must never depend on `macros` for their internal implementation. The `auth` and `openapi` crates do not depend on HTTP; the main framework adds their optional integrations. Re-exports and optional integrations must avoid circular dependencies. The testing package can depend on the framework without the framework depending on testing in production.
-
-## Request execution
-
-### Model presentation
-
-Claw's `Model` trait remains the ordinary model contract. Berserk re-exports it
-together with a compile-time `#[derive(Model)]` macro so application models can
-declare table, primary-key, fillable, hidden, and optional column metadata on the
-struct itself. The derive generates the same trait implementation that a manual
-model would provide; it adds no runtime reflection. `model_fields!` and
-handwritten `impl Model` remain supported for custom mappings. Visibility does
-not change mass assignment or the specialized `PersistableModel` write mapping.
-
-Relationship declarations also generate a static name registry used by
-`ModelQuery::with(["relation"])`. Named eager loading resolves only declared
-relationships, batches each relation over the complete parent set, and keeps the
-loaded data in a sidecar owned with the parent collection. Framework JSON and
-Axe adapters project that sidecar into parent objects for presentation. This is
-explicit eager loading: no relationship access triggers SQL and no runtime
-reflection is introduced. The existing typed descriptor API remains available
-for code that needs concrete related Rust model types.
-
-Query result sets and eager-loaded parents use `Collection<T>`. `Page<T>` owns
-the same collection and retains its slice/vector accessors for compatibility.
-The main framework converts visible model attributes into JSON or Axe values.
-Neither Claw nor Axe depends on the other, and neither depends on the framework.
-Only data passed to a view is exposed. No request, configuration, authentication,
-or controller-local state is injected into templates.
-
-Internal adapter marker types are inferred in the same way as controller
-argument adapters. They avoid overlapping `ApiResource` blanket implementations.
-Custom resources remain explicit; applications do not implement the bridge
-traits. Scoped route binding remains a separate relationship-specific contract,
-and create/update inputs remain distinct from hydrated models.
-
-### Handler execution
-
-The current stable API baseline began at [v1.0.0](v1.0.0.md); current 1.x release details are tracked in the versioned release notes. App installs a fresh lazy DatabaseScope around middleware and routing. The router installs the authenticated principal immediately around handler extraction and execution. Typed parameters resolve models, decode and sanitize forms, authorize them before semantic validation, and call the action. Errors remain typed until an explicit response boundary.
-
-DatabaseScope uses checked exclusive connection borrowing through scoped-tls-hkt. Transactions install a borrowed connection view lexically and restore it during unwinding. No local unsafe code is required. Claw remains independent of HTTP: the framework supplies pagination context through database scope and maps domain errors at the HTTP boundary.
-
-Optional async actions reuse the same extraction adapters. Their future is polled on one blocking worker while Tokio drives I/O, preserving lexical context without claiming that synchronous drivers are nonblocking. Independent tasks receive no implicit database or principal. This boundary is tested with concurrent current-thread-runtime callers and spawned tasks.
+Use the [public API guide](public-api.md) for application code, [project structure](project-structure.md) for generated modules, [database contract](database-contract.md) for SQL access, and [known limitations](known-limitations.md) for deployment boundaries.

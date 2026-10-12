@@ -1,16 +1,6 @@
-# Public API contract
+# Berserk public API
 
-The [v1.0.0 release guide](v1.0.0.md) defines the first public stable API.
-
-Status: v1.0.0 stable API baseline. The owner elected to publish without a pre-release independent API/security audit; this does not weaken the semantic-versioning commitment. Breaking public API changes require a new major release, and compatibility-affecting changes must be documented in the changelog and upgrade notes.
-
-## Stabilization boundary
-
-v1.0.0 is the intended first public stable API baseline. New application code should use the APIs documented in this file.
-
-The default prelude contains application framework primitives. General support helpers `Arr` and `Str` remain available through explicit root imports and are intentionally not part of `berserk::prelude::*`.
-
-Request-scoped APIs are preferred over request-global facades: use `Request::user`, `Request::can`, and `Request::authorize` in new code. Route registration through `app.route()` is the stable application API.
+This guide describes Berserk's application-facing Rust interfaces. For installation and a runnable first route, see the [README](../README.md). Optional components require their corresponding Cargo features.
 
 ## Application
 
@@ -254,9 +244,4 @@ The main `berserk` facade enables `server` by default; it can be disabled for in
 
 ## Stability and compatibility
 
-- Public documentation targets the first v1.0.0 release; repository package metadata may be normalized to 1.0.0 as part of the final release preparation.
-- Minimum supported Rust version: 1.88.
-- Publication is an explicit owner-controlled release action; repository automation validates artifacts but does not publish by default.
-- v1.0.0 will establish the stable public API surface when published; after that point, breaking public API changes require a new major release.
-
-`README.md`, crate-level Rustdoc, tests, and this contract should agree on public behavior. When implementation and this document diverge, that drift is a release-review finding and must be corrected before publication.
+Berserk v1.0.0 establishes the initial stable API baseline. Rust 1.88 is the minimum supported version. API changes follow semantic versioning; see [compatibility](compatibility.md), [support policy](support-policy.md), and [known limitations](known-limitations.md).

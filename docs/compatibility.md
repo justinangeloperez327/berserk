@@ -1,58 +1,17 @@
 # Compatibility and versioning
 
-## Current status
+Berserk v1.0.0 is the first stable API baseline. Packages use semantic versioning: breaking public API changes require a new major release.
 
-Berserk v1.0.0 is the first public stable baseline. Rust 1.88 is the minimum supported Rust version (MSRV). CI and release workflows define the tested feature, platform, and database combinations; the support matrix is documented in [support-policy.md](support-policy.md).
+## Toolchain and platform support
 
-The 1.0 public API is frozen for publication. The owner chose to defer an independent API/security review until after the first public release; this does not change the semantic-versioning commitment. Breaking public API changes require a new major release. New aliases and convenience surfaces should still be avoided unless they solve a concrete gap. Compatibility-affecting changes must be documented rather than introduced silently.
+Rust 1.88 is the minimum supported Rust version. The tested operating systems, SQL database versions, and optional components are documented in the [support policy](support-policy.md).
 
-## Executable v1 compatibility firewall
+## Application APIs
 
-Consumer-visible v1.0 contracts are compiled from independent Cargo workspaces by `scripts/verify_v1_compatibility.py` in normal CI. The fixtures cover the framework facade, routing and input contracts, Claw model/query/collection APIs, typed writes, CRUD controllers, and selected feature-gated integrations. They are a SemVer guard: an implementation refactor must continue to compile the frozen v1.0 consumer surface throughout 1.x.
+Use `App::new()` to create an application and `app.route()` to register routes. Request context, authentication, authorization, and application services are accessed through explicit application or request APIs. Query builders construct operations; terminal methods execute them.
 
-See [v1 compatibility fixtures](v1-compatibility-fixtures.md) for scope and maintenance rules.
+A stable public API does not imply identical implementations across every feature, runtime, or database. Enable the Cargo features for the components you use and review the [known limitations](known-limitations.md).
 
-## Versioning policy
+## Upgrading
 
-- Follow semantic versioning for published packages.
-- Before 1.0, document breaking API or behavior changes in `CHANGELOG.md` and provide migration guidance when practical.
-- Raising the MSRV is a compatibility change and must be reflected in release notes, workspace metadata, CI, and the support policy.
-- Optional components remain feature-gated so applications can avoid subsystems they do not use.
-- Supported feature combinations must compile independently and under the repository's all-feature quality gate.
-- Database behavior that differs by backend remains explicit through capabilities and driver-specific tests.
-- Serialized API, configuration, storage, and database formats require compatibility consideration independently of Rust type compatibility.
-- Removing a supported platform or database line requires an explicit support-policy update and release note.
-
-## Pre-1.0 policy
-
-Minor releases may contain breaking changes while Berserk is below 1.0. Such changes should be deliberate, documented, and accompanied by migration guidance when practical.
-
-For v0.9.x, the default direction is stabilization: prefer additive fixes, documentation corrections, and removal of ambiguity over new public concepts. Security, correctness, or unsoundness fixes may still require faster changes than the normal deprecation path.
-
-## 1.0 candidate surface
-
-The current coordinated publication graph contains 18 publishable crates. Package count is a release-engineering fact, not a reason to expose additional framework concepts.
-
-The APIs intended to define the 1.0 application surface are:
-
-- `App` plus `app.route()` for application assembly and routing;
-- `Request` / `Response` and FormRequest-style typed input;
-- explicit middleware and application state;
-- request-scoped authentication and authorization;
-- feature-gated database/Claw, services, testing, and operational components.
-
-Compatibility helpers such as direct `App::get/post/...` registration and request-global auth facades are not the design center for 1.0. They may remain during the transition, but new application code should use the preferred scoped APIs.
-
-`Arr` and `Str` remain explicit utilities and are intentionally excluded from the default prelude in v0.9.
-
-## Deprecation
-
-As the framework approaches 1.0, deprecated APIs should remain available long enough for a documented transition when practical. After 1.0, Berserk should use a more conservative compatibility and deprecation policy appropriate for a stable framework.
-
-## Release ownership
-
-Only the project owner decides when and where to publish. Automation may build, test, package, and verify release artifacts but must not publish by default.
-
-## Relationship compatibility in 1.0
-
-Existing relationship constructors and HasOne/RelatedSet result types are preserved. The explicit `load(connection, ...)` methods remain as deprecated forwarders to `load_on`. New scoped loading is available through `Relationship::load`. Integer relationship keys now compare equal across signed/unsigned driver representations; malformed NULL pivot keys return Decode errors instead of disappearing silently. See [relationships](relationships.md) and [upgrade notes](upgrade-notes.md).
+Consult [CHANGELOG.md](../CHANGELOG.md) when changing versions and run your application tests after upgrading. The [public API reference](public-api.md) documents the current interfaces and the [support policy](support-policy.md) describes the tested environments.
