@@ -1,6 +1,6 @@
 # Foundation reference application
 
-This is Berserk's end-to-end reference application for the v1.0 maturity gate.
+This is Berserk's end-to-end reference application for building an API and web application.
 It intentionally combines the framework pieces that are easy to validate only
 in isolation: generated-style CRUD contracts, FormRequest validation,
 migrations, Claw relationships, bearer authentication, authorization, Axe

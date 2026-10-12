@@ -12,4 +12,4 @@ Worker ownership remains attached to application state so dropping the applicati
 
 Service errors are translated at the application boundary. Secrets and notification addresses are not added to request logs. Cache keys and storage paths use stable internal identifiers.
 
-Group 10 is an integration reference, not a requirement that every Berserk application register every service.
+These integrations are optional. Applications should register only the services they need.

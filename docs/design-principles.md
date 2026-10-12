@@ -1,33 +1,15 @@
 # Design principles
 
-1. Berserk keeps its own identity. Learn from proven framework ideas, but do not copy another framework's public API merely for familiarity.
-2. Application architecture stays developer-controlled. Single-file applications are supported.
-3. Use idiomatic Rust: explicit errors, typed boundaries, safe ownership, snake_case methods, and compile-time contracts where they improve clarity.
-4. Prefer small expressive APIs over aliases, facades, magic discovery, or runtime string registries.
-5. Query chains construct queries; terminal methods execute them. Values remain bound separately from SQL text, and relationship loading stays explicit.
-6. Keep synchronous application code straightforward. Async/server infrastructure remains opt-in where it provides concrete value.
-7. Add components only when their release needs them. Do not scaffold the entire future system prematurely.
-8. Validate configuration at startup. Bound network and memory resources and expose understandable failure behavior.
-9. Keep data models separate from public API representations by default.
-10. Tests, documentation, security review, and compatibility notes accompany implementation. The project owner controls publication.
+Berserk combines approachable web-development conventions with idiomatic Rust:
 
-## Stable public surface
+1. **Explicit application state.** Routes, configuration, and services belong to an application instance; no global mutable registry is required.
+2. **Developer-controlled organization.** Generated folders are conventions, not runtime requirements. A single-file API and larger modular applications are both valid.
+3. **Typed boundaries.** Use explicit errors, validated inputs, and Rust types where they improve correctness.
+4. **Predictable database access.** Query builders compose operations; terminal methods execute queries. SQL values stay bound separately from SQL text, and relationship loading is explicit.
+5. **Composable services.** Authentication, storage, caching, events, jobs, and other facilities are opt-in through Cargo features.
+6. **Bounded operation.** Configuration, network resources, and memory limits are explicit, with observable failures.
+7. **Separation of concerns.** Domain models and public JSON or view representations may be kept separate.
 
-Berserk's stable application-facing APIs are instance- and request-scoped:
+Application APIs include `app.route()`, request-scoped access, typed configuration, Claw queries, and explicitly registered middleware. The `Arr` and `Str` utilities are available via explicit imports rather than the default prelude.
 
-- register routes through `app.route()`;
-- read request context through `Request`;
-- configure authentication once and use route scopes such as `.auth()` and `.can(...)`;
-- register application services explicitly on `App`;
-- use Claw query builders with bound values;
-- opt into operational middleware explicitly.
-
-Pre-1.0 routing and authentication compatibility shortcuts were removed for v1.0.0; new aliases should be added only when they solve a concrete API gap without creating duplicate ways to express the same operation.
-
-## Utilities
-
-`Arr` and `Str` are optional explicit utilities. They are not part of the default prelude and are not architectural requirements.
-
-## Conventions without mandatory layers
-
-Controllers, services, repositories, and module folders are optional. Explicit registration determines behavior; filesystem paths do not. Generators may offer defaults but must not impose architecture.
+See [architecture](architecture.md) and [public APIs](public-api.md).
