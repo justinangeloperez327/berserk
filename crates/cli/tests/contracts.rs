@@ -14,6 +14,19 @@ use std::{
 static NEXT_TEMP_DIRECTORY_ID: AtomicU64 = AtomicU64::new(0);
 
 #[test]
+fn executable_reports_its_version() {
+    let output = std::process::Command::new(env!("CARGO_BIN_EXE_berserk"))
+        .arg("--version")
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8(output.stdout).unwrap().trim(),
+        format!("berserk {}", env!("CARGO_PKG_VERSION"))
+    );
+}
+
+#[test]
 fn command_parser_supports_laravel_style_and_spaced_forms() {
     assert_eq!(
         Command::parse(["make:model", "User"]).unwrap(),
@@ -60,12 +73,17 @@ fn generated_project_targets_the_cli_release_and_minimum_rust_version() {
         .unwrap();
     let manifest = fs::read_to_string(temporary.path().join("versioned-api/Cargo.toml")).unwrap();
 
-    assert!(manifest.lines().any(|line| {
-        line == format!(
-            "berserk = {{ version = \"{}\", features = [\"claw\"] }}",
-            env!("CARGO_PKG_VERSION")
-        )
-    }));
+    let dependency = manifest
+        .lines()
+        .find(|line| line.starts_with("berserk = "))
+        .unwrap();
+    assert!(dependency.contains(&format!("version = \"{}\"", env!("CARGO_PKG_VERSION"))));
+    if let Some(revision) = option_env!("BERSERK_FRAMEWORK_GIT_REV") {
+        assert!(dependency.contains(&format!("rev = \"{revision}\"")));
+        assert!(dependency.contains("https://github.com/justinangeloperez327/berserk"));
+    } else {
+        assert!(!dependency.contains("git = "));
+    }
     assert!(manifest
         .lines()
         .any(|line| { line == format!("rust-version = \"{}\"", env!("CARGO_PKG_RUST_VERSION")) }));

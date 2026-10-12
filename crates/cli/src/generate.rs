@@ -69,6 +69,10 @@ impl Generator {
                 env!("CARGO_PKG_VERSION"),
                 env!("CARGO_PKG_RUST_VERSION"),
             );
+            let spec = match option_env!("BERSERK_FRAMEWORK_GIT_REV") {
+                Some(revision) => spec.git_revision(revision),
+                None => spec,
+            };
             let sources = berserk_codegen::application_files(&spec).map_err(|error| {
                 CliError::new(
                     ErrorKind::Process,

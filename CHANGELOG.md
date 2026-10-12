@@ -8,6 +8,8 @@ Berserk v1.0.0 is the first public release. Entries below `1.0.0` describe repos
 
 ### Changed
 
+- Windows CLI distribution adds a per-user installer, portable executable, PATH/uninstall verification, and Git-pinned app generation for installations made before crates.io publication.
+
 - Release preparation now has one exact-commit workflow covering the complete matrix, a bounded prolonged soak, current registry-name observations, and source provenance. Release docs consistently preserve the API freeze and the owner's independent-review deferral.
 
 - Centralized external dependency requirements and upgraded compatible dependencies with Cargo resolver 3 while retaining Rust 1.88 support.
