@@ -37,6 +37,7 @@ pub struct ApplicationSpec {
     package: String,
     berserk_version: String,
     rust_version: String,
+    git_revision: Option<String>,
     routes: RoutesSpec,
 }
 
@@ -50,12 +51,20 @@ impl ApplicationSpec {
             package: package.into(),
             berserk_version: berserk_version.into(),
             rust_version: rust_version.into(),
+            git_revision: None,
             routes: RoutesSpec::application(),
         }
     }
 
     pub fn routes(mut self, routes: RoutesSpec) -> Self {
         self.routes = routes;
+        self
+    }
+
+    /// Pin the framework to an immutable revision of the official repository.
+    /// Registry dependencies remain the default for normal published CLI builds.
+    pub fn git_revision(mut self, revision: impl Into<String>) -> Self {
+        self.git_revision = Some(revision.into());
         self
     }
 
@@ -86,8 +95,20 @@ pub fn application_files(spec: &ApplicationSpec) -> syn::Result<Vec<ApplicationF
     validate_version(spec.berserk_version(), "Berserk version")?;
     validate_rust_version(spec.rust_version())?;
 
+    let source = if let Some(revision) = &spec.git_revision {
+        if revision.len() != 40 || !revision.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(syn::Error::new(
+                proc_macro2::Span::call_site(),
+                "framework Git revision must be a full 40-character commit SHA",
+            ));
+        }
+        format!("git = \"https://github.com/justinangeloperez327/berserk\", rev = \"{revision}\", ")
+    } else {
+        String::new()
+    };
+
     let cargo = format!(
-        "[package]\nname = \"{}\"\nversion = \"0.1.0\"\nedition = \"2021\"\nresolver = \"3\"\nrust-version = \"{}\"\n\n[dependencies]\nberserk = {{ version = \"{}\", features = [\"claw\"] }}\n",
+        "[package]\nname = \"{}\"\nversion = \"0.1.0\"\nedition = \"2021\"\nresolver = \"3\"\nrust-version = \"{}\"\n\n[dependencies]\nberserk = {{ {source}version = \"{}\", features = [\"claw\"] }}\n",
         spec.package(),
         spec.rust_version(),
         spec.berserk_version(),
@@ -183,6 +204,35 @@ fn value(name: &'static str, default: &str) -> Result<String, ConfigError> {
 mod tests {
     use super::*;
     use crate::RouteSpec;
+
+    #[test]
+    fn git_distributions_pin_a_complete_framework_revision() {
+        let revision = "c476f6ea4c3af60406031f5e925915d326cfd8e3";
+        let files =
+            application_files(&ApplicationSpec::new("app", "1.0.0", "1.88").git_revision(revision))
+                .unwrap();
+        let cargo = files
+            .iter()
+            .find(|file| file.path() == "Cargo.toml")
+            .unwrap();
+        assert!(cargo.content().contains(&format!("rev = \"{revision}\"")));
+        assert!(cargo.content().contains("version = \"1.0.0\""));
+        assert!(cargo
+            .content()
+            .contains("https://github.com/justinangeloperez327/berserk"));
+        for invalid in [
+            "main",
+            "v1.0.0",
+            "short",
+            "01234567890123456789012345678901234567890g",
+            "\"\npath=\"bad",
+        ] {
+            assert!(application_files(
+                &ApplicationSpec::new("app", "1.0.0", "1.88").git_revision(invalid)
+            )
+            .is_err());
+        }
+    }
 
     #[test]
     fn conventional_application_contains_the_complete_skeleton() {

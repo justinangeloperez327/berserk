@@ -1,0 +1,182 @@
+name: Windows CLI installer
+
+on:
+  pull_request:
+    paths:
+      - "crates/cli/**"
+      - "crates/codegen/**"
+      - "installer/windows/**"
+      - ".github/workflows/windows-installer.yml"
+  push:
+    branches: [release/windows-cli-v1.0.0]
+  workflow_dispatch:
+
+concurrency:
+  group: windows-installer-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    uses: ./.github/workflows/ci.yml
+
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 35
+    env:
+      BERSERK_FRAMEWORK_GIT_REV: c476f6ea4c3af60406031f5e925915d326cfd8e3
+      RUSTFLAGS: -C target-feature=+crt-static
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: "1.88"
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: windows-cli-static-1.88
+      - name: Validate Windows test script syntax
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errors = $null
+          [System.Management.Automation.Language.Parser]::ParseFile(
+            "$env:GITHUB_WORKSPACE/installer/windows/test-installation.ps1", [ref]$tokens, [ref]$errors
+          ) | Out-Null
+          if ($errors.Count) { throw ($errors | Out-String) }
+      - name: Test packaged CLI and build the portable executable
+        shell: pwsh
+        run: |
+          cargo test --locked -p berserk-cli -p berserk-codegen --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE) { throw 'Packaged CLI tests failed' }
+          cargo build --locked --release -p berserk-cli --bin berserk --target x86_64-pc-windows-msvc
+          if ($LASTEXITCODE) { throw 'Windows CLI build failed' }
+      - name: Build the per-user installer and distribution manifest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dist = Join-Path $env:GITHUB_WORKSPACE 'dist'
+          $stage = Join-Path $dist 'windows'
+          New-Item -ItemType Directory -Force $stage | Out-Null
+          Copy-Item 'target/x86_64-pc-windows-msvc/release/berserk.exe' $stage
+          Copy-Item 'installer/windows/README.txt', 'LICENSE' $stage
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6/ISCC.exe'
+          if (-not (Test-Path $iscc)) { throw 'The Windows runner has no Inno Setup compiler' }
+          $manifest = @{
+            version = '1.0.0'
+            target = 'x86_64-pc-windows-msvc'
+            cli_source_commit = $env:GITHUB_SHA
+            framework_commit = $env:BERSERK_FRAMEWORK_GIT_REV
+            rustc = (& rustc --version | Out-String).Trim()
+            cargo_lock_sha256 = (Get-FileHash 'Cargo.lock' -Algorithm SHA256).Hash.ToLowerInvariant()
+            executable_sha256 = (Get-FileHash "$stage/berserk.exe" -Algorithm SHA256).Hash.ToLowerInvariant()
+            inno_setup = (Get-Item $iscc).VersionInfo.ProductVersion
+            code_signing = 'unsigned'
+            configuration = 'static CRT; Git-pinned framework source'
+          }
+          $manifest | ConvertTo-Json | Set-Content "$stage/BUILD-MANIFEST.json" -Encoding utf8
+          & $iscc "/DAppVersion=1.0.0" "/DBinaryDir=$stage" "/DOutputDir=$dist" 'installer/windows/berserk.iss'
+          if ($LASTEXITCODE) { throw 'Installer compilation failed' }
+          Compress-Archive -Path "$stage/*" -DestinationPath "$dist/berserk-1.0.0-windows-x64.zip"
+          Copy-Item "$stage/berserk.exe" $dist
+          Copy-Item "$stage/BUILD-MANIFEST.json" "$dist/berserk-windows-x64-build.json"
+          git archive --format=tar --prefix=berserk-cli-1.0.0/ --output="$dist/berserk-cli-1.0.0-source.tar" HEAD
+          if ($LASTEXITCODE) { throw 'CLI source archive failed' }
+          $source = [IO.File]::OpenRead("$dist/berserk-cli-1.0.0-source.tar")
+          $destination = [IO.File]::Create("$dist/berserk-cli-1.0.0-source.tar.gz")
+          $gzip = [IO.Compression.GZipStream]::new($destination, [IO.Compression.CompressionLevel]::Optimal)
+          try { $source.CopyTo($gzip) } finally { $gzip.Dispose(); $source.Dispose(); $destination.Dispose() }
+          Remove-Item "$dist/berserk-cli-1.0.0-source.tar"
+          $lines = Get-ChildItem $dist -File | Sort-Object Name | ForEach-Object {
+            "$((Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLowerInvariant())  $($_.Name)"
+          }
+          $lines | Set-Content "$dist/SHA256SUMS" -Encoding ascii
+      - name: Verify installed CLI, Git-backed app, upgrade, and uninstall
+        shell: pwsh
+        run: |
+          installer/windows/test-installation.ps1 `
+            -Installer dist/BerserkSetup-1.0.0-windows-x64.exe `
+            -FrameworkCommit $env:BERSERK_FRAMEWORK_GIT_REV `
+            -EvidenceDir "$env:GITHUB_WORKSPACE/installer-results"
+      - name: Retain Windows distribution
+        uses: actions/upload-artifact@v7
+        with:
+          name: berserk-windows-distribution-${{ github.sha }}
+          path: |
+            dist/BerserkSetup-1.0.0-windows-x64.exe
+            dist/berserk-1.0.0-windows-x64.zip
+            dist/berserk.exe
+            dist/berserk-windows-x64-build.json
+            dist/berserk-cli-1.0.0-source.tar.gz
+            dist/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 90
+      - name: Retain installation test evidence
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: berserk-windows-installation-${{ github.sha }}
+          path: installer-results/
+          if-no-files-found: warn
+          retention-days: 90
+
+  publish:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/release/windows-cli-v1.0.0'
+    needs: [windows, quality]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: justinangeloperez327/berserk
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: berserk-windows-distribution-${{ github.sha }}
+          path: dist
+      - name: Verify and publish the Windows downloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api "repos/$GH_REPO/git/ref/tags/v1.0.0" --jq .object.sha)" = c476f6ea4c3af60406031f5e925915d326cfd8e3
+          (cd dist && sha256sum -c SHA256SUMS)
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+
+          repo = os.environ['GH_REPO']
+          release = json.loads(subprocess.check_output(['gh', 'api', f'repos/{repo}/releases/tags/v1.0.0'], text=True))
+          assets = {asset['name']: asset for asset in release['assets']}
+          for path in sorted(Path('dist').iterdir()):
+              if not path.is_file():
+                  continue
+              if path.name in assets:
+                  expected = 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest()
+                  if assets[path.name].get('digest') != expected:
+                      raise SystemExit(f'existing asset differs; refusing to replace {path.name}')
+              else:
+                  subprocess.run(['gh', 'release', 'upload', 'v1.0.0', str(path)], check=True)
+          marker = '## Windows CLI installer'
+          if marker not in release['body']:
+              body = release['body'] + '''
+
+          ## Windows CLI installer
+
+          Download **BerserkSetup-1.0.0-windows-x64.exe** below. It installs the CLI for your user account and adds it to PATH. Open a new terminal and run `berserk new app`, then `cd app` and `berserk serve`.
+
+          Rust 1.88+ with the Windows MSVC toolchain and C++ Build Tools is required to build/serve apps. This installer generates apps pinned to the immutable v1.0.0 Git source, so pending crates.io publication does not block app builds.
+
+          A portable ZIP, standalone executable, checksums, build manifest, and matching CLI packaging source are also provided. The manifest identifies the CLI packaging commit separately from the unchanged framework version tag. The downloads are unsigned.
+          '''
+              Path('/tmp/release-notes.md').write_text(body, encoding='utf-8')
+              subprocess.run(['gh', 'release', 'edit', 'v1.0.0', '--notes-file', '/tmp/release-notes.md'], check=True)
+          PY

@@ -183,6 +183,9 @@ Health readiness can still be rendered as HTTP, while programmatic snapshots sup
 
 ## CLI
 
+Windows users can install the prebuilt CLI through the
+[Windows installation guide](docs/windows-installation.md).
+
 The CLI includes application and code-generation commands such as:
 
 ```sh
