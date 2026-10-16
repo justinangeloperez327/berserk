@@ -57,19 +57,18 @@ impl CompiledViews {
         }
 
         let mut expanded = BTreeMap::new();
-        let names: Vec<_> = sources.keys().cloned().collect();
-        for view in &names {
+        for view in sources.keys() {
             let mut stack = Vec::new();
-            let _ = expand_view(view, &sources, &mut stack, &mut expanded)?;
+            expand_view(view, &sources, &mut stack, &mut expanded)?;
         }
 
-        let mut templates = BTreeMap::new();
-        for view in names {
-            let source = expanded
-                .get(&view)
-                .expect("every discovered view is expanded before compilation");
-            templates.insert(view.clone(), Template::compile_named(&view, source)?);
-        }
+        let templates = expanded
+            .into_iter()
+            .map(|(view, source)| {
+                let template = Template::compile_named(&view, &source)?;
+                Ok((view, template))
+            })
+            .collect::<Result<BTreeMap<_, _>>>()?;
 
         Ok(Self {
             templates,

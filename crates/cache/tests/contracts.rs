@@ -69,3 +69,28 @@ fn namespaces_isolate_the_same_logical_key() {
     assert_eq!(first.get("key").unwrap(), Some(vec![1]));
     assert_eq!(second.get("key").unwrap(), Some(vec![2]));
 }
+
+#[test]
+fn increment_preserves_existing_expiry_without_evaluating_unused_ttl() {
+    let cache = MemoryCache::new(1, 32).unwrap();
+    cache
+        .put("counter", b"1".to_vec(), Some(Duration::from_secs(3600)))
+        .unwrap();
+
+    assert_eq!(
+        cache.increment("counter", 1, Some(Duration::MAX)).unwrap(),
+        2
+    );
+    assert_eq!(cache.get("counter").unwrap(), Some(b"2".to_vec()));
+}
+
+#[test]
+fn increment_rejects_expiry_overflow_without_changing_entries() {
+    let cache = MemoryCache::new(1, 32).unwrap();
+    cache.put("counter", b"1".to_vec(), None).unwrap();
+
+    assert!(cache.increment("counter", 1, Some(Duration::MAX)).is_err());
+    assert!(cache.increment("other", 1, Some(Duration::MAX)).is_err());
+    assert_eq!(cache.get("counter").unwrap(), Some(b"1".to_vec()));
+    assert_eq!(cache.get("other").unwrap(), None);
+}

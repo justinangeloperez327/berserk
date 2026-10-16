@@ -195,11 +195,10 @@ impl Cache for MemoryCache {
         if value.len() > self.max_value_bytes {
             return Err(CacheError::new("cache value exceeds configured byte limit"));
         }
-        let expires_at = state
-            .entries
-            .get(key)
-            .and_then(|entry| entry.expires_at)
-            .or(Self::expiry(now, ttl)?);
+        let expires_at = match state.entries.get(key).and_then(|entry| entry.expires_at) {
+            Some(expiry) => Some(expiry),
+            None => Self::expiry(now, ttl)?,
+        };
         if !state.entries.contains_key(key) && state.entries.len() >= self.capacity {
             if let Some(oldest) = state
                 .entries
