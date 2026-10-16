@@ -222,3 +222,39 @@ fn seeders_are_ordered_and_factories_are_deterministic() {
     );
     assert_eq!(connection.executed.len(), 3);
 }
+
+struct PanickingMigration;
+impl Migration for PanickingMigration {
+    fn name(&self) -> &'static str {
+        "panicking"
+    }
+    fn up(&self, _: Driver) -> Result<Vec<Statement>> {
+        panic!("application migration panic")
+    }
+    fn down(&self, _: Driver) -> Result<Vec<Statement>> {
+        panic!("application rollback panic")
+    }
+}
+
+#[test]
+fn migration_panics_release_the_outer_lock_before_resuming_unwind() {
+    let migration = PanickingMigration;
+    let runner = MigrationRunner::new([&migration as &dyn Migration]).unwrap();
+    let mut connection = FakeConnection::default();
+    let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        runner.migrate(&mut connection)
+    }));
+    assert!(panic.is_err());
+    assert_eq!(
+        connection.executed.first().unwrap().sql(),
+        "BEGIN IMMEDIATE"
+    );
+    assert_eq!(connection.executed.last().unwrap().sql(), "ROLLBACK");
+
+    let mut connection = FakeConnection::with_results(vec![vec![applied_row("panicking", 1)]]);
+    let panic = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        runner.rollback_last(&mut connection)
+    }));
+    assert!(panic.is_err());
+    assert_eq!(connection.executed.last().unwrap().sql(), "ROLLBACK");
+}

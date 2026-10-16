@@ -23,6 +23,7 @@ struct State {
 #[derive(Default)]
 pub struct Scheduler {
     state: Mutex<State>,
+    running: Mutex<()>,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -92,32 +93,60 @@ impl Scheduler {
     pub fn run_due(&self, queue: &JobQueue) -> Result<ScheduleReport> {
         self.run_due_at(queue, now_millis()?)
     }
+    /// Dispatch a snapshot of due schedules. Factories may register or forget
+    /// schedules; those changes apply to future ticks. Concurrent or recursive
+    /// ticks return an error instead of blocking or duplicating dispatches.
     pub fn run_due_at(&self, queue: &JobQueue, current_millis: u64) -> Result<ScheduleReport> {
-        let mut state = self
-            .state
-            .lock()
-            .map_err(|_| JobError::new(ErrorKind::Closed, "scheduler lock poisoned"))?;
+        let _running = self.running.try_lock().map_err(|_| {
+            JobError::new(
+                ErrorKind::Closed,
+                "scheduler tick is already running or poisoned",
+            )
+        })?;
+        let due: Vec<_> = {
+            let state = self
+                .state
+                .lock()
+                .map_err(|_| JobError::new(ErrorKind::Closed, "scheduler lock poisoned"))?;
+            state
+                .entries
+                .iter()
+                .filter(|entry| entry.next_due <= current_millis)
+                .map(|entry| {
+                    (
+                        entry.id,
+                        entry.interval,
+                        entry.retry,
+                        Arc::clone(&entry.factory),
+                    )
+                })
+                .collect()
+        };
         let mut report = ScheduleReport {
             due: 0,
             dispatched: 0,
         };
-        for entry in &mut state.entries {
-            if entry.next_due > current_millis {
-                continue;
-            }
+        for (id, interval, retry, factory) in due {
             report.due += 1;
-            let millis: u64 = entry.interval.as_millis().try_into().map_err(|_| {
+            let millis: u64 = interval.as_millis().try_into().map_err(|_| {
                 JobError::new(ErrorKind::Capacity, "schedule interval is too large")
             })?;
             let next_due = current_millis
                 .checked_add(millis)
                 .ok_or_else(|| JobError::new(ErrorKind::Capacity, "schedule time overflow"))?;
-            let job = catch_unwind(AssertUnwindSafe(|| (entry.factory)())).map_err(|_| {
+            // Never invoke application code while holding the schedule-state lock.
+            let job = catch_unwind(AssertUnwindSafe(|| factory())).map_err(|_| {
                 JobError::new(ErrorKind::HandlerPanic, "scheduled job factory panicked")
             })?;
-            queue.dispatch_boxed(job, entry.retry)?;
+            queue.dispatch_boxed(job, retry)?;
             report.dispatched += 1;
-            entry.next_due = next_due;
+            let mut state = self
+                .state
+                .lock()
+                .map_err(|_| JobError::new(ErrorKind::Closed, "scheduler lock poisoned"))?;
+            if let Some(entry) = state.entries.iter_mut().find(|entry| entry.id == id) {
+                entry.next_due = next_due;
+            }
         }
         Ok(report)
     }

@@ -10,17 +10,26 @@ impl StoragePath {
         if value.is_empty()
             || value.len() > 1024
             || value.starts_with('/')
-            || value.contains('\\')
+            || value.contains(['\\', ':', '<', '>', '"', '|', '?', '*'])
             || value
                 .bytes()
                 .any(|byte| byte == 0 || byte.is_ascii_control())
         {
             return Err(invalid());
         }
-        if value
-            .split('/')
-            .any(|part| part.is_empty() || part == "." || part == "..")
-        {
+        if value.split('/').any(|part| {
+            let upper = part
+                .split('.')
+                .next()
+                .unwrap_or_default()
+                .to_ascii_uppercase();
+            let stem = upper.as_str();
+            part.is_empty()
+                || part.ends_with(['.', ' '])
+                || matches!(stem, "CON" | "PRN" | "AUX" | "NUL")
+                || stem.strip_prefix("COM").is_some_and(reserved_device_suffix)
+                || stem.strip_prefix("LPT").is_some_and(reserved_device_suffix)
+        }) {
             return Err(invalid());
         }
         Ok(Self(value))
@@ -43,6 +52,13 @@ impl fmt::Display for StoragePath {
 fn invalid() -> StorageError {
     StorageError::new(
         ErrorKind::InvalidPath,
-        "storage paths must be relative normalized paths without traversal or control bytes",
+        "storage paths must be relative normalized paths without traversal, control bytes, or Windows-special components",
+    )
+}
+
+fn reserved_device_suffix(suffix: &str) -> bool {
+    matches!(
+        suffix,
+        "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" | "¹" | "²" | "³"
     )
 }

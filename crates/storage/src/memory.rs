@@ -48,16 +48,11 @@ impl Storage for MemoryStorage {
             ));
         }
         let modified_at = now()?;
-        objects.insert(
-            path.clone(),
-            Object {
-                bytes: bytes.clone(),
-                modified_at,
-            },
-        );
+        let byte_count = bytes.len() as u64;
+        objects.insert(path.clone(), Object { bytes, modified_at });
         Ok(ObjectMetadata {
             path: path.clone(),
-            bytes: bytes.len() as u64,
+            bytes: byte_count,
             modified_at: Some(modified_at),
         })
     }

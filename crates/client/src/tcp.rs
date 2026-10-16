@@ -327,6 +327,12 @@ fn content_length(headers: &[Header]) -> Result<Option<usize>> {
             "response has conflicting content lengths",
         ));
     }
+    if values[0].is_empty() || !values[0].bytes().all(|byte| byte.is_ascii_digit()) {
+        return Err(ClientError::new(
+            ErrorKind::MalformedResponse,
+            "response content length is invalid",
+        ));
+    }
     values[0].parse().map(Some).map_err(|_| {
         ClientError::new(
             ErrorKind::MalformedResponse,
@@ -408,6 +414,12 @@ fn read_chunked(reader: &mut impl BufRead, config: TcpClientConfig) -> Result<Ve
             .split(';')
             .next()
             .unwrap_or("");
+        if size_text.is_empty() || !size_text.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+            return Err(ClientError::new(
+                ErrorKind::MalformedResponse,
+                "chunk size is invalid",
+            ));
+        }
         let size = usize::from_str_radix(size_text, 16)
             .map_err(|_| ClientError::new(ErrorKind::MalformedResponse, "chunk size is invalid"))?;
         if size == 0 {

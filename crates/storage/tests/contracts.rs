@@ -143,3 +143,48 @@ impl Drop for TemporaryDirectory {
         let _ = fs::remove_dir_all(&self.0);
     }
 }
+
+#[test]
+fn paths_reject_windows_prefixes_streams_devices_and_aliases_on_every_platform() {
+    for path in [
+        "C:/outside",
+        "C:outside",
+        "folder/C:/outside",
+        "file.txt:secret",
+        "CON",
+        "con.txt",
+        "PrN.log",
+        "AUX",
+        "nul",
+        "COM1",
+        "com9.txt",
+        "LPT1",
+        "lpt9.txt",
+        "COM¹",
+        "name.",
+        "name ",
+        "folder./file",
+        "folder /file",
+        "a?b",
+        "a*b",
+        "a|b",
+        "a<b",
+        "a>b",
+        "a\"b",
+    ] {
+        assert_eq!(
+            StoragePath::new(path).unwrap_err().kind(),
+            ErrorKind::InvalidPath,
+            "{path}"
+        );
+    }
+    for path in [
+        "company/report.txt",
+        "COM10.txt",
+        "lpt0",
+        "connection.txt",
+        "nested/file-name_1.txt",
+    ] {
+        assert!(StoragePath::new(path).is_ok(), "{path}");
+    }
+}

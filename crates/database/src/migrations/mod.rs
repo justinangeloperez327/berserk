@@ -278,8 +278,14 @@ fn with_migration_lock<T>(
     operation: impl FnOnce(&mut dyn Connection) -> Result<T>,
 ) -> Result<T> {
     acquire_migration_lock(connection)?;
-    let result = operation(connection);
-    let release = release_migration_lock(connection, result.is_ok());
+    // Migration implementations are application code. Release session locks and
+    // roll back SQLite's outer transaction before propagating an unwind.
+    let outcome = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| operation(connection)));
+    let release = release_migration_lock(connection, matches!(&outcome, Ok(Ok(_))));
+    let result = match outcome {
+        Ok(result) => result,
+        Err(payload) => std::panic::resume_unwind(payload),
+    };
     match (result, release) {
         (Ok(value), Ok(())) => Ok(value),
         (Err(error), _) => Err(error),

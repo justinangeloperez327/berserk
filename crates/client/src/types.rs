@@ -297,22 +297,26 @@ fn parse_authority(authority: &str) -> Result<(String, Option<u16>)> {
         })?;
         let host = &rest[..end];
         let after = &rest[end + 1..];
-        if host.is_empty() {
-            return Err(ClientError::new(ErrorKind::InvalidUrl, "URL host is empty"));
+        if host.parse::<std::net::Ipv6Addr>().is_err() {
+            return Err(ClientError::new(
+                ErrorKind::InvalidUrl,
+                "bracketed URL host must be an IPv6 address",
+            ));
         }
         let port = if after.is_empty() {
             None
         } else {
+            let port = after.strip_prefix(':').ok_or_else(|| {
+                ClientError::new(ErrorKind::InvalidUrl, "invalid characters after IPv6 host")
+            })?;
+            if port.is_empty() || !port.bytes().all(|byte| byte.is_ascii_digit()) {
+                return Err(ClientError::new(
+                    ErrorKind::InvalidUrl,
+                    "URL port is invalid",
+                ));
+            }
             Some(
-                after
-                    .strip_prefix(':')
-                    .ok_or_else(|| {
-                        ClientError::new(
-                            ErrorKind::InvalidUrl,
-                            "invalid characters after IPv6 host",
-                        )
-                    })?
-                    .parse()
+                port.parse()
                     .map_err(|_| ClientError::new(ErrorKind::InvalidUrl, "URL port is invalid"))?,
             )
         };

@@ -339,9 +339,7 @@ impl Parser<'_> {
                         return self.err();
                     }
                 }
-                Ok(Json::Number(Number(
-                    std::str::from_utf8(&self.b[start..self.i]).unwrap().into(),
-                )))
+                Ok(Json::Number(Number(self.text[start..self.i].into())))
             }
             _ => self.err(),
         }

@@ -429,7 +429,7 @@ fn normalize_index(index: isize, len: usize) -> Option<usize> {
         (index < len).then_some(index)
     } else {
         let distance = index.unsigned_abs();
-        (distance <= len).then_some(len - distance)
+        len.checked_sub(distance)
     }
 }
 
@@ -495,6 +495,14 @@ mod tests {
         assert_eq!(Str::substr("Berserk", -3, None), "erk");
         assert_eq!(Str::take("Berserk", -3), "erk");
         assert_eq!(Str::char_at("Berserk", -1), Some('k'));
+    }
+
+    #[test]
+    fn out_of_range_negative_character_indices_return_none() {
+        assert_eq!(Str::char_at("", -1), None);
+        assert_eq!(Str::char_at("Café", -5), None);
+        assert_eq!(Str::char_at("text", isize::MIN), None);
+        assert_eq!(Str::char_at("Café", -4), Some('C'));
     }
 
     #[test]

@@ -42,6 +42,15 @@ pub(crate) fn expand(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStrea
             .ok_or_else(|| syn::Error::new(field.span(), "Model field must be named"))?;
         let column = string_attribute(&field.attrs, "column")?
             .unwrap_or_else(|| LitStr::new(&ident.to_string(), ident.span()));
+        if specs
+            .iter()
+            .any(|existing: &FieldSpec| existing.column.value() == column.value())
+        {
+            return Err(syn::Error::new_spanned(
+                &column,
+                format!("duplicate model column '{}'", column.value()),
+            ));
+        }
         specs.push(FieldSpec {
             ident,
             ty: field.ty.clone(),
@@ -176,4 +185,40 @@ fn marker_attribute(attrs: &[Attribute], name: &str) -> syn::Result<bool> {
         found = true;
     }
     Ok(found)
+}
+
+#[cfg(test)]
+mod tests {
+    use quote::quote;
+
+    #[test]
+    fn duplicate_mapped_columns_are_rejected_before_attribute_values_can_be_overwritten() {
+        let error = crate::expand_model(quote! {
+            #[table("users")]
+            struct User {
+                #[primary_key]
+                id: u64,
+                #[column("name")]
+                first_name: String,
+                #[column("name")]
+                last_name: String,
+            }
+        })
+        .unwrap_err();
+        assert!(error.to_string().contains("duplicate model column 'name'"));
+    }
+
+    #[test]
+    fn mapped_columns_cannot_collide_with_an_implicit_column() {
+        assert!(crate::expand_model(quote! {
+            #[table("users")]
+            struct User {
+                #[primary_key]
+                id: u64,
+                #[column("id")]
+                external_id: u64,
+            }
+        })
+        .is_err());
+    }
 }

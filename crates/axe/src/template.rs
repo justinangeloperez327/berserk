@@ -1,6 +1,8 @@
 use crate::{escape, Context, Error, Result, Value};
 use std::fmt::Write;
 
+const MAX_TEMPLATE_DEPTH: usize = 64;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Template {
     nodes: Vec<Node>,
@@ -51,7 +53,7 @@ impl Template {
 
     fn compile_inner(source: &str) -> ParseResult<Self> {
         let mut parser = Parser::new(source);
-        let (nodes, stop) = parser.parse_nodes(&[])?;
+        let (nodes, stop) = parser.parse_nodes(&[], 0)?;
         if let Some(stop) = stop {
             return Err(parser.failure(Error::UnexpectedDirective(stop.to_owned())));
         }
@@ -187,7 +189,13 @@ impl<'source> Parser<'source> {
     fn parse_nodes(
         &mut self,
         stops: &[&'static str],
+        depth: usize,
     ) -> ParseResult<(Vec<Node>, Option<&'static str>)> {
+        if depth > MAX_TEMPLATE_DEPTH {
+            return Err(self.failure(Error::InvalidDirective(format!(
+                "template nesting exceeds {MAX_TEMPLATE_DEPTH}"
+            ))));
+        }
         let mut nodes = Vec::new();
         while self.position < self.source.len() {
             if let Some(stop) = stops
@@ -214,8 +222,8 @@ impl<'source> Parser<'source> {
             match marker {
                 "{{" => nodes.push(self.parse_echo(false)?),
                 "{!!" => nodes.push(self.parse_echo(true)?),
-                "@if(" => nodes.push(self.parse_if()?),
-                "@foreach(" => nodes.push(self.parse_foreach()?),
+                "@if(" => nodes.push(self.parse_if(depth)?),
+                "@foreach(" => nodes.push(self.parse_foreach(depth)?),
                 "@else" | "@endif" | "@endforeach" => {
                     return Err(self.failure(Error::UnexpectedDirective(marker.to_owned())));
                 }
@@ -246,7 +254,7 @@ impl<'source> Parser<'source> {
         })
     }
 
-    fn parse_if(&mut self) -> ParseResult<Node> {
+    fn parse_if(&mut self, depth: usize) -> ParseResult<Node> {
         let start = self.position;
         self.position += "@if(".len();
         let end = self.remaining().find(')').ok_or(ParseFailure {
@@ -260,7 +268,7 @@ impl<'source> Parser<'source> {
         })?;
         self.position += end + 1;
 
-        let (then_nodes, stop) = self.parse_nodes(&["@else", "@endif"])?;
+        let (then_nodes, stop) = self.parse_nodes(&["@else", "@endif"], depth + 1)?;
         match stop {
             Some("@endif") => {
                 self.position += "@endif".len();
@@ -272,7 +280,7 @@ impl<'source> Parser<'source> {
             }
             Some("@else") => {
                 self.position += "@else".len();
-                let (else_nodes, stop) = self.parse_nodes(&["@endif"])?;
+                let (else_nodes, stop) = self.parse_nodes(&["@endif"], depth + 1)?;
                 if stop != Some("@endif") {
                     return Err(ParseFailure {
                         error: Error::UnclosedDirective("@if"),
@@ -293,7 +301,7 @@ impl<'source> Parser<'source> {
         }
     }
 
-    fn parse_foreach(&mut self) -> ParseResult<Node> {
+    fn parse_foreach(&mut self, depth: usize) -> ParseResult<Node> {
         let start = self.position;
         self.position += "@foreach(".len();
         let end = self.remaining().find(')').ok_or(ParseFailure {
@@ -319,7 +327,7 @@ impl<'source> Parser<'source> {
         })?;
         self.position += end + 1;
 
-        let (nodes, stop) = self.parse_nodes(&["@endforeach"])?;
+        let (nodes, stop) = self.parse_nodes(&["@endforeach"], depth + 1)?;
         if stop != Some("@endforeach") {
             return Err(ParseFailure {
                 error: Error::UnclosedDirective("@foreach"),

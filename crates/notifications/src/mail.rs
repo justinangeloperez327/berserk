@@ -18,7 +18,13 @@ impl EmailAddress {
                 "email address is invalid",
             ));
         }
-        let (local, domain) = value.split_once('@').unwrap();
+        let (local, domain) = value.split_once('@').ok_or_else(|| {
+            NotificationError::new(
+                ErrorKind::InvalidMessage,
+                Some(Channel::Mail),
+                "email address is invalid",
+            )
+        })?;
         if local.is_empty() || domain.is_empty() || domain.starts_with('.') || domain.ends_with('.')
         {
             return Err(NotificationError::new(

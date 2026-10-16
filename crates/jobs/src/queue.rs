@@ -222,13 +222,15 @@ impl WorkerPool {
     pub fn shutdown(mut self) -> Result<ShutdownReport> {
         close(&self.queue.shared);
         let expected = self.workers.len();
+        let mut panicked = false;
         for handle in self.workers.drain(..) {
-            handle.join().map_err(|_| {
-                JobError::new(
-                    ErrorKind::HandlerPanic,
-                    "job worker panicked outside its handler boundary",
-                )
-            })?;
+            panicked |= handle.join().is_err();
+        }
+        if panicked {
+            return Err(JobError::new(
+                ErrorKind::HandlerPanic,
+                "job worker panicked outside its handler boundary",
+            ));
         }
         Ok(ShutdownReport {
             workers_joined: expected,
@@ -340,4 +342,40 @@ fn now() -> Result<u64> {
         .duration_since(UNIX_EPOCH)
         .map(|value| value.as_secs())
         .map_err(|_| JobError::new(ErrorKind::Clock, "system clock is before Unix epoch"))
+}
+
+#[cfg(test)]
+mod shutdown_tests {
+    use super::*;
+    use crate::MemoryFailedJobs;
+    use std::sync::mpsc;
+
+    #[test]
+    fn shutdown_joins_remaining_workers_after_a_worker_panics() {
+        let mut pool = WorkerPool::new(
+            QueueConfig::default(),
+            Arc::new(MemoryFailedJobs::new(1).unwrap()),
+        )
+        .unwrap();
+        pool.workers.push(thread::spawn(|| panic!("worker failed")));
+        let (release_tx, release_rx) = mpsc::channel();
+        pool.workers.push(thread::spawn(move || {
+            release_rx.recv().unwrap();
+        }));
+        let (done_tx, done_rx) = mpsc::channel();
+        let shutdown = thread::spawn(move || {
+            done_tx.send(pool.shutdown()).unwrap();
+        });
+        assert!(matches!(
+            done_rx.recv_timeout(Duration::from_millis(50)),
+            Err(mpsc::RecvTimeoutError::Timeout)
+        ));
+        release_tx.send(()).unwrap();
+        let error = done_rx
+            .recv_timeout(Duration::from_secs(5))
+            .unwrap()
+            .unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::HandlerPanic);
+        shutdown.join().unwrap();
+    }
 }

@@ -197,3 +197,75 @@ fn schedules_reject_intervals_below_clock_precision() {
     });
     assert_eq!(result.unwrap_err().kind(), ErrorKind::Configuration);
 }
+
+#[test]
+fn scheduled_factories_can_modify_the_scheduler_without_deadlocking() {
+    let scheduler = Arc::new(Scheduler::new());
+    let weak = Arc::downgrade(&scheduler);
+    let pool = WorkerPool::new(
+        QueueConfig::default(),
+        Arc::new(MemoryFailedJobs::new(8).unwrap()),
+    )
+    .unwrap();
+    let count = Arc::new(AtomicUsize::new(0));
+    let shared = Arc::clone(&count);
+    scheduler
+        .every(Duration::from_millis(1), RetryPolicy::none(), move || {
+            let scheduler = weak.upgrade().unwrap();
+            let new_id = scheduler
+                .every(Duration::from_millis(1), RetryPolicy::none(), || {
+                    CountJob(Arc::new(AtomicUsize::new(0)))
+                })
+                .unwrap();
+            assert!(scheduler.forget(new_id).unwrap());
+            CountJob(Arc::clone(&shared))
+        })
+        .unwrap();
+    let (done_tx, done_rx) = mpsc::channel();
+    std::thread::spawn(move || {
+        let report = scheduler.run_due_at(&pool.queue(), u64::MAX - 1).unwrap();
+        assert_eq!(report.dispatched, 1);
+        pool.shutdown().unwrap();
+        done_tx.send(()).unwrap();
+    });
+    done_rx
+        .recv_timeout(Duration::from_secs(5))
+        .expect("factory must not hold scheduler state lock");
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn a_panicking_factory_does_not_poison_the_scheduler_or_advance_its_deadline() {
+    let scheduler = Scheduler::new();
+    let pool = WorkerPool::new(
+        QueueConfig::default(),
+        Arc::new(MemoryFailedJobs::new(8).unwrap()),
+    )
+    .unwrap();
+    let attempts = Arc::new(AtomicUsize::new(0));
+    let shared = Arc::clone(&attempts);
+    let id = scheduler
+        .every(Duration::from_millis(1), RetryPolicy::none(), move || {
+            if shared.fetch_add(1, Ordering::SeqCst) == 0 {
+                panic!("factory failed");
+            }
+            CountJob(Arc::new(AtomicUsize::new(0)))
+        })
+        .unwrap();
+    assert_eq!(
+        scheduler
+            .run_due_at(&pool.queue(), u64::MAX - 1)
+            .unwrap_err()
+            .kind(),
+        ErrorKind::HandlerPanic
+    );
+    assert_eq!(
+        scheduler
+            .run_due_at(&pool.queue(), u64::MAX - 1)
+            .unwrap()
+            .dispatched,
+        1
+    );
+    assert!(scheduler.forget(id).unwrap());
+    pool.shutdown().unwrap();
+}

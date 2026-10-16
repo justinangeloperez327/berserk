@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Bound Axe directive nesting and reject Windows-special storage paths on all platforms.
+- Release migration locks before propagating application panics; avoid scheduler factory deadlocks and join all workers during shutdown.
+- Add fallible trace generation, reject overflowing runtime capacities/timeouts, fix out-of-range negative string indices, and remove an unnecessary memory-storage payload clone.
+- Reject duplicate derived model columns and malformed bracketed IPv6 URL authorities.
+- Update locked rustls to 0.23.46 to address four RustSec advisories.
+- Run live database and dependency-policy workflows for relevant direct pushes to main.
+
 ## 1.0.0
 
 Berserk's initial public stable release establishes the Rust web framework's application-facing APIs.

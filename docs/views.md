@@ -23,7 +23,8 @@ Axe keeps the template surface deliberately small:
 ```
 
 `{{ value }}` HTML-escapes output. `{!! value !!}` accepts only
-`SafeHtml`; ordinary strings cannot bypass escaping.
+`SafeHtml`; ordinary strings cannot bypass escaping. Conditional and loop
+directives may nest at most 64 levels; deeper templates fail compilation.
 
 ## Includes
 

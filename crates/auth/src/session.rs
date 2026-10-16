@@ -11,6 +11,10 @@ use zeroize::Zeroizing;
 pub struct SessionToken(Zeroizing<String>);
 
 impl SessionToken {
+    /// Generate a token. Prefer `try_generate` in server code.
+    ///
+    /// # Panics
+    /// Panics if operating-system randomness is unavailable.
     pub fn generate() -> Self {
         Self::try_generate().expect("operating system randomness unavailable")
     }

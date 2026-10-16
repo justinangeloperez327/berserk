@@ -1,6 +1,14 @@
 name: Live databases
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "crates/database/**"
+      - "crates/claw/**"
+      - ".github/workflows/databases.yml"
   pull_request:
     paths:
       - "Cargo.toml"

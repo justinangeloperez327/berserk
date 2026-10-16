@@ -88,3 +88,40 @@ fn rejects_overflowing_combined_request_limit() {
     };
     assert_eq!(config.validate().unwrap_err().field(), "max_body_bytes");
 }
+
+#[test]
+fn timeouts_must_fit_the_monotonic_clock() {
+    for field in ["read_timeout", "write_timeout", "request_deadline"] {
+        let mut config = ServerConfig::default();
+        match field {
+            "read_timeout" => config.read_timeout = Duration::MAX,
+            "write_timeout" => config.write_timeout = Duration::MAX,
+            "request_deadline" => config.request_deadline = Duration::MAX,
+            _ => unreachable!(),
+        }
+        assert_eq!(config.validate().unwrap_err().field(), field);
+    }
+}
+
+#[cfg(feature = "server")]
+#[test]
+fn runtime_capacity_overflows_are_configuration_errors() {
+    for (config, field) in [
+        (
+            ServerConfig {
+                workers: usize::MAX,
+                ..ServerConfig::default()
+            },
+            "workers",
+        ),
+        (
+            ServerConfig {
+                queue_capacity: usize::MAX,
+                ..ServerConfig::default()
+            },
+            "queue_capacity",
+        ),
+    ] {
+        assert_eq!(config.validate().unwrap_err().field(), field);
+    }
+}

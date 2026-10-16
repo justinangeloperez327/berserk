@@ -72,3 +72,24 @@ fn malformed_templates_fail_during_compile() {
         Error::UnclosedDirective("@if")
     );
 }
+
+#[test]
+fn template_directive_nesting_is_bounded() {
+    let mut context = Context::new().with("enabled", true);
+    context.insert("items", berserk_axe::Value::List(vec![true.into()]));
+    for (open, close) in [
+        ("@if(enabled)", "@endif"),
+        ("@foreach(item in items)", "@endforeach"),
+    ] {
+        let at_limit = format!("{}ok{}", open.repeat(64), close.repeat(64));
+        assert_eq!(
+            Template::compile(at_limit)
+                .unwrap()
+                .render(&context)
+                .unwrap(),
+            "ok"
+        );
+        let excessive = format!("{}ok{}", open.repeat(65), close.repeat(65));
+        assert!(Template::compile(excessive).is_err());
+    }
+}

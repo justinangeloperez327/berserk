@@ -4,7 +4,7 @@ use std::time::Duration;
 /// Keeps application configuration distinct from services of the same Rust type.
 pub(crate) struct Configuration<T>(pub(crate) T);
 
-/// Proposed defaults. Resource enforcement belongs to the server phase.
+/// Validated limits for request parsing, connection admission, and HTTP serving.
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
     pub workers: usize,
@@ -52,6 +52,15 @@ impl Validate for ServerConfig {
                 return Err(ConfigError::new(field, "must be greater than zero"));
             }
         }
+        #[cfg(feature = "server")]
+        for (field, value) in [
+            ("workers", self.workers),
+            ("queue_capacity", self.queue_capacity),
+        ] {
+            if value > tokio::sync::Semaphore::MAX_PERMITS {
+                return Err(ConfigError::new(field, "exceeds the runtime permit limit"));
+            }
+        }
         // Zero body bytes is valid: reject any nonempty request body.
         for (field, value) in [
             ("read_timeout", self.read_timeout),
@@ -60,6 +69,9 @@ impl Validate for ServerConfig {
         ] {
             if value.is_zero() {
                 return Err(ConfigError::new(field, "must be greater than zero"));
+            }
+            if std::time::Instant::now().checked_add(value).is_none() {
+                return Err(ConfigError::new(field, "exceeds the monotonic clock range"));
             }
         }
         if self

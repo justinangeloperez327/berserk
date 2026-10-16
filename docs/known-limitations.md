@@ -20,6 +20,8 @@ Berserk remains sync-first. Optional async actions use the framework's async ada
 
 Spawned tasks do not automatically inherit request-local database or authentication scope. Long-running work should use an appropriate job or external-worker design.
 
+Scheduler ticks dispatch a snapshot of due entries. Factories run outside the scheduler state lock and may register or forget schedules for future ticks. Concurrent or recursive ticks fail immediately; already selected entries may still dispatch after removal. Worker shutdown joins every worker before reporting a worker panic.
+
 ## Browser authentication policy
 
 The current auth component provides authentication and authorization primitives, but applications using cookie-based credentials must define appropriate Secure, HttpOnly, SameSite, rotation/revocation, and CSRF behavior. Bearer authentication and HTTP security helpers are available, but browser cookie policy remains application-defined.
@@ -30,7 +32,7 @@ The current auth component provides authentication and authorization primitives,
 
 ## Local storage trust boundary
 
-`LocalStorage` validates normalized relative paths, rejects traversal and observed symlinks, bounds operations, and uses safe write behavior where documented. Its standard-library implementation assumes the storage tree is not concurrently rewritten by an untrusted local actor.
+`StoragePath` uses portable relative names: Windows drive prefixes, alternate data streams, device names, forbidden filename characters, and trailing dots/spaces are rejected on every platform. `LocalStorage` rejects traversal and observed symlinks, bounds operations, and uses safe write behavior where documented. Its standard-library implementation assumes the storage tree is not concurrently rewritten by an untrusted local actor.
 
 ## Axe view deployment
 
@@ -68,3 +70,11 @@ v1.0.0 establishes the stable public API baseline. Breaking public API changes r
 ## Relationship boundaries
 
 `sync` and `attach_many` use one transaction and reject nesting; they do not serialize competing writers. Eager loads chunk large key lists into conservative bounded batches, but they still materialize the requested related models in memory. Paginate parents for memory and response-size control. Many-to-many queries preserve pivot rows and require qualified ambiguous columns. Joined mutations are unsupported. HasOne retains RelatedSet for compatibility. Foreign/owner key accessors remain explicit. See [relationships](relationships.md).
+
+## Fallible randomness
+
+`TraceLayer` propagates operating-system entropy failures as framework errors.
+Applications can use `TraceContext::try_generate`, `TraceContext::try_child`, and
+`SessionToken::try_generate` for fallible generation. Their existing infallible
+counterparts remain available for compatibility and may panic on entropy failure.
+Collection randomization helpers also require working operating-system entropy.

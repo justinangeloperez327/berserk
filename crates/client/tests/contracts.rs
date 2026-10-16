@@ -88,3 +88,39 @@ fn server_once(response: &'static [u8]) -> (Url, thread::JoinHandle<()>) {
         handle,
     )
 }
+
+#[test]
+fn bracketed_hosts_require_ipv6_and_unsigned_decimal_ports() {
+    for value in [
+        "http://[example.com]/",
+        "http://[127.0.0.1]/",
+        "http://[::1]:+80/",
+        "http://[::1]:/",
+        "http://[::1]extra/",
+        "http://[::1]:65536/",
+    ] {
+        assert_eq!(
+            Url::parse(value).unwrap_err().kind(),
+            ErrorKind::InvalidUrl,
+            "{value}"
+        );
+    }
+    let url = Url::parse("http://[::1]:8080/path").unwrap();
+    assert_eq!(url.host(), "::1");
+    assert_eq!(url.port(), 8080);
+}
+
+#[test]
+fn response_framing_rejects_signed_lengths_and_chunk_sizes() {
+    for wire in [
+        &b"HTTP/1.1 200 OK\r\nContent-Length: +1\r\n\r\nx"[..],
+        &b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n+1\r\nx\r\n0\r\n\r\n"[..],
+    ] {
+        let (url, server) = server_once(wire);
+        let error = TcpHttpClient::default()
+            .send(Request::new(Method::Get, url))
+            .unwrap_err();
+        assert_eq!(error.kind(), ErrorKind::MalformedResponse);
+        server.join().unwrap();
+    }
+}
